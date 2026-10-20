@@ -1,4 +1,9 @@
-function Button({ children, type = 'button', variant = 'default', ...restProps }) {
+function Button({
+  children,
+  type = 'button',
+  variant = 'default',
+  ...restProps
+}) {
   if (!['button', 'reset', 'submit'].includes(type)) {
     console.warn('type prop not supported');
   }
@@ -17,6 +22,6 @@ function Button({ children, type = 'button', variant = 'default', ...restProps }
       {children}
     </button>
   );
-};
+}
 
 export default Button;

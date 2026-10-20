@@ -1,4 +1,6 @@
-function Input({
+import FieldLabel from '../atoms/FieldLabel';
+
+function InputField({
   label,
   error = '',
   id,
@@ -10,7 +12,7 @@ function Input({
 }) {
   return (
     <div className={containerClassName || 'flex flex-col h-20'}>
-      <label htmlFor={id}>{label}:</label>
+      <FieldLabel htmlFor={id}>{label}:</FieldLabel>
       <div className="input-wrap">
         {before}
         <input
@@ -35,4 +37,4 @@ function Input({
   );
 }
 
-export default Input;
+export default InputField;

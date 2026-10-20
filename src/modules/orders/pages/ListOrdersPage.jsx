@@ -1,4 +1,4 @@
-import Card from '../../shared/components/Card';
+import Card from '../../shared/components/organisms/Card';
 
 function ListOrdersPage() {
   return (

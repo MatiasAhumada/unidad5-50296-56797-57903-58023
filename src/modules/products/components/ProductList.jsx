@@ -1,4 +1,4 @@
-import Card from '../../shared/components/Card';
+import Card from '../../shared/components/organisms/Card';
 
 function ProductList({ products }) {
   if (products.length === 0) {

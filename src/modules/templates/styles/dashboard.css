@@ -845,3 +845,12 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.dashboard-header {
+  display: contents;
+}
+@media (max-width: 700px) {
+  .dashboard-header {
+    display: block;
+  }
+}

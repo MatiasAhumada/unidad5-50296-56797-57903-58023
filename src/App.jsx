@@ -5,8 +5,8 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
 import LoginPage from './modules/auth/pages/LoginPage';
-import AdminLayout from './modules/admin/components/AdminLayout';
-import AdminDashboardPage from './modules/dashboard/pages/AdminDashboardPage';
+import Dashboard from './modules/templates/components/Dashboard';
+import AdminDashboardPage from './modules/admin/pages/AdminDashboardPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
 import ListOrdersPage from './modules/orders/pages/ListOrdersPage';
@@ -24,7 +24,7 @@ function App() {
       path: '/admin',
       element: (
         <ProtectedRoute>
-          <AdminLayout />
+          <Dashboard />
         </ProtectedRoute>
       ),
       children: [

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Input from '../../shared/components/Input';
-import useAuth from '../hook/useAuth';
+import InputField from '../../shared/components/molecules/InputField';
+import useAuth from '../hooks/useAuth';
 import { frontendErrorMessage } from '../helpers/backendError';
 
 function LoginForm() {
@@ -69,7 +69,7 @@ function LoginForm() {
         <p>Autenticá tus datos para acceder al portal administrativo.</p>
       </div>
 
-      <Input
+      <InputField
         id="username"
         name="username"
         type="text"
@@ -90,7 +90,7 @@ function LoginForm() {
         }
       />
 
-      <Input
+      <InputField
         id="password"
         name="password"
         type={isPasswordVisible ? 'text' : 'password'}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../shared/components/Button';
-import Card from '../../shared/components/Card';
+import Button from '../../shared/components/atoms/Button';
+import Card from '../../shared/components/organisms/Card';
 import ProductList from '../components/ProductList';
 import { getProducts } from '../services/list';
 
