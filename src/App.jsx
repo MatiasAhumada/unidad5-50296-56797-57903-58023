@@ -1,7 +1,6 @@
 import {
   createBrowserRouter,
   Navigate,
-  Outlet,
   RouterProvider,
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
@@ -16,24 +15,7 @@ import CreateProductPage from './modules/products/pages/CreateProductPage';
 
 function App() {
   const router = createBrowserRouter([
-    {
-      path: '/',
-      element: (
-        <>
-          <Outlet />
-        </>
-      ),
-      children: [
-        {
-          path: '/',
-          element: <>Listado de productos</>,
-        },
-        {
-          path: '/cart',
-          element: <>Carrito de compras</>,
-        },
-      ],
-    },
+    { path: '/', element: <Navigate to="/login" replace /> },
     {
       path: '/login',
       element: <LoginPage />,
