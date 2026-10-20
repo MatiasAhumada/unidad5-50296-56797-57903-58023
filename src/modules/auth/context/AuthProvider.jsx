@@ -11,7 +11,7 @@ function AuthProvider({ children }) {
   });
 
   const singout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
 
@@ -30,18 +30,15 @@ function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={ {
+      value={{
         isAuthenticated,
         singin,
         singout,
-      } }
+      }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export {
-  AuthProvider,
-  AuthContext,
-};
+export { AuthProvider, AuthContext };
