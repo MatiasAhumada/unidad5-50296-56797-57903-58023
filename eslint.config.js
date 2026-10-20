@@ -3,6 +3,7 @@ import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import { defineConfig, globalIgnores } from 'eslint/config';
+import prettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -12,6 +13,7 @@ export default defineConfig([
       js.configs.recommended,
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
+      prettierRecommended,
     ],
     languageOptions: {
       ecmaVersion: 2020,
@@ -49,7 +51,11 @@ export default defineConfig([
         'error',
         { blankLine: 'always', prev: '*', next: 'return' },
         { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
-        { blankLine: 'any', prev: ['const', 'let', 'var'], next: ['const', 'let', 'var'] },
+        {
+          blankLine: 'any',
+          prev: ['const', 'let', 'var'],
+          next: ['const', 'let', 'var'],
+        },
         { blankLine: 'always', prev: '*', next: 'if' },
         { blankLine: 'always', prev: 'if', next: '*' },
       ],
@@ -65,6 +71,7 @@ export default defineConfig([
       'comma-spacing': ['error', { before: false, after: true }],
       // regla para no tener más de un renglon vacío
       'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
+      'prettier/prettier': ['error', {}, { usePrettierrc: true }],
     },
   },
 ]);
