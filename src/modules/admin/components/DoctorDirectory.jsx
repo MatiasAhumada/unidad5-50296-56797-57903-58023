@@ -122,17 +122,9 @@ function DoctorDirectory({ onAction }) {
       <div className="directory-footer">
         <span>
           {search
-            ? `Mostrando ${visibleDoctors.length} resultado${visibleDoctors.length === 1 ? '' : 's'} de 124`
-            : 'Mostrando 1 a 3 de 124 resultados'}
+            ? `Mostrando ${visibleDoctors.length} resultado${visibleDoctors.length === 1 ? '' : 's'} de ${doctors.length}`
+            : `Mostrando 1 a ${visibleDoctors.length} de ${doctors.length} resultados`}
         </span>
-        <div className="pagination">
-          <button type="button" aria-label="Página anterior" disabled>
-            ‹
-          </button>
-          <button type="button" aria-label="Página siguiente">
-            ›
-          </button>
-        </div>
       </div>
     </section>
   );

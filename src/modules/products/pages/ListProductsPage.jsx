@@ -63,6 +63,7 @@ function ListProductsPage() {
           <h1 className="text-3xl">Productos</h1>
           <Button
             className="h-11 w-11 rounded-2xl sm:hidden"
+            aria-label={showProducts ? 'Ocultar productos' : 'Mostrar productos'}
             aria-expanded={showProducts}
             onClick={() => setShowProducts((visible) => !visible)}
           >
