@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Input from '../../shared/components/Input';
 import Button from '../../shared/components/Button';
 import useAuth from '../hook/useAuth';
 import { frontendErrorMessage } from '../helpers/backendError';
 
-function LoginForm() {
+function LoginForm({ redirectPath, title }) {
   const [errorMessage, setErrorMessage] = useState('');
   const {
     register,
@@ -15,6 +15,7 @@ function LoginForm() {
   } = useForm({ defaultValues: { username: '', password: '' } });
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { singin } = useAuth();
 
@@ -28,7 +29,11 @@ function LoginForm() {
         return;
       }
 
-      navigate('/admin/home');
+      const defaultRedirect = location.pathname.startsWith('/admin')
+        ? '/admin/home'
+        : '/appointments';
+
+      navigate(redirectPath || defaultRedirect);
     } catch (error) {
       if (error?.response?.data?.code) {
         setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
@@ -38,41 +43,56 @@ function LoginForm() {
     }
   };
 
+  const formTitle =
+    title ||
+    (location.pathname.startsWith('/admin')
+      ? 'Acceso Administración'
+      : 'Acceso Pacientes');
+
   return (
-    <form className='
+    <form
+      className="
         flex
         flex-col
-        gap-20
+        gap-6
         bg-white
         p-8
         sm:w-md
         sm:gap-4
         sm:rounded-lg
         sm:shadow-lg
-      '
-    onSubmit={handleSubmit(onValid)}
+      "
+      onSubmit={handleSubmit(onValid)}
     >
+      <h2 className="text-xl font-bold text-center text-gray-800">
+        {formTitle}
+      </h2>
       <Input
-        label='Usuario'
-        { ...register('username', {
+        label="Usuario"
+        {...register('username', {
           required: 'Usuario es obligatorio',
-        }) }
+        })}
         error={errors.username?.message}
       />
       <Input
-        label='Contraseña'
-        { ...register('password', {
+        label="Contraseña"
+        {...register('password', {
           required: 'Contraseña es obligatorio',
-        }) }
-        type='password'
+        })}
+        type="password"
         error={errors.password?.message}
       />
 
-      <Button type='submit'>Iniciar Sesión</Button>
-      <Button variant='secondary' onClick={() => alert('Debe impletar navegacion y pagina de registro')}>Registrar Usuario</Button>
-      {errorMessage && <p className='text-red-500'>{errorMessage}</p>}
+      <Button type="submit">Iniciar Sesión</Button>
+      <Button
+        variant="secondary"
+        onClick={() => alert('Debe impletar navegacion y pagina de registro')}
+      >
+        Registrar Usuario
+      </Button>
+      {errorMessage && <p className="text-red-500">{errorMessage}</p>}
     </form>
   );
-};
+}
 
 export default LoginForm;

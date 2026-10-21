@@ -12,21 +12,22 @@ function Dashboard() {
 
   const logout = () => {
     singout();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
-  const getLinkStyles = ({ isActive }) => (
+  const getLinkStyles = ({ isActive }) =>
     `
       pl-4 w-full block  pt-4 pb-4 rounded-4xl transition hover:bg-gray-100
-      ${isActive
-      ? 'bg-purple-200 hover:bg-purple-100 '
-      : ''
-    }
-    `
-  );
+      ${isActive ? 'bg-purple-200 hover:bg-purple-100 ' : ''}
+    `;
 
   const renderLogoutButton = (mobile = false) => (
-    <Button className={`${mobile ? 'block w-full sm:hidden' :  'hidden sm:block' }`} onClick={logout}>Cerrar sesión</Button>
+    <Button
+      className={`${mobile ? 'block w-full sm:hidden' : 'hidden sm:block'}`}
+      onClick={logout}
+    >
+      Cerrar sesión
+    </Button>
   );
 
   return (
@@ -54,7 +55,9 @@ function Dashboard() {
           sm:col-span-2
         "
       >
-        <span>Mi Dashboard</span>
+        <span className="font-semibold text-lg text-slate-800">
+          Centro Médico - Administración
+        </span>
         {renderLogoutButton()}
         <button
           className="
@@ -65,7 +68,9 @@ function Dashboard() {
             sm:hidden
           "
           onClick={() => setOpenMenu(!openMenu)}
-        >{ openMenu ? <span>&#215;</span> : <span>&#9776;</span>}</button>
+        >
+          {openMenu ? <span>&#215;</span> : <span>&#9776;</span>}
+        </button>
       </header>
       <aside
         className={`
@@ -87,29 +92,29 @@ function Dashboard() {
         `}
       >
         <nav>
-          <ul
-            className='flex flex-col'
-          >
+          <ul className="flex flex-col">
             <li>
-              <NavLink
-                to='/admin/home'
-                className={getLinkStyles}
-              >Principal</NavLink>
+              <NavLink to="/admin/home" className={getLinkStyles}>
+                Principal
+              </NavLink>
             </li>
             <li>
-              <NavLink
-                to='/admin/products'
-                className={getLinkStyles}
-              >Productos</NavLink>
+              <NavLink to="/admin/patients" className={getLinkStyles}>
+                Pacientes
+              </NavLink>
             </li>
             <li>
-              <NavLink
-                to='/admin/orders'
-                className={getLinkStyles}
-              >Ordenes</NavLink>
+              <NavLink to="/admin/appointments" className={getLinkStyles}>
+                Turnos Médicos
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/doctors" className={getLinkStyles}>
+                Médicos
+              </NavLink>
             </li>
           </ul>
-          <hr className='opacity-15 mt-4' />
+          <hr className="opacity-15 mt-4" />
         </nav>
         {renderLogoutButton(true)}
       </aside>
@@ -123,6 +128,6 @@ function Dashboard() {
       </main>
     </div>
   );
-};
+}
 
 export default Dashboard;

@@ -15,11 +15,13 @@ instance.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
 instance.interceptors.response.use(
-  (config) => { return config; },
+  (config) => {
+    return config;
+  },
   (error) => {
     if (error.status === 401) {
       if (window.location.pathname.includes('/admin/')) {
@@ -31,7 +33,7 @@ instance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 export { instance };

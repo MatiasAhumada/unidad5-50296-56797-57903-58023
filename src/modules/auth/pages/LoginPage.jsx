@@ -1,16 +1,18 @@
 import LoginForm from '../components/LoginForm';
 
-function LoginPage() {
+function LoginPage({ title, redirectPath }) {
   return (
-    <div className='
+    <div
+      className="
       flex
       flex-col
       justify-center
       h-[100dvh]
       bg-neutral-100
       sm:items-center
-    '>
-      <LoginForm />
+    "
+    >
+      <LoginForm title={title} redirectPath={redirectPath} />
     </div>
   );
 }

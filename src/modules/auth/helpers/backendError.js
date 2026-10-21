@@ -3,6 +3,4 @@ const frontendErrorMessage = {
   1002: 'Usuario y/o Contraseña no son correctos',
 };
 
-export {
-  frontendErrorMessage,
-};
+export { frontendErrorMessage };
