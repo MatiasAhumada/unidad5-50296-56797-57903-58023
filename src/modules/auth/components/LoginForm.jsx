@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import InputField from '../../shared/components/molecules/InputField';
+import InputField from '../../core/components/molecules/InputField';
 import useAuth from '../hooks/useAuth';
 import { frontendErrorMessage } from '../helpers/backendError';
 

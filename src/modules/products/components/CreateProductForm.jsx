@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../shared/components/atoms/Button';
-import Card from '../../shared/components/organisms/Card';
-import InputField from '../../shared/components/molecules/InputField';
+import Button from '../../core/components/atoms/Button';
+import Card from '../../core/components/organisms/Card';
+import InputField from '../../core/components/molecules/InputField';
 import { createProduct } from '../services/create';
 import { useState } from 'react';
 import { frontendErrorMessage } from '../helpers/backendError';
