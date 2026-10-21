@@ -1,4 +1,4 @@
-import { instance } from '../../shared/api/axiosInstance';
+import { instance } from '../../core/api/axiosInstance';
 
 export const createProduct = async (formData) => {
   await instance.post('/api/products', {

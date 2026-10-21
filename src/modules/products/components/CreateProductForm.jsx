@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../shared/components/Button';
-import Card from '../../shared/components/Card';
-import Input from '../../shared/components/Input';
+import Button from '../../core/components/atoms/Button';
+import Card from '../../core/components/organisms/Card';
+import InputField from '../../core/components/molecules/InputField';
 import { createProduct } from '../services/create';
 import { useState } from 'react';
 import { frontendErrorMessage } from '../helpers/backendError';
@@ -55,32 +55,32 @@ function CreateProductForm() {
         '
         onSubmit={handleSubmit(onValid)}
       >
-        <Input
+        <InputField
           label='SKU'
           error={errors.sku?.message}
           {...register('sku', {
             required: 'SKU es requerido',
           })}
         />
-        <Input
+        <InputField
           label='Código Único'
           error={errors.cui?.message}
           {...register('cui', {
             required: 'Código Único es requerido',
           })}
         />
-        <Input
+        <InputField
           label='Nombre'
           error={errors.name?.message}
           {...register('name', {
             required: 'Nombre es requerido',
           })}
         />
-        <Input
+        <InputField
           label='Descripción'
           {...register('description')}
         />
-        <Input
+        <InputField
           label='Precio'
           error={errors.price?.message}
           type='number'
@@ -91,7 +91,7 @@ function CreateProductForm() {
             },
           })}
         />
-        <Input
+        <InputField
           label='Stock'
           error={errors.stock?.message}
           {...register('stock', {
