@@ -146,7 +146,10 @@ function ListProductsPage() {
             </Button>
           </div>
           <select
-            onChange={(evt) => setStatus(evt.target.value)}
+            onChange={(evt) => {
+              setPageNumber(1);
+              setStatus(evt.target.value);
+            }}
             className="text-[1.3rem]"
           >
             <option value={productStatus.ALL}>Todos</option>
