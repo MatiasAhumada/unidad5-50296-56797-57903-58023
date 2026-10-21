@@ -53,6 +53,11 @@ function ListProductsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   const handleSearch = async () => {
+    if (pageNumber !== 1) {
+      setPageNumber(1);
+      return;
+    }
+
     await fetchProducts();
   };
 
@@ -170,10 +175,10 @@ function ListProductsPage() {
           Atras
         </button>
         <span>
-          {pageNumber} / {totalPages}
+          {pageNumber} / {Math.max(totalPages, 1)}
         </span>
         <button
-          disabled={pageNumber === totalPages}
+          disabled={pageNumber >= Math.max(totalPages, 1)}
           onClick={() => setPageNumber(pageNumber + 1)}
           className="bg-gray-200 disabled:bg-gray-100"
         >

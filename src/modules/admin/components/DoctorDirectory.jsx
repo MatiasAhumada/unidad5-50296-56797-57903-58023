@@ -30,14 +30,20 @@ const doctors = [
   },
 ];
 
+const normalizeSearchText = (value) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es');
+
 function DoctorDirectory({ onAction }) {
   const [search, setSearch] = useState('');
   const visibleDoctors = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase('es');
+    const query = normalizeSearchText(search.trim());
 
     return query
       ? doctors.filter((doctor) =>
-          doctor.searchable.toLocaleLowerCase('es').includes(query)
+          normalizeSearchText(doctor.searchable).includes(query)
         )
       : doctors;
   }, [search]);
