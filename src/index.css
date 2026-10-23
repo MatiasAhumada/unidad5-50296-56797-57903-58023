@@ -1,10 +1,43 @@
 @import 'tailwindcss';
 
+@theme {
+  /* Azules Institucionales Médicos */
+  --color-med-primary-950: #062644;
+  --color-med-primary-900: #0b385e;
+  --color-med-primary-800: #092f4f;
+  --color-med-primary-700: #0f4c81;
+  --color-med-primary-600: #0e5b8e;
+  --color-med-primary-500: #1d70b8;
+  --color-med-primary-200: #c2e0f8;
+  --color-med-primary-100: #e0f2fe;
+  --color-med-primary-50: #eef7fc;
+
+  /* Superficies y Fondos */
+  --color-med-bg: #f4f7fb;
+  --color-med-card: #ffffff;
+  --color-med-border: #e2e8f0;
+  --color-med-border-subtle: #edf2f7;
+
+  /* Tipografía */
+  --color-med-text-main: #0f2438;
+  --color-med-text-sub: #4b5e71;
+  --color-med-text-muted: #8c9dae;
+
+  /* Estados Funcionales */
+  --color-med-active-bg: #ddf8ef;
+  --color-med-active-text: #0e775a;
+  --color-med-leave-bg: #fef3c7;
+  --color-med-leave-text: #b45309;
+  --color-med-danger-bg: #fee2e2;
+  --color-med-danger-text: #dc2626;
+}
+
 @layer base {
   body {
-    @apply m-0 text-[2rem] h-[100dvh] sm:text-base bg-gray-100;
+    @apply m-0 text-sm sm:text-base bg-med-bg text-med-text-main font-sans antialiased;
+    min-height: 100dvh;
   }
   #root {
-    @apply h-[100dvh];
+    min-height: 100dvh;
   }
 }

@@ -4,17 +4,25 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
-import PatientLoginPage from './modules/patients/pages/PatientLoginPage';
-import AdminLoginPage from './modules/admin/pages/AdminLoginPage';
-import Dashboard from './modules/templates/components/Dashboard';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
-import Home from './modules/home/pages/Home';
-import PatientsAdmin from './modules/admin/pages/PatientsAdmin';
-import AppointmentsAdmin from './modules/admin/pages/AppointmentsAdmin';
-import DoctorsAdmin from './modules/admin/pages/DoctorsAdmin';
+
+// Auth Module
+import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
+
+// Patients Module
+import PatientLoginPage from './modules/patients/pages/PatientLoginPage';
 import PatientLayout from './modules/patients/components/PatientLayout';
 import PatientHome from './modules/patients/pages/PatientHome';
 import AppointmentsPage from './modules/patients/pages/AppointmentsPage';
+
+// Dashboard Module
+import DashboardLayout from './modules/dashboard/components/DashboardLayout';
+import OverviewPage from './modules/dashboard/pages/OverviewPage';
+
+// Domain Modules (Screaming Architecture)
+import DoctorsPage from './modules/doctors/pages/DoctorsPage';
+import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
+import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
 
 const routes = [
   // Rutas públicas
@@ -47,12 +55,12 @@ const routes = [
     ],
   },
 
-  // Rutas privadas de administración del centro médico
+  // Rutas privadas de gestión clínica y administración
   {
     path: '/admin',
     element: (
       <ProtectedRoute redirectTo="/admin/login">
-        <Dashboard />
+        <DashboardLayout />
       </ProtectedRoute>
     ),
     children: [
@@ -62,19 +70,27 @@ const routes = [
       },
       {
         path: 'home',
-        element: <Home />,
+        element: <OverviewPage />,
       },
       {
         path: 'patients',
-        element: <PatientsAdmin />,
+        element: <AppointmentsSearchPage />,
+      },
+      {
+        path: 'patient-search',
+        element: <AppointmentsSearchPage />,
       },
       {
         path: 'appointments',
-        element: <AppointmentsAdmin />,
+        element: <Navigate to="/admin/patients" replace />,
+      },
+      {
+        path: 'specialties',
+        element: <SpecialtiesPage />,
       },
       {
         path: 'doctors',
-        element: <DoctorsAdmin />,
+        element: <DoctorsPage />,
       },
     ],
   },

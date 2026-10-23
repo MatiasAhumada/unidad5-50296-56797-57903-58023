@@ -2,7 +2,9 @@ import { instance } from '../../shared/api/axiosInstance';
 
 export const loginPatient = async (username, password) => {
   if (
-    (username === 'paciente' || username === 'paciente@test.com') &&
+    (username === 'paciente' ||
+      username === 'paciente@medportal.com' ||
+      username === 'paciente@test.com') &&
     password === 'paciente123'
   ) {
     return { data: 'mock-patient-token-67890', error: null };

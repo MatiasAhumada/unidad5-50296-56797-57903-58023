@@ -35,7 +35,12 @@ function AuthProvider({ children }) {
   };
 
   const singinAdmin = async (username, password) => {
-    if (username === 'admin' && password === 'admin123') {
+    if (
+      (username === 'admin' ||
+        username === 'admin@medportal.com' ||
+        username === 'admin@test.com') &&
+      password === 'admin123'
+    ) {
       setAuthSession('mock-admin-token-12345');
 
       return { error: null };
@@ -54,7 +59,9 @@ function AuthProvider({ children }) {
 
   const singinPatient = async (username, password) => {
     if (
-      (username === 'paciente' || username === 'paciente@test.com') &&
+      (username === 'paciente' ||
+        username === 'paciente@medportal.com' ||
+        username === 'paciente@test.com') &&
       password === 'paciente123'
     ) {
       setAuthSession('mock-patient-token-67890');
