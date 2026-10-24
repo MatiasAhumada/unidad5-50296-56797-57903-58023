@@ -1,8 +1,8 @@
 function Header({ menuOpen, onMenuToggle }) {
   return (
-    <header className="contents max-md:block">
+    <header className="block md:contents">
       <button
-        className="hidden border-0 bg-transparent p-[6px] text-[#052f5d] max-md:mb-[22px] max-md:mt-[-9px] max-md:-ml-[7px] max-md:flex max-md:items-center max-md:gap-2"
+        className="mb-[22px] mt-[-9px] -ml-[7px] flex items-center gap-2 border-0 bg-transparent p-[6px] text-[#052f5d] md:hidden"
         type="button"
         aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
         aria-controls="admin-navigation"

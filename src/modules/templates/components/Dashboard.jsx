@@ -34,7 +34,7 @@ function Dashboard() {
         onClose={() => setMenuOpen(false)}
         onLogout={logout}
       />
-      <main className="ml-[236px] min-h-dvh w-[calc(100%-236px)] bg-[linear-gradient(135deg,#f8fcfe_0%,#edf6fb_100%)] max-md:ml-0 max-md:w-full">
+      <main className="ml-0 min-h-dvh w-full bg-[linear-gradient(135deg,#f8fcfe_0%,#edf6fb_100%)] md:ml-[236px] md:w-[calc(100%-236px)]">
         <div className="mx-auto max-w-[1220px] px-[18px] pt-[27px] pb-[45px] md:px-[25px] md:pt-8 md:pb-[52px] lg:px-[42px] lg:pt-12 lg:pb-[62px]">
           <Header
             menuOpen={menuOpen}
