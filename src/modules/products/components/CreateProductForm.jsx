@@ -45,14 +45,7 @@ function CreateProductForm() {
   return (
     <Card>
       <form
-        className='
-          flex
-          flex-col
-          gap-20
-          p-8
-
-          sm:gap-4
-        '
+        className='flex flex-col gap-20 p-8 sm:gap-4'
         onSubmit={handleSubmit(onValid)}
       >
         <InputField

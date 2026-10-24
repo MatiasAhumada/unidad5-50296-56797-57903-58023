@@ -72,7 +72,7 @@ function ListProductsPage() {
             aria-expanded={showProducts}
             onClick={() => setShowProducts((visible) => !visible)}
           >
-            <svg
+            <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]"
               viewBox="0 0 20 20"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -118,10 +118,10 @@ function ListProductsPage() {
               onChange={(evt) => setSearchTerm(evt.target.value)}
               type="text"
               placeholder="Buscar"
-              className="text-[1.3rem] w-full"
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-[1.3rem]"
             />
             <Button className="h-11 w-11" onClick={handleSearch}>
-              <svg
+              <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +150,7 @@ function ListProductsPage() {
               setPageNumber(1);
               setStatus(evt.target.value);
             }}
-            className="text-[1.3rem]"
+            className="rounded-md border border-gray-300 bg-white p-2 text-[1.3rem]"
           >
             <option value={productStatus.ALL}>Todos</option>
             <option value={productStatus.ENABLED}>Habilitados</option>
@@ -173,7 +173,7 @@ function ListProductsPage() {
         <button
           disabled={pageNumber === 1}
           onClick={() => setPageNumber(pageNumber - 1)}
-          className="bg-gray-200 disabled:bg-gray-100"
+          className="rounded-md bg-gray-200 px-3 py-2 disabled:bg-gray-100"
         >
           Atras
         </button>
@@ -183,7 +183,7 @@ function ListProductsPage() {
         <button
           disabled={pageNumber >= Math.max(totalPages, 1)}
           onClick={() => setPageNumber(pageNumber + 1)}
-          className="bg-gray-200 disabled:bg-gray-100"
+          className="rounded-md bg-gray-200 px-3 py-2 disabled:bg-gray-100"
         >
           Siguiente
         </button>

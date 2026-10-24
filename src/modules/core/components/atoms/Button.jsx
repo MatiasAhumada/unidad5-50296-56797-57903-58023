@@ -9,14 +9,14 @@ function Button({
   }
 
   const variantStyle = {
-    default: 'bg-purple-200 hover:bg-purple-300 transition',
-    secondary: 'bg-gray-100 hover:bg-gray-200 transition',
+    default: 'bg-purple-200 hover:bg-purple-300',
+    secondary: 'bg-gray-100 hover:bg-gray-200',
   };
 
   return (
     <button
       {...restProps}
-      className={`${variantStyle[variant]} ${restProps.className}`}
+      className={`inline-flex min-h-10 items-center justify-center rounded-md border-0 px-3 py-2 text-sm font-medium shadow-sm transition ${variantStyle[variant]} ${restProps.className || ''}`}
       type={type}
     >
       {children}
