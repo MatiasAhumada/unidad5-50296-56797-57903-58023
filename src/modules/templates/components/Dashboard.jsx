@@ -3,7 +3,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hooks/useAuth';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import '../styles/dashboard.css';
 
 function Dashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,9 +20,9 @@ function Dashboard() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="flex min-h-dvh bg-[#eef5f9] text-[15px] text-[#263d54]">
       <button
-        className={`mobile-scrim${menuOpen ? ' is-visible' : ''}`}
+        className={`pointer-events-none fixed inset-0 z-10 bg-[rgba(2,26,46,.42)] opacity-0 transition-opacity duration-[250ms] md:hidden ${menuOpen ? 'pointer-events-auto opacity-100' : ''}`}
         type="button"
         aria-label="Cerrar menú"
         aria-hidden={!menuOpen}
@@ -35,8 +34,8 @@ function Dashboard() {
         onClose={() => setMenuOpen(false)}
         onLogout={logout}
       />
-      <main className="main-content">
-        <div className="content-wrap">
+      <main className="ml-[236px] min-h-dvh w-[calc(100%-236px)] bg-[linear-gradient(135deg,#f8fcfe_0%,#edf6fb_100%)] max-md:ml-0 max-md:w-full">
+        <div className="mx-auto max-w-[1220px] px-[18px] pt-[27px] pb-[45px] md:px-[25px] md:pt-8 md:pb-[52px] lg:px-[42px] lg:pt-12 lg:pb-[62px]">
           <Header
             menuOpen={menuOpen}
             onMenuToggle={() => setMenuOpen((isOpen) => !isOpen)}
