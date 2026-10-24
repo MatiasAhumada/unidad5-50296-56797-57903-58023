@@ -1,5 +1,4 @@
 import { createContext, useState } from 'react';
-import { login } from '../services/login';
 
 const AuthContext = createContext();
 
@@ -15,14 +14,16 @@ function AuthProvider({ children }) {
     setIsAuthenticated(false);
   };
 
-  const singin = async (username, password) => {
-    const { data, error } = await login(username, password);
-
-    if (error) {
-      return { error };
+  const singin = (username, password) => {
+    if (username !== 'admin' || password !== 'password') {
+      return {
+        error: {
+          frontendErrorMessage: 'El usuario o la contraseña no son correctos.',
+        },
+      };
     }
 
-    localStorage.setItem('token', data);
+    localStorage.setItem('token', 'mock-admin-session');
     setIsAuthenticated(true);
 
     return { error: null };
