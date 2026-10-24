@@ -124,19 +124,19 @@ function SpecialtiesPage() {
 
   return (
     <>
-      <div className="specialty-listing">
-        <section className="page-heading">
+      <div>
+        <section className="mb-[26px] flex flex-col items-start justify-between gap-[25px] lg:flex-row lg:items-end">
           <div>
-            <p className="section-kicker">Administración médica</p>
-            <h1>Directorio de especialidades</h1>
-            <p>
+            <p className="mb-[7px] mt-0 text-[11px] font-bold tracking-[.12em] text-[#7e91a2] uppercase">Administración médica</p>
+            <h1 className="m-0 font-[Manrope,sans-serif] text-[clamp(28px,3vw,35px)] leading-[1.2] tracking-[-.055em] text-[#052f5d]">Directorio de especialidades</h1>
+            <p className="mt-[9px] mb-0 text-sm text-[#718193]">
               Administrá las categorías médicas, los servicios y su
               disponibilidad.
             </p>
           </div>
-          <div className="heading-actions">
-            <label className="search-box" htmlFor="specialty-search">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
+          <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:w-auto">
+            <label className="flex h-[39px] w-full items-center gap-2 rounded-[3px] border border-[#c7e4f2] bg-[#e5f5fd] px-[11px] text-[#52738a] sm:w-[220px]" htmlFor="specialty-search">
+              <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="6.5" />
                 <path d="m16 16 5 5" />
               </svg>
@@ -152,7 +152,7 @@ function SpecialtiesPage() {
               />
             </label>
             <button
-              className="button button--primary"
+              className="inline-flex min-h-[45px] items-center justify-center gap-2 whitespace-nowrap rounded-[5px] px-[17px] text-[12px] font-bold tracking-[.01em] transition hover:-translate-y-px hover:shadow-[0_7px_13px_rgba(8,59,99,.14)] border border-[#052f5d] bg-[#052f5d] text-white"
               type="button"
               onClick={openNewForm}
             >
@@ -161,19 +161,19 @@ function SpecialtiesPage() {
           </div>
         </section>
 
-        <section className="directory-card" aria-labelledby="specialties-title">
-          <div className="directory-header">
+        <section className="overflow-hidden rounded-[5px] border border-[#cfdae3] bg-[rgba(255,255,255,.85)] shadow-[0_8px_25px_rgba(27,70,96,.035)]" aria-labelledby="specialties-title">
+          <div className="flex min-h-[70px] flex-col items-start justify-between gap-[15px] border-b border-[#cfdae3] px-[15px] pt-[15px] pb-3 sm:flex-row sm:items-center">
             <div>
-              <p className="section-kicker">Catálogo</p>
-              <h2 id="specialties-title">Especialidades</h2>
+              <p className="mb-[7px] mt-0 hidden text-[11px] font-bold tracking-[.12em] text-[#7e91a2] uppercase">Catálogo</p>
+              <h2 className="m-0 font-[Manrope,sans-serif] text-[17px] tracking-[-.025em] text-[#052f5d]" id="specialties-title">Especialidades</h2>
             </div>
           </div>
           {loadError ? (
-            <p className="directory-message" role="alert">
+            <p className="px-[15px] py-6 text-xs text-[#536476]" role="alert">
               {loadError}
             </p>
           ) : loading ? (
-            <p className="directory-message" role="status">
+            <p className="px-[15px] py-6 text-xs text-[#536476]" role="status">
               Cargando especialidades...
             </p>
           ) : (
@@ -183,14 +183,14 @@ function SpecialtiesPage() {
               onDelete={deleteSpecialty}
             />
           )}
-          <div className="directory-footer">
+          <div className="flex min-h-[52px] items-center justify-between border-t border-[#d3e0e7] bg-[#e4f5fd] px-[15px] text-[10px] text-[#728394]">
             <span>
               {loading
                 ? 'Cargando...'
                 : `Mostrando ${filteredSpecialties.length === 0 ? 0 : start + 1} a ${Math.min(start + PAGE_SIZE, filteredSpecialties.length)} de ${filteredSpecialties.length}`}
             </span>
-            <div className="pagination">
-              <button
+            <div className="flex gap-1">
+              <button className="grid h-[23px] w-[23px] place-items-center rounded-[2px] border border-[#c9dfe9] bg-[rgba(255,255,255,.35)] text-[16px] leading-none text-[#375d76] disabled:cursor-not-allowed disabled:opacity-45 hover:bg-white"
                 type="button"
                 aria-label="Página anterior"
                 disabled={currentPage <= 1}
@@ -198,7 +198,7 @@ function SpecialtiesPage() {
               >
                 ‹
               </button>
-              <button
+              <button className="grid h-[23px] w-[23px] place-items-center rounded-[2px] border border-[#c9dfe9] bg-[rgba(255,255,255,.35)] text-[16px] leading-none text-[#375d76] disabled:cursor-not-allowed disabled:opacity-45 hover:bg-white"
                 type="button"
                 aria-label="Página siguiente"
                 disabled={currentPage >= totalPages}
@@ -213,46 +213,46 @@ function SpecialtiesPage() {
         </section>
 
         <section
-          className="stats-grid specialty-stats"
+          className="mb-[25px] grid grid-cols-1 gap-[14px] md:grid-cols-3 mt-[22px]"
           aria-label="Resumen de especialidades"
         >
-          <article className="stat-card">
-            <div className="stat-card__top">
-              <span className="stat-icon stat-icon--blue">
-                <svg viewBox="0 0 24 24">
+          <article className="min-h-[105px] rounded-[5px] border border-[#cfdae3] bg-[rgba(255,255,255,.76)] px-[15px] pt-[15px] pb-[14px] shadow-[0_6px_20px_rgba(24,65,91,.025)] md:min-h-[120px]">
+            <div className="flex min-h-10 items-start justify-between">
+              <span className="grid h-[31px] w-[31px] place-items-center rounded-[9px] bg-[#f0f5fa] text-[#093d78]">
+                <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]" viewBox="0 0 24 24">
                   <path d="M6 18V8M12 18V6M18 18v-9" />
                 </svg>
               </span>
-              <span className="trend trend--up">Catálogo</span>
+              <span className="rounded-[3px] bg-[#effcf9] px-[7px] py-1 text-[10px] font-bold text-[#13a695]">Catálogo</span>
             </div>
-            <p>Total de especialidades</p>
-            <strong>{specialties.length}</strong>
+            <p className="mt-0 mb-[5px] text-xs font-semibold uppercase text-[#354b61]">Total de especialidades</p>
+            <strong className="font-[Manrope,sans-serif] text-[23px] tracking-[-.04em] text-[#052f5d]">{specialties.length}</strong>
           </article>
-          <article className="stat-card">
-            <div className="stat-card__top">
-              <span className="stat-icon stat-icon--cyan">
-                <svg viewBox="0 0 24 24">
+          <article className="min-h-[105px] rounded-[5px] border border-[#cfdae3] bg-[rgba(255,255,255,.76)] px-[15px] pt-[15px] pb-[14px] shadow-[0_6px_20px_rgba(24,65,91,.025)] md:min-h-[120px]">
+            <div className="flex min-h-10 items-start justify-between">
+              <span className="grid h-[31px] w-[31px] place-items-center rounded-[9px] bg-[#edf8fc] text-[#0780b8]">
+                <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]" viewBox="0 0 24 24">
                   <path d="M8 17V7.5A2.5 2.5 0 0 1 10.5 5h3A2.5 2.5 0 0 1 16 7.5V17M6 12h12" />
                 </svg>
               </span>
-              <span className="trend trend--today">Más demandada</span>
+              <span className="rounded-[3px] bg-[#eef4ff] px-[7px] py-1 text-[10px] font-bold text-[#2978da]">Más demandada</span>
             </div>
-            <p>Especialidad destacada</p>
-            <strong>Cardiología</strong>
+            <p className="mt-0 mb-[5px] text-xs font-semibold uppercase text-[#354b61]">Especialidad destacada</p>
+            <strong className="font-[Manrope,sans-serif] text-[23px] tracking-[-.04em] text-[#052f5d]">Cardiología</strong>
           </article>
-          <article className="stat-card">
-            <div className="stat-card__top">
-              <span className="stat-icon stat-icon--green">
-                <svg viewBox="0 0 24 24">
+          <article className="min-h-[105px] rounded-[5px] border border-[#cfdae3] bg-[rgba(255,255,255,.76)] px-[15px] pt-[15px] pb-[14px] shadow-[0_6px_20px_rgba(24,65,91,.025)] md:min-h-[120px]">
+            <div className="flex min-h-10 items-start justify-between">
+              <span className="grid h-[31px] w-[31px] place-items-center rounded-[9px] bg-[#f0f8f5] text-[#197866]">
+                <svg className="h-4 w-4 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.55]" viewBox="0 0 24 24">
                   <path d="M12 4v16M4 12h16" />
                 </svg>
               </span>
-              <span className="trend trend--up">
+              <span className="rounded-[3px] bg-[#effcf9] px-[7px] py-1 text-[10px] font-bold text-[#13a695]">
                 {String(newThisMonth.length).padStart(2, '0')}
               </span>
             </div>
-            <p>Nuevas este mes</p>
-            <strong>
+            <p className="mt-0 mb-[5px] text-xs font-semibold uppercase text-[#354b61]">Nuevas este mes</p>
+            <strong className="font-[Manrope,sans-serif] text-[23px] tracking-[-.04em] text-[#052f5d]">
               {newThisMonth.length ? newThisMonth.at(-1).name : 'Sin nuevas'}
             </strong>
           </article>
