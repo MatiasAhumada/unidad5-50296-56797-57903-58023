@@ -36,7 +36,16 @@ export default defineConfig([
       // regla para el uso de punto y coma al final de las líneas
       'semi-style': ['error', 'last'],
       // regla para el uso de comas finales en objetos y arrays
-      'comma-dangle': ['error', 'always-multiline'],
+      'comma-dangle': [
+        'error',
+        {
+          arrays: 'always-multiline',
+          objects: 'always-multiline',
+          imports: 'always-multiline',
+          exports: 'always-multiline',
+          functions: 'never',
+        },
+      ],
       // regla para el espacio antes y después de los corchetes en objetos y arrays
       'object-curly-spacing': ['error', 'always'],
       // regla para el espacio antes y después de los paréntesis en funciones
