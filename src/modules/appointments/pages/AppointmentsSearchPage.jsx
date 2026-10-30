@@ -5,6 +5,20 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 
+const specialtyFilterOptions = [
+  { value: 'Todas', label: 'Todas las Especialidades' },
+  { value: 'Cardiology', label: 'Cardiology' },
+  { value: 'Neurology', label: 'Neurology' },
+  { value: 'General Checkup', label: 'General Checkup' },
+];
+
+const doctorFilterOptions = [
+  { value: 'Todos', label: 'Todos los Doctores' },
+  { value: 'Dr. Robert Smith', label: 'Dr. Robert Smith' },
+  { value: 'Dra. Garcia', label: 'Dra. Garcia' },
+  { value: 'Dr. Miller', label: 'Dr. Miller' },
+];
+
 function AppointmentsSearchPage() {
   const [patientQuery, setPatientQuery] = useState('Johnathan Doe');
   const [specialtyFilter, setSpecialtyFilter] = useState('Todas');
@@ -179,13 +193,9 @@ function AppointmentsSearchPage() {
                 value={specialtyFilter}
                 onChange={(event) => setSpecialtyFilter(event.target.value)}
                 className="px-3 py-2 text-xs"
+                options={specialtyFilterOptions}
                 {...fieldProps}
-              >
-                <option value="Todas">Todas las Especialidades</option>
-                <option value="Cardiology">Cardiology</option>
-                <option value="Neurology">Neurology</option>
-                <option value="General Checkup">General Checkup</option>
-              </Select>
+              />
             )}
           </FormField>
 
@@ -200,13 +210,9 @@ function AppointmentsSearchPage() {
                 value={doctorFilter}
                 onChange={(event) => setDoctorFilter(event.target.value)}
                 className="px-3 py-2 text-xs"
+                options={doctorFilterOptions}
                 {...fieldProps}
-              >
-                <option value="Todos">Todos los Doctores</option>
-                <option value="Dr. Robert Smith">Dr. Robert Smith</option>
-                <option value="Dra. Garcia">Dra. Garcia</option>
-                <option value="Dr. Miller">Dr. Miller</option>
-              </Select>
+              />
             )}
           </FormField>
 

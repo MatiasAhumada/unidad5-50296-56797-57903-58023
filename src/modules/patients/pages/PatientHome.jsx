@@ -5,6 +5,14 @@ import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Select from '../../shared/components/Select';
 
+const specialtyOptions = [
+  { value: 'Cardiología', label: 'Cardiología' },
+  { value: 'Pediatría', label: 'Pediatría' },
+  { value: 'Neurología', label: 'Neurología' },
+  { value: 'Dermatología', label: 'Dermatología' },
+  { value: 'Medicina General', label: 'Medicina General' },
+];
+
 function PatientHome() {
   const navigate = useNavigate();
 
@@ -116,14 +124,9 @@ function PatientHome() {
                   value={selectedSpecialty}
                   onChange={(event) => setSelectedSpecialty(event.target.value)}
                   className="appearance-none pr-10 cursor-pointer"
+                  options={specialtyOptions}
                   {...fieldProps}
-                >
-                  <option value="Cardiología">Cardiología</option>
-                  <option value="Pediatría">Pediatría</option>
-                  <option value="Neurología">Neurología</option>
-                  <option value="Dermatología">Dermatología</option>
-                  <option value="Medicina General">Medicina General</option>
-                </Select>
+                />
                 <span
                   className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
                   aria-hidden="true"
@@ -147,14 +150,12 @@ function PatientHome() {
                   value={selectedDoctorId}
                   onChange={(event) => setSelectedDoctorId(event.target.value)}
                   className="appearance-none pr-10 cursor-pointer"
+                  options={doctorsList.map((doctor) => ({
+                    value: doctor.id,
+                    label: doctor.name,
+                  }))}
                   {...fieldProps}
-                >
-                  {doctorsList.map((doc) => (
-                    <option key={doc.id} value={doc.id}>
-                      {doc.name}
-                    </option>
-                  ))}
-                </Select>
+                />
                 <span
                   className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
                   aria-hidden="true"
