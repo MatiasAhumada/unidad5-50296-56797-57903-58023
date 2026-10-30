@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
 
 function SpecialtiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,28 +120,43 @@ function SpecialtiesPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Buscador */}
           <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar especialidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-med-border rounded-lg text-med-text-main placeholder-med-text-muted focus:outline-none focus:ring-1 focus:ring-med-primary-600"
-            />
+            <FormField
+              id="searchTerm"
+              label="Buscar especialidades"
+              labelClassName="sr-only"
+            >
+              {(fieldProps) => (
+                <div className="relative">
+                  <span
+                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </span>
+                  <Input
+                    id="searchTerm"
+                    type="text"
+                    placeholder="Buscar especialidad..."
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="pl-9 pr-3 py-2 text-xs"
+                    {...fieldProps}
+                  />
+                </div>
+              )}
+            </FormField>
           </div>
 
           {/* Botón Nueva Especialidad */}

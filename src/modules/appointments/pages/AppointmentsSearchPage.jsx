@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
+import Select from '../../shared/components/Select';
+
+const specialtyFilterOptions = [
+  { value: 'Todas', label: 'Todas las Especialidades' },
+  { value: 'Cardiology', label: 'Cardiology' },
+  { value: 'Neurology', label: 'Neurology' },
+  { value: 'General Checkup', label: 'General Checkup' },
+];
+
+const doctorFilterOptions = [
+  { value: 'Todos', label: 'Todos los Doctores' },
+  { value: 'Dr. Robert Smith', label: 'Dr. Robert Smith' },
+  { value: 'Dra. Garcia', label: 'Dra. Garcia' },
+  { value: 'Dr. Miller', label: 'Dr. Miller' },
+];
 
 function AppointmentsSearchPage() {
   const [patientQuery, setPatientQuery] = useState('Johnathan Doe');
@@ -127,83 +144,94 @@ function AppointmentsSearchPage() {
 
         {/* Inputs de Filtros */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4 items-end">
-          {/* Nombre o DNI */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Nombre o DNI del Paciente
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          <FormField
+            id="appointment-patient-query"
+            label="Nombre o DNI del Paciente"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <div className="relative">
+                <span
+                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                  aria-hidden="true"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </span>
-              <input
-                type="text"
-                value={patientQuery}
-                onChange={(e) => setPatientQuery(e.target.value)}
-                placeholder="Nombre o DNI..."
-                className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-med-border rounded-lg text-med-text-main placeholder-med-text-muted focus:outline-none focus:ring-1 focus:ring-med-primary-600"
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </span>
+                <Input
+                  id="appointment-patient-query"
+                  type="text"
+                  placeholder="Nombre o DNI..."
+                  value={patientQuery}
+                  onChange={(event) => setPatientQuery(event.target.value)}
+                  className="pl-9 pr-3 py-2 text-xs"
+                  {...fieldProps}
+                />
+              </div>
+            )}
+          </FormField>
+
+          <FormField
+            id="appointment-specialty-filter"
+            label="Especialidad"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <Select
+                id="appointment-specialty-filter"
+                value={specialtyFilter}
+                onChange={(event) => setSpecialtyFilter(event.target.value)}
+                className="px-3 py-2 text-xs"
+                options={specialtyFilterOptions}
+                {...fieldProps}
               />
-            </div>
-          </div>
+            )}
+          </FormField>
 
-          {/* Especialidad */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Especialidad
-            </label>
-            <select
-              value={specialtyFilter}
-              onChange={(e) => setSpecialtyFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white border border-med-border rounded-lg text-med-text-main focus:outline-none focus:ring-1 focus:ring-med-primary-600"
-            >
-              <option value="Todas">Todas las Especialidades</option>
-              <option value="Cardiology">Cardiology</option>
-              <option value="Neurology">Neurology</option>
-              <option value="General Checkup">General Checkup</option>
-            </select>
-          </div>
+          <FormField
+            id="appointment-doctor-filter"
+            label="Doctor"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <Select
+                id="appointment-doctor-filter"
+                value={doctorFilter}
+                onChange={(event) => setDoctorFilter(event.target.value)}
+                className="px-3 py-2 text-xs"
+                options={doctorFilterOptions}
+                {...fieldProps}
+              />
+            )}
+          </FormField>
 
-          {/* Doctor */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Doctor
-            </label>
-            <select
-              value={doctorFilter}
-              onChange={(e) => setDoctorFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white border border-med-border rounded-lg text-med-text-main focus:outline-none focus:ring-1 focus:ring-med-primary-600"
-            >
-              <option value="Todos">Todos los Doctores</option>
-              <option value="Dr. Robert Smith">Dr. Robert Smith</option>
-              <option value="Dra. Garcia">Dra. Garcia</option>
-              <option value="Dr. Miller">Dr. Miller</option>
-            </select>
-          </div>
-
-          {/* Fecha */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Fecha
-            </label>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white border border-med-border rounded-lg text-med-text-main focus:outline-none focus:ring-1 focus:ring-med-primary-600"
-            />
-          </div>
+          <FormField
+            id="appointment-date-filter"
+            label="Fecha"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <Input
+                id="appointment-date-filter"
+                type="date"
+                value={dateFilter}
+                onChange={(event) => setDateFilter(event.target.value)}
+                className="px-3 py-2 text-xs"
+                {...fieldProps}
+              />
+            )}
+          </FormField>
 
           {/* Botón Aplicar Filtros */}
           <div>
