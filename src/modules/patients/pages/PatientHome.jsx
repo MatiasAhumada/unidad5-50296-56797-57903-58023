@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
+import Select from '../../shared/components/Select';
 
 function PatientHome() {
   const navigate = useNavigate();
@@ -101,51 +103,67 @@ function PatientHome() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          {/* Especialidad */}
-          <div className="md:col-span-5 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Seleccionar Especialidad
-            </label>
-            <div className="relative">
-              <select
-                value={selectedSpecialty}
-                onChange={(e) => setSelectedSpecialty(e.target.value)}
-                className="w-full appearance-none px-3.5 py-2.5 text-sm bg-white border border-med-border rounded-lg text-med-text-main focus:outline-none focus:ring-2 focus:ring-med-primary-600 pr-10 cursor-pointer"
-              >
-                <option value="Cardiología">Cardiología</option>
-                <option value="Pediatría">Pediatría</option>
-                <option value="Neurología">Neurología</option>
-                <option value="Dermatología">Dermatología</option>
-                <option value="Medicina General">Medicina General</option>
-              </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted">
-                ▼
-              </span>
-            </div>
-          </div>
+          <FormField
+            id="patient-specialty"
+            label="Seleccionar Especialidad"
+            className="md:col-span-5"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <div className="relative">
+                <Select
+                  id="patient-specialty"
+                  value={selectedSpecialty}
+                  onChange={(event) => setSelectedSpecialty(event.target.value)}
+                  className="appearance-none pr-10 cursor-pointer"
+                  {...fieldProps}
+                >
+                  <option value="Cardiología">Cardiología</option>
+                  <option value="Pediatría">Pediatría</option>
+                  <option value="Neurología">Neurología</option>
+                  <option value="Dermatología">Dermatología</option>
+                  <option value="Medicina General">Medicina General</option>
+                </Select>
+                <span
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
+                  aria-hidden="true"
+                >
+                  ▼
+                </span>
+              </div>
+            )}
+          </FormField>
 
-          {/* Doctor */}
-          <div className="md:col-span-4 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-med-text-sub">
-              Seleccionar Doctor
-            </label>
-            <div className="relative">
-              <select
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                className="w-full appearance-none px-3.5 py-2.5 text-sm bg-white border border-med-border rounded-lg text-med-text-main focus:outline-none focus:ring-2 focus:ring-med-primary-600 pr-10 cursor-pointer"
-              >
-                {doctorsList.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.name}
-                  </option>
-                ))}
-              </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted">
-                ▼
-              </span>
-            </div>
-          </div>
+          <FormField
+            id="patient-doctor"
+            label="Seleccionar Doctor"
+            className="md:col-span-4"
+            labelClassName="text-xs font-semibold text-med-text-sub"
+          >
+            {(fieldProps) => (
+              <div className="relative">
+                <Select
+                  id="patient-doctor"
+                  value={selectedDoctorId}
+                  onChange={(event) => setSelectedDoctorId(event.target.value)}
+                  className="appearance-none pr-10 cursor-pointer"
+                  {...fieldProps}
+                >
+                  {doctorsList.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.name}
+                    </option>
+                  ))}
+                </Select>
+                <span
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
+                  aria-hidden="true"
+                >
+                  ▼
+                </span>
+              </div>
+            )}
+          </FormField>
 
           {/* Botón Buscar Disponibilidad */}
           <div className="md:col-span-3">
