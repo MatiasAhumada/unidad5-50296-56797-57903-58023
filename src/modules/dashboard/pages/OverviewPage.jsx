@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
 
 function OverviewPage() {
   const navigate = useNavigate();
@@ -175,26 +177,41 @@ function OverviewPage() {
             Directorio de Profesionales Médicos
           </h2>
           <div className="relative w-full sm:w-72">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar por nombre..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-med-primary-50/70 border border-med-border rounded-lg text-med-text-main placeholder-med-text-muted focus:outline-none focus:ring-1 focus:ring-med-primary-600"
-            />
+            <FormField
+              id="dashboard-doctor-search"
+              label="Buscar profesionales"
+              labelClassName="sr-only"
+            >
+              {(fieldProps) => (
+                <div className="relative">
+                  <span
+                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </span>
+                  <Input
+                    id="dashboard-doctor-search"
+                    type="text"
+                    placeholder="Buscar por nombre..."
+                    className="pl-9 pr-3 py-1.5 text-xs bg-med-primary-50/70"
+                    {...fieldProps}
+                  />
+                </div>
+              )}
+            </FormField>
           </div>
         </div>
 
