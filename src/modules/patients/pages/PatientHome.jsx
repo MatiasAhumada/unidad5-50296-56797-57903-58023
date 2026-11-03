@@ -13,6 +13,10 @@ const specialtyOptions = [
   { value: 'Medicina General', label: 'Medicina General' },
 ];
 
+import Icon from '../../shared/components/Icon';
+import { ICONS } from '../../shared/constants/icons';
+import IconButton from '../../shared/components/IconButton';
+
 function PatientHome() {
   const navigate = useNavigate();
 
@@ -173,19 +177,7 @@ function PatientHome() {
               className="w-full flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-2.5 rounded-lg shadow-sm"
               onClick={() => {}}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Icon icon={ICONS.search} size={16} />
               <span>Buscar Disponibilidad</span>
             </Button>
           </div>
@@ -224,21 +216,25 @@ function PatientHome() {
         {/* Cabecera del calendario de semana */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-med-border-subtle">
           <div className="flex items-center gap-3">
-            <button
+            <IconButton
               type="button"
+              label="Semana anterior"
+              icon={ICONS.previous}
+              size={16}
+              variant="outline"
               className="p-1 rounded-md border border-med-border hover:bg-gray-50 text-med-text-sub transition"
-            >
-              ‹
-            </button>
+            />
             <span className="font-bold text-sm sm:text-base text-med-primary-900">
               Lunes 22 - Viernes 26, Mayo
             </span>
-            <button
+            <IconButton
               type="button"
+              label="Semana siguiente"
+              icon={ICONS.next}
+              size={16}
+              variant="outline"
               className="p-1 rounded-md border border-med-border hover:bg-gray-50 text-med-text-sub transition"
-            >
-              ›
-            </button>
+            />
           </div>
 
           {/* Leyenda */}
@@ -434,19 +430,7 @@ function PatientHome() {
           className="flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-3 px-6 rounded-xl shadow-md text-sm shrink-0"
         >
           <span>Confirmar Turno</span>
-          <svg
-            className="w-5 h-5 text-emerald-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <Icon icon={ICONS.checkCircle} size={20} />
         </Button>
       </div>
 

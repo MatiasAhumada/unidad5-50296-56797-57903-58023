@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
 
+import Icon from '../../shared/components/Icon';
+import { ICONS } from '../../shared/constants/icons';
+import IconButton from '../../shared/components/IconButton';
+
 function PatientLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -28,19 +32,7 @@ function PatientLayout() {
           <div className="flex items-center gap-6 sm:gap-8">
             <NavLink to="/" className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
+                <Icon icon={ICONS.doctor} size={16} />
               </div>
               <span className="text-lg font-bold text-med-primary-900 tracking-tight">
                 Portal Salud
@@ -61,26 +53,14 @@ function PatientLayout() {
           {/* Acciones Derecha Desktop / Mobile Avatar */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Iconos sutiles como en el mock */}
-            <button
+            <IconButton
               type="button"
-              title="Notificaciones"
+              label="Notificaciones"
+              icon={ICONS.notification}
+              size={20}
               onClick={() => alert('No tienes notificaciones pendientes')}
               className="hidden sm:flex p-2 rounded-lg text-med-text-muted hover:text-med-primary-900 hover:bg-gray-50 transition"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            </button>
+            />
 
             {/* Avatar Paciente */}
             <div className="flex items-center gap-2.5 pl-2 sm:border-l sm:border-med-border">
@@ -100,25 +80,14 @@ function PatientLayout() {
             </button>
 
             {/* Botón hamburguesa móvil */}
-            <button
+            <IconButton
+              label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              icon={ICONS.menu}
+              size={20}
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-1.5 rounded-lg border border-med-border text-med-text-sub hover:bg-gray-50"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
+            />
           </div>
         </div>
 
