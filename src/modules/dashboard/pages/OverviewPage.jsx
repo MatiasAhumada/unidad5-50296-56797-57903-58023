@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../shared/constants/appConstants';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
@@ -53,7 +54,7 @@ function OverviewPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => navigate('/admin/doctors')}
+            onClick={() => navigate(ROUTES.adminDoctors)}
             className="flex items-center gap-2"
           >
             <span>+</span>
@@ -62,7 +63,7 @@ function OverviewPage() {
 
           <Button
             variant="secondary"
-            onClick={() => navigate('/admin/specialties')}
+            onClick={() => navigate(ROUTES.adminSpecialties)}
             className="flex items-center gap-2"
           >
             <span>+</span>
@@ -214,7 +215,7 @@ function OverviewPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => navigate('/admin/doctors')}
+                      onClick={() => navigate(ROUTES.adminDoctors)}
                       className="text-xs font-semibold text-med-primary-700 hover:text-med-primary-900"
                     >
                       Ver Detalle

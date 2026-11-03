@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../shared/constants/appConstants';
 import useAuth from '../../auth/hook/useAuth';
 
 import Icon from '../../shared/components/Icon';
@@ -13,7 +14,7 @@ function PatientLayout() {
 
   const handleLogout = () => {
     singout();
-    navigate('/login');
+    navigate(ROUTES.patientLogin);
   };
 
   const getNavLinkClass = ({ isActive }) =>
@@ -30,7 +31,7 @@ function PatientLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           {/* Logo y Enlaces Desktop */}
           <div className="flex items-center gap-6 sm:gap-8">
-            <NavLink to="/" className="flex items-center gap-2.5">
+            <NavLink to={ROUTES.home} className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 <Icon icon={ICONS.doctor} size={16} />
               </div>
@@ -41,10 +42,13 @@ function PatientLayout() {
 
             {/* Enlaces de Navegación Desktop */}
             <nav className="hidden md:flex items-center gap-2">
-              <NavLink to="/" end className={getNavLinkClass}>
+              <NavLink to={ROUTES.home} end className={getNavLinkClass}>
                 Reservar Turno
               </NavLink>
-              <NavLink to="/appointments" className={getNavLinkClass}>
+              <NavLink
+                to={ROUTES.patientAppointments}
+                className={getNavLinkClass}
+              >
                 Mis Turnos
               </NavLink>
             </nav>
@@ -95,7 +99,7 @@ function PatientLayout() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-med-border px-4 py-3 bg-white space-y-2">
             <NavLink
-              to="/"
+              to={ROUTES.home}
               end
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
@@ -109,7 +113,7 @@ function PatientLayout() {
               Reservar Turno
             </NavLink>
             <NavLink
-              to="/appointments"
+              to={ROUTES.patientAppointments}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
                 `block px-3 py-2 rounded-lg text-sm font-semibold transition ${

@@ -9,6 +9,7 @@ import IconButton from '../../shared/components/IconButton';
 
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
 
 function AdminLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
@@ -35,13 +36,9 @@ function AdminLoginPage() {
         return;
       }
 
-      navigate('/admin/home');
+      navigate(ROUTES.adminHome);
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
-      } else {
-        setErrorMessage('Error al conectar con el servicio administrativo');
-      }
+      setErrorMessage(frontendErrorMessage(error));
     }
   };
 
@@ -153,13 +150,6 @@ function AdminLoginPage() {
               <span className="text-sm">→</span>
             </button>
 
-            <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-lg p-2.5 text-center text-xs text-med-primary-900">
-              <span className="font-semibold">Credenciales de prueba:</span>
-              <br />
-              Email: <code>admin@medportal.com</code> | Clave:{' '}
-              <code>admin123</code>
-            </div>
-
             {/* Error Message */}
             {errorMessage && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
@@ -186,7 +176,7 @@ function AdminLoginPage() {
       {/* Switch to Patient Portal */}
       <div className="mt-6 text-center">
         <Link
-          to="/login"
+          to={ROUTES.patientLogin}
           className="text-xs text-med-primary-200 hover:text-white transition"
         >
           ← Volver al Portal de Pacientes

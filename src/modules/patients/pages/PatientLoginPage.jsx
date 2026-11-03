@@ -10,6 +10,7 @@ import { frontendErrorMessage } from '../../auth/helpers/backendError';
 
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
 
 function PatientLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
@@ -36,13 +37,9 @@ function PatientLoginPage() {
         return;
       }
 
-      navigate('/');
+      navigate(ROUTES.home);
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
-      } else {
-        setErrorMessage('Error al conectar con el servicio de pacientes');
-      }
+      setErrorMessage(frontendErrorMessage(error));
     }
   };
 
@@ -148,13 +145,6 @@ function PatientLoginPage() {
             Ingresar Paciente
           </Button>
 
-          <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-lg p-2.5 text-center text-xs text-med-primary-900">
-            <span className="font-semibold">Credenciales de prueba:</span>
-            <br />
-            Email: <code>paciente@medportal.com</code> | Clave:{' '}
-            <code>paciente123</code>
-          </div>
-
           {errorMessage && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
               {errorMessage}
@@ -166,7 +156,7 @@ function PatientLoginPage() {
       {/* Switch to Admin Portal */}
       <div className="mt-6 text-center">
         <Link
-          to="/admin/login"
+          to={ROUTES.adminLogin}
           className="text-xs text-med-primary-200 hover:text-white transition"
         >
           ¿Es personal administrativo o médico? Ingrese aquí →

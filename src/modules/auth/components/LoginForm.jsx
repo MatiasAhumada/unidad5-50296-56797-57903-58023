@@ -6,6 +6,7 @@ import FormField from '../../shared/components/FormField';
 import Button from '../../shared/components/Button';
 import useAuth from '../hook/useAuth';
 import { frontendErrorMessage } from '../helpers/backendError';
+import { ROUTES } from '../../shared/constants/appConstants';
 
 function LoginForm({ redirectPath, title }) {
   const [errorMessage, setErrorMessage] = useState('');
@@ -30,23 +31,19 @@ function LoginForm({ redirectPath, title }) {
         return;
       }
 
-      const defaultRedirect = location.pathname.startsWith('/admin')
-        ? '/admin/home'
-        : '/appointments';
+      const defaultRedirect = location.pathname.startsWith(ROUTES.admin)
+        ? ROUTES.adminHome
+        : ROUTES.patientAppointments;
 
       navigate(redirectPath || defaultRedirect);
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
-      } else {
-        setErrorMessage('Llame a soporte');
-      }
+      setErrorMessage(frontendErrorMessage(error));
     }
   };
 
   const formTitle =
     title ||
-    (location.pathname.startsWith('/admin')
+    (location.pathname.startsWith(ROUTES.admin)
       ? 'Acceso Administración'
       : 'Acceso Pacientes');
 

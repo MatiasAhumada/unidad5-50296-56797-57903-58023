@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../shared/constants/appConstants';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
@@ -471,7 +472,7 @@ function PatientHome() {
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <Button
                 className="w-full text-xs py-2.5"
-                onClick={() => navigate('/appointments')}
+                onClick={() => navigate(ROUTES.patientAppointments)}
               >
                 Ver Mis Turnos
               </Button>
