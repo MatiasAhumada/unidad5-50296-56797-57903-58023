@@ -74,7 +74,6 @@ function AdminLoginPage() {
               register={register}
               error={errors.email?.message}
               disabled={isSubmitting}
-              placeholder="nombre@dominio.com"
             />
             <AuthPasswordField
               id="admin-login-password"

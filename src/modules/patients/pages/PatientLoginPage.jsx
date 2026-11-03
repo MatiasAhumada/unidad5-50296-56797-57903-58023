@@ -75,7 +75,6 @@ function PatientLoginPage() {
             register={register}
             error={errors.email?.message}
             disabled={isSubmitting}
-            placeholder="nombre@dominio.com"
           />
 
           <FormField
