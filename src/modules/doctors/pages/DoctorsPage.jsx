@@ -3,6 +3,10 @@ import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
+import IconButton from '../../shared/components/IconButton';
+
+import Icon from '../../shared/components/Icon';
+import { ICONS } from '../../shared/constants/icons';
 
 function DoctorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,19 +80,7 @@ function DoctorsPage() {
                     className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
                     aria-hidden="true"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    <Icon icon={ICONS.search} size={16} />
                   </span>
                   <Input
                     id="searchTerm"
@@ -108,19 +100,7 @@ function DoctorsPage() {
             onClick={() => alert('Abrir modal de disponibilidad horaria')}
             className="flex items-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Icon icon={ICONS.clock} size={16} />
             <span>Agregar Disponibilidad Horaria</span>
           </Button>
 
@@ -210,73 +190,29 @@ function DoctorsPage() {
                   {/* Botones de Acciones (Ojo, Lápiz, Basurero) */}
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 text-med-primary-600">
-                      <button
-                        title="Ver detalle"
+                      <IconButton
+                        label={`Ver detalle de ${doc.name}`}
+                        icon={ICONS.eye}
+                        size={16}
                         className="p-1.5 rounded-lg hover:bg-med-primary-50 text-med-primary-600 hover:text-med-primary-900 transition"
                         onClick={() => alert(`Ver detalle de ${doc.name}`)}
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
-                        </svg>
-                      </button>
-
-                      <button
-                        title="Editar profesional"
+                      />
+                      <IconButton
+                        label={`Editar profesional ${doc.name}`}
+                        icon={ICONS.edit}
+                        size={16}
                         className="p-1.5 rounded-lg hover:bg-med-primary-50 text-med-primary-600 hover:text-med-primary-900 transition"
                         onClick={() => alert(`Editar profesional ${doc.name}`)}
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                          />
-                        </svg>
-                      </button>
-
-                      <button
-                        title="Eliminar profesional"
+                      />
+                      <IconButton
+                        label={`Eliminar profesional ${doc.name}`}
+                        icon={ICONS.delete}
+                        size={16}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-med-danger-text transition"
                         onClick={() =>
                           alert(`Eliminar profesional ${doc.name}`)
                         }
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
@@ -289,12 +225,18 @@ function DoctorsPage() {
         <div className="p-4 bg-med-primary-50/50 border-t border-med-border flex items-center justify-between text-xs text-med-text-muted">
           <span>Mostrando 4 de 124 registros</span>
           <div className="flex items-center gap-1">
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ‹
-            </button>
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ›
-            </button>
+            <IconButton
+              label="Página anterior"
+              icon={ICONS.previous}
+              size={16}
+              variant="outline"
+            />
+            <IconButton
+              label="Página siguiente"
+              icon={ICONS.next}
+              size={16}
+              variant="outline"
+            />
           </div>
         </div>
       </Card>

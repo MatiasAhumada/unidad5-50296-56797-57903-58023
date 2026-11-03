@@ -4,6 +4,10 @@ import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 
+import Icon from '../../shared/components/Icon';
+import { ICONS } from '../../shared/constants/icons';
+import IconButton from '../../shared/components/IconButton';
+
 function OverviewPage() {
   const navigate = useNavigate();
 
@@ -73,19 +77,7 @@ function OverviewPage() {
         <Card className="flex flex-col justify-between p-6">
           <div className="flex items-start justify-between">
             <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
+              <Icon icon={ICONS.doctor} size={24} />
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-med-active-bg text-med-active-text">
               +4 este mes
@@ -106,19 +98,7 @@ function OverviewPage() {
         <Card className="flex flex-col justify-between p-6">
           <div className="flex items-start justify-between">
             <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
-              </svg>
+              <Icon icon={ICONS.grid} size={24} />
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
               Estable
@@ -139,19 +119,7 @@ function OverviewPage() {
         <Card className="flex flex-col justify-between p-6">
           <div className="flex items-start justify-between">
             <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              <Icon icon={ICONS.appointments} size={24} />
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-med-primary-100 text-med-primary-700">
               Hoy
@@ -188,19 +156,7 @@ function OverviewPage() {
                     className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
                     aria-hidden="true"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    <Icon icon={ICONS.search} size={16} />
                   </span>
                   <Input
                     id="dashboard-doctor-search"
@@ -274,12 +230,18 @@ function OverviewPage() {
         <div className="p-4 bg-med-primary-50/50 border-t border-med-border flex items-center justify-between text-xs text-med-text-muted">
           <span>Mostrando 3 de 124 registros</span>
           <div className="flex items-center gap-1">
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ‹
-            </button>
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ›
-            </button>
+            <IconButton
+              label="Página anterior"
+              icon={ICONS.previous}
+              size={16}
+              variant="outline"
+            />
+            <IconButton
+              label="Página siguiente"
+              icon={ICONS.next}
+              size={16}
+              variant="outline"
+            />
           </div>
         </div>
       </Card>

@@ -4,6 +4,7 @@ import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
+import IconButton from '../../shared/components/IconButton';
 
 const specialtyFilterOptions = [
   { value: 'Todas', label: 'Todas las Especialidades' },
@@ -18,6 +19,9 @@ const doctorFilterOptions = [
   { value: 'Dra. Garcia', label: 'Dra. Garcia' },
   { value: 'Dr. Miller', label: 'Dr. Miller' },
 ];
+
+import Icon from '../../shared/components/Icon';
+import { ICONS } from '../../shared/constants/icons';
 
 function AppointmentsSearchPage() {
   const [patientQuery, setPatientQuery] = useState('Johnathan Doe');
@@ -36,21 +40,7 @@ function AppointmentsSearchPage() {
       dni: '40.123.456',
       status: 'CONFIRMADO',
       statusType: 'confirmed',
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.75"
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-          />
-        </svg>
-      ),
+      icon: ICONS.heart,
     },
     {
       id: 2,
@@ -62,21 +52,7 @@ function AppointmentsSearchPage() {
       dni: '40.123.456',
       status: 'COMPLETADO',
       statusType: 'completed',
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.75"
-            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-          />
-        </svg>
-      ),
+      icon: ICONS.brain,
     },
     {
       id: 3,
@@ -88,21 +64,7 @@ function AppointmentsSearchPage() {
       dni: '40.123.456',
       status: 'CANCELADO',
       statusType: 'cancelled',
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.75"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
+      icon: ICONS.medicalFile,
     },
   ];
 
@@ -125,19 +87,7 @@ function AppointmentsSearchPage() {
             Criterios de Búsqueda
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-med-text-muted">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <Icon icon={ICONS.refresh} size={16} />
             <span>Última actualización: hace un momento</span>
           </div>
         </div>
@@ -155,19 +105,7 @@ function AppointmentsSearchPage() {
                   className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
                   aria-hidden="true"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                  <Icon icon={ICONS.search} size={16} />
                 </span>
                 <Input
                   id="appointment-patient-query"
@@ -239,19 +177,7 @@ function AppointmentsSearchPage() {
               onClick={() => alert('Filtros aplicados')}
               className="w-full flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-2 rounded-lg"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
+              <Icon icon={ICONS.filter} size={16} />
               <span>Aplicar Filtros</span>
             </Button>
           </div>
@@ -311,7 +237,7 @@ function AppointmentsSearchPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-med-primary-100 text-med-primary-700 flex items-center justify-center shrink-0">
-                        {item.icon}
+                        <Icon icon={item.icon} size={20} />
                       </div>
                       <div>
                         <p className="font-semibold text-med-primary-900">
@@ -377,12 +303,18 @@ function AppointmentsSearchPage() {
         <div className="p-4 bg-med-primary-50/50 border-t border-med-border flex items-center justify-between text-xs text-med-text-muted">
           <span>Mostrando 3 de 42 registros</span>
           <div className="flex items-center gap-1">
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ‹
-            </button>
-            <button className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50">
-              ›
-            </button>
+            <IconButton
+              label="Página anterior"
+              icon={ICONS.previous}
+              size={16}
+              variant="outline"
+            />
+            <IconButton
+              label="Página siguiente"
+              icon={ICONS.next}
+              size={16}
+              variant="outline"
+            />
           </div>
         </div>
       </Card>

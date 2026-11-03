@@ -5,7 +5,7 @@ function IconButton({
   icon,
   label,
   size = 20,
-  strokeWidth = 2,
+  strokeWidth = 1.75,
   variant = 'ghost',
   className = '',
   ...buttonProps

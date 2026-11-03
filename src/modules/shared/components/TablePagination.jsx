@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import IconButton from './IconButton';
+import { ICONS } from '../constants/icons';
 
 function TablePagination({
   currentPage = 1,
@@ -19,7 +19,7 @@ function TablePagination({
       <div className="flex items-center gap-1">
         <IconButton
           type="button"
-          icon={ChevronLeft}
+          icon={ICONS.previous}
           label="Página anterior"
           variant="outline"
           onClick={() => onPageChange && onPageChange(currentPage - 1)}
@@ -27,7 +27,7 @@ function TablePagination({
         />
         <IconButton
           type="button"
-          icon={ChevronRight}
+          icon={ICONS.next}
           label="Página siguiente"
           variant="outline"
           onClick={() => onPageChange && onPageChange(currentPage + 1)}
