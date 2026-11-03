@@ -1,3 +1,6 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import IconButton from './IconButton';
+
 function TablePagination({
   currentPage = 1,
   totalPages = 1,
@@ -14,22 +17,22 @@ function TablePagination({
         Mostrando {from} a {to} de {totalItems} registros
       </span>
       <div className="flex items-center gap-1">
-        <button
+        <IconButton
           type="button"
+          icon={ChevronLeft}
+          label="Página anterior"
+          variant="outline"
           onClick={() => onPageChange && onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-        >
-          ‹
-        </button>
-        <button
+        />
+        <IconButton
           type="button"
+          icon={ChevronRight}
+          label="Página siguiente"
+          variant="outline"
           onClick={() => onPageChange && onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="px-2.5 py-1 border border-med-border rounded bg-white text-med-text-sub hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-        >
-          ›
-        </button>
+        />
       </div>
     </div>
   );
