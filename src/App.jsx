@@ -5,6 +5,7 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
+import AccessDeniedPage from './modules/auth/pages/AccessDeniedPage';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
@@ -23,7 +24,7 @@ import OverviewPage from './modules/dashboard/pages/OverviewPage';
 import DoctorsPage from './modules/doctors/pages/DoctorsPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
 import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
-import { ROUTES } from './modules/shared/constants/appConstants';
+import { ROUTES, USER_ROLES } from './modules/shared/constants/appConstants';
 
 const routes = [
   // Rutas públicas
@@ -35,12 +36,19 @@ const routes = [
     path: ROUTES.adminLogin,
     element: <AdminLoginPage />,
   },
+  {
+    path: ROUTES.accessDenied,
+    element: <AccessDeniedPage />,
+  },
 
   // Rutas privadas de pacientes (URL base y turnos)
   {
     path: ROUTES.home,
     element: (
-      <ProtectedRoute redirectTo={ROUTES.patientLogin}>
+      <ProtectedRoute
+        allowedRole={USER_ROLES.patient}
+        redirectTo={ROUTES.patientLogin}
+      >
         <PatientLayout />
       </ProtectedRoute>
     ),
@@ -60,7 +68,10 @@ const routes = [
   {
     path: ROUTES.admin,
     element: (
-      <ProtectedRoute redirectTo={ROUTES.adminLogin}>
+      <ProtectedRoute
+        allowedRole={USER_ROLES.administrator}
+        redirectTo={ROUTES.adminLogin}
+      >
         <DashboardLayout />
       </ProtectedRoute>
     ),

@@ -10,10 +10,10 @@ import IconButton from '../../shared/components/IconButton';
 function PatientLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { singout } = useAuth();
+  const { signOut } = useAuth();
 
   const handleLogout = () => {
-    singout();
+    signOut();
     navigate(ROUTES.patientLogin);
   };
 

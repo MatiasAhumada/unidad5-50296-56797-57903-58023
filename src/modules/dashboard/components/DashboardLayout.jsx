@@ -10,10 +10,10 @@ import IconButton from '../../shared/components/IconButton';
 function DashboardLayout() {
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const navigate = useNavigate();
-  const { singout } = useAuth();
+  const { signOut } = useAuth();
 
   const handleLogout = () => {
-    singout();
+    signOut();
     navigate(ROUTES.adminLogin);
   };
 

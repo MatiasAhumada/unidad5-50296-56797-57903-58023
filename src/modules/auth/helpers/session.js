@@ -1,0 +1,98 @@
+import { STORAGE_KEYS, USER_ROLES } from '../../shared/constants/appConstants';
+
+const ROLE_CLAIM =
+  'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+
+function getTokenPayload(token) {
+  try {
+    const encodedPayload = token.split('.')[1];
+    const normalizedPayload = encodedPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const payload = atob(
+      normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=')
+    );
+
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
+function getSessionRole(token) {
+  const payload = getTokenPayload(token);
+
+  return payload?.role ?? payload?.[ROLE_CLAIM] ?? null;
+}
+
+function getSessionExpiration(token) {
+  const expiration = getTokenPayload(token)?.exp;
+
+  return Number.isFinite(expiration) ? expiration * 1000 : null;
+}
+
+function isSupportedRole(role) {
+  return Object.values(USER_ROLES).includes(role);
+}
+
+function clearStoredSession() {
+  localStorage.removeItem(STORAGE_KEYS.token);
+  localStorage.removeItem(STORAGE_KEYS.role);
+}
+
+function getStoredSession() {
+  const token = localStorage.getItem(STORAGE_KEYS.token);
+
+  if (!token) {
+    return null;
+  }
+
+  const role = getSessionRole(token) ?? localStorage.getItem(STORAGE_KEYS.role);
+  const expiresAt = getSessionExpiration(token);
+
+  if (expiresAt && expiresAt <= Date.now()) {
+    sessionStorage.setItem('medportal.sessionExpired', 'true');
+    clearStoredSession();
+
+    return null;
+  }
+
+  if (!isSupportedRole(role) || !expiresAt) {
+    clearStoredSession();
+
+    return null;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.role, role);
+
+  return { token, role, expiresAt };
+}
+
+function createSession(response) {
+  const token = response?.token;
+  const tokenRole = typeof token === 'string' ? getSessionRole(token) : null;
+  const role = response?.role ?? tokenRole;
+  const expiresAt =
+    typeof token === 'string' ? getSessionExpiration(token) : null;
+
+  if (
+    typeof token !== 'string' ||
+    !token ||
+    !isSupportedRole(role) ||
+    (tokenRole && tokenRole !== role) ||
+    !expiresAt ||
+    expiresAt <= Date.now()
+  ) {
+    throw new Error('El servidor no devolvió una sesión válida.');
+  }
+
+  return { token, role, expiresAt };
+}
+
+export {
+  clearStoredSession,
+  createSession,
+  getSessionExpiration,
+  getSessionRole,
+  getStoredSession,
+};

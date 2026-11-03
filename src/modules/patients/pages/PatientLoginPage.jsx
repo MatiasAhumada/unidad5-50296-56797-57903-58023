@@ -1,53 +1,53 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
-import Button from '../../shared/components/Button';
-import FormField from '../../shared/components/FormField';
-import Input from '../../shared/components/Input';
-import IconButton from '../../shared/components/IconButton';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import AuthEmailField from '../../auth/components/AuthEmailField';
+import AuthFormError from '../../auth/components/AuthFormError';
 import useAuth from '../../auth/hook/useAuth';
 import { frontendErrorMessage } from '../../auth/helpers/backendError';
-
+import { AUTH_VALIDATION } from '../../auth/constants/validation';
+import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
 import Icon from '../../shared/components/Icon';
+import Input from '../../shared/components/Input';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 
 function PatientLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const [searchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm({ defaultValues: { username: '', password: '' } });
+    formState: { errors, isSubmitting },
+  } = useForm({ defaultValues: { email: '', dni: '' } });
 
   const navigate = useNavigate();
-  const { singinPatient } = useAuth();
+  const { signInPatient, sessionExpired } = useAuth();
 
-  const onValid = async (formData) => {
+  const onValid = async ({ email, dni }) => {
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setErrorMessage('');
+
     try {
-      const { error } = await singinPatient(
-        formData.username,
-        formData.password
-      );
-
-      if (error) {
-        setErrorMessage(error.frontendErrorMessage || 'Credenciales inválidas');
-
-        return;
-      }
-
-      navigate(ROUTES.home);
+      await signInPatient(email, dni);
+      navigate(ROUTES.home, { replace: true });
     } catch (error) {
       setErrorMessage(frontendErrorMessage(error));
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-med-primary-950 px-4 py-8 sm:p-6">
-      {/* Brand Header idéntico a admin-login */}
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-3">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-med-primary-950 px-4 py-8 sm:p-6">
+      <div className="mb-8 flex flex-col items-center">
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-lg">
           <Icon icon={ICONS.shieldCheck} size={32} />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white">
@@ -55,14 +55,13 @@ function PatientLoginPage() {
         </h1>
       </div>
 
-      {/* Main Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-white/10 p-6 sm:p-10">
+      <section className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl sm:p-10">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-med-primary-900">
             Portal del Paciente
           </h2>
-          <p className="text-xs text-med-text-sub mt-1 leading-relaxed">
-            Inicia sesión para reservar y consultar tus turnos médicos
+          <p className="mt-1 text-xs leading-relaxed text-med-text-sub">
+            Iniciá sesión para reservar y consultar tus turnos médicos.
           </p>
         </div>
 
@@ -71,29 +70,38 @@ function PatientLoginPage() {
           noValidate
           className="flex flex-col gap-4"
         >
-          {/* Correo Electrónico */}
+          <AuthEmailField
+            id="patient-login-email"
+            register={register}
+            error={errors.email?.message}
+            disabled={isSubmitting}
+            placeholder="nombre@dominio.com"
+          />
+
           <FormField
-            id="login-email"
-            label="Correo Electrónico"
-            error={errors.username?.message}
+            id="patient-login-dni"
+            label="DNI"
+            error={errors.dni?.message}
+            hint="Ingresá tu documento sin puntos."
             required
           >
             {(fieldProps) => (
               <div className="relative">
                 <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-med-text-muted"
+                  className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-med-text-muted"
                   aria-hidden="true"
                 >
-                  <Icon icon={ICONS.mail} size={16} />
+                  <Icon icon={ICONS.userSearch} size={16} />
                 </span>
                 <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="paciente@medportal.com"
-                  className="pl-10 pr-3.5 py-2.5 text-sm"
-                  error={errors.username?.message}
-                  {...register('username', {
-                    required: 'El correo electrónico es obligatorio',
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  disabled={isSubmitting}
+                  className="py-2.5 pl-10 pr-3.5 text-sm"
+                  {...register('dni', {
+                    required: 'El DNI es obligatorio',
+                    pattern: AUTH_VALIDATION.dniPattern,
                   })}
                   {...fieldProps}
                 />
@@ -101,68 +109,30 @@ function PatientLoginPage() {
             )}
           </FormField>
 
-          {/* Contraseña con botón mostrar/ocultar */}
-          <FormField
-            id="login-password"
-            label="Contraseña"
-            error={errors.password?.message}
-            required
-          >
-            {(fieldProps) => (
-              <div className="relative">
-                <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  <Icon icon={ICONS.lock} size={16} />
-                </span>
-                <Input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  className="pl-10 pr-10 py-2.5 text-sm"
-                  error={errors.password?.message}
-                  {...register('password', {
-                    required: 'La contraseña es obligatoria',
-                  })}
-                  {...fieldProps}
-                />
-                <IconButton
-                  type="button"
-                  icon={showPassword ? ICONS.eyeOff : ICONS.eye}
-                  label={
-                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                  }
-                  size={16}
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 text-med-text-muted hover:text-med-text-main"
-                />
-              </div>
-            )}
-          </FormField>
-
-          <Button type="submit" className="w-full mt-1">
-            Ingresar Paciente
+          <Button type="submit" disabled={isSubmitting} className="mt-1 w-full">
+            {isSubmitting ? 'Ingresando…' : 'Ingresar Paciente'}
           </Button>
 
-          {errorMessage && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
-              {errorMessage}
-            </div>
-          )}
+          <AuthFormError
+            message={
+              errorMessage ||
+              (sessionExpired || searchParams.get('session') === 'expired'
+                ? 'Tu sesión venció. Iniciá sesión nuevamente.'
+                : '')
+            }
+          />
         </form>
-      </div>
+      </section>
 
-      {/* Switch to Admin Portal */}
       <div className="mt-6 text-center">
         <Link
           to={ROUTES.adminLogin}
-          className="text-xs text-med-primary-200 hover:text-white transition"
+          className="text-xs text-med-primary-200 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
-          ¿Es personal administrativo o médico? Ingrese aquí →
+          ¿Es personal administrativo o médico? Ingresá aquí →
         </Link>
       </div>
-    </div>
+    </main>
   );
 }
 
