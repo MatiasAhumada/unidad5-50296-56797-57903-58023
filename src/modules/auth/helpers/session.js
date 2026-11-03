@@ -19,10 +19,22 @@ function getTokenPayload(token) {
   }
 }
 
+function normalizeRole(role) {
+  if (typeof role !== 'string') {
+    return null;
+  }
+
+  return (
+    Object.values(USER_ROLES).find(
+      (supportedRole) => supportedRole.toLowerCase() === role.toLowerCase()
+    ) ?? null
+  );
+}
+
 function getSessionRole(token) {
   const payload = getTokenPayload(token);
 
-  return payload?.role ?? payload?.[ROLE_CLAIM] ?? null;
+  return normalizeRole(payload?.role ?? payload?.[ROLE_CLAIM]);
 }
 
 function getSessionExpiration(token) {
@@ -47,7 +59,9 @@ function getStoredSession() {
     return null;
   }
 
-  const role = getSessionRole(token) ?? localStorage.getItem(STORAGE_KEYS.role);
+  const role =
+    getSessionRole(token) ??
+    normalizeRole(localStorage.getItem(STORAGE_KEYS.role));
   const expiresAt = getSessionExpiration(token);
 
   if (expiresAt && expiresAt <= Date.now()) {
@@ -71,13 +85,15 @@ function getStoredSession() {
 function createSession(response) {
   const token = response?.token;
   const tokenRole = typeof token === 'string' ? getSessionRole(token) : null;
-  const role = response?.role ?? tokenRole;
+  const responseRole = normalizeRole(response?.role);
+  const role = response?.role == null ? tokenRole : responseRole;
   const expiresAt =
     typeof token === 'string' ? getSessionExpiration(token) : null;
 
   if (
     typeof token !== 'string' ||
     !token ||
+    (response?.role != null && !responseRole) ||
     !isSupportedRole(role) ||
     (tokenRole && tokenRole !== role) ||
     !expiresAt ||
