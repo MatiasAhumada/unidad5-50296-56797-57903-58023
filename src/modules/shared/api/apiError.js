@@ -1,13 +1,4 @@
-const ERROR_MESSAGES = {
-  network:
-    'No se pudo conectar con el servidor. Revisá tu conexión e intentá nuevamente.',
-  400: 'Los datos enviados no son válidos. Revisalos e intentá nuevamente.',
-  401: 'La sesión no es válida o venció. Iniciá sesión nuevamente.',
-  403: 'No tenés permisos para realizar esta acción.',
-  409: 'La operación entra en conflicto con el estado actual. Actualizá los datos e intentá nuevamente.',
-  429: 'Se alcanzó el límite de solicitudes. Esperá un momento antes de volver a intentar.',
-  500: 'Ocurrió un error en el servidor. Intentá nuevamente más tarde.',
-};
+import { API_ERROR_MESSAGES } from '../constants/apiErrorMessages';
 
 function normalizeApiError(error) {
   const status = error.response?.status ?? null;
@@ -18,9 +9,7 @@ function normalizeApiError(error) {
     status,
     errorCode: responseData.errorCode ?? null,
     details: responseData.details ?? [],
-    message:
-      ERROR_MESSAGES[category] ??
-      'Ocurrió un error inesperado. Intentá nuevamente.',
+    message: API_ERROR_MESSAGES[category] ?? API_ERROR_MESSAGES.unexpected,
     originalError: error,
   };
 }
