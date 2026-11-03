@@ -150,13 +150,6 @@ function AdminLoginPage() {
               <span className="text-sm">→</span>
             </button>
 
-            <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-lg p-2.5 text-center text-xs text-med-primary-900">
-              <span className="font-semibold">Credenciales de prueba:</span>
-              <br />
-              Email: <code>admin@medportal.com</code> | Clave:{' '}
-              <code>admin123</code>
-            </div>
-
             {/* Error Message */}
             {errorMessage && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
