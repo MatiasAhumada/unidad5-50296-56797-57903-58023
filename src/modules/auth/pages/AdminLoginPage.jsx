@@ -1,52 +1,51 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import AuthEmailField from '../components/AuthEmailField';
+import AuthFormError from '../components/AuthFormError';
+import AuthPasswordField from '../components/AuthPasswordField';
 import useAuth from '../hook/useAuth';
 import { frontendErrorMessage } from '../helpers/backendError';
-import FormField from '../../shared/components/FormField';
-import Input from '../../shared/components/Input';
-import IconButton from '../../shared/components/IconButton';
-
+import Button from '../../shared/components/Button';
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 
 function AdminLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
+  const isSubmittingRef = useRef(false);
+  const [searchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm({ defaultValues: { username: '', password: '' } });
+    formState: { errors, isSubmitting },
+  } = useForm({ defaultValues: { email: '', password: '' } });
 
   const navigate = useNavigate();
-  const { singinAdmin } = useAuth();
+  const { signInAdmin, sessionExpired } = useAuth();
 
-  const onValid = async (formData) => {
+  const onValid = async ({ email, password }) => {
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setErrorMessage('');
+
     try {
-      const { error } = await singinAdmin(formData.username, formData.password);
-
-      if (error) {
-        setErrorMessage(
-          error.frontendErrorMessage || 'Credenciales administrativas inválidas'
-        );
-
-        return;
-      }
-
-      navigate(ROUTES.adminHome);
+      await signInAdmin(email, password);
+      navigate(ROUTES.adminHome, { replace: true });
     } catch (error) {
       setErrorMessage(frontendErrorMessage(error));
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-med-primary-950 px-4 py-8">
-      {/* Brand Header */}
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-3">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-med-primary-950 px-4 py-8">
+      <div className="mb-8 flex flex-col items-center">
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-lg">
           <Icon icon={ICONS.shieldCheck} size={32} />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white">
@@ -54,15 +53,14 @@ function AdminLoginPage() {
         </h1>
       </div>
 
-      {/* Main Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/10">
-        <div className="p-8 sm:p-10">
+      <section className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-white shadow-2xl">
+        <div className="p-6 sm:p-10">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-med-primary-900">
               Bienvenido de nuevo
             </h2>
-            <p className="text-xs text-med-text-sub mt-1 leading-relaxed">
-              Por favor, autentíquese para acceder al portal de proveedores.
+            <p className="mt-1 text-xs leading-relaxed text-med-text-sub">
+              Autenticáte para acceder al portal de proveedores.
             </p>
           </div>
 
@@ -71,118 +69,60 @@ function AdminLoginPage() {
             noValidate
             className="flex flex-col gap-4"
           >
-            {/* Correo Electrónico */}
-            <FormField
-              id="login-email"
-              label="Correo Electrónico"
-              error={errors.username?.message}
-              required
-            >
-              {(fieldProps) => (
-                <div className="relative">
-                  <span
-                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-med-text-muted"
-                    aria-hidden="true"
-                  >
-                    <Icon icon={ICONS.mail} size={16} />
-                  </span>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="admin@medportal.com"
-                    className="pl-10 pr-3.5 py-2.5 text-sm"
-                    error={errors.username?.message}
-                    {...register('username', {
-                      required: 'El correo electrónico es obligatorio',
-                    })}
-                    {...fieldProps}
-                  />
-                </div>
-              )}
-            </FormField>
-
-            {/* Contraseña */}
-            <FormField
-              id="login-password"
-              label="Contraseña"
+            <AuthEmailField
+              id="admin-login-email"
+              register={register}
+              error={errors.email?.message}
+              disabled={isSubmitting}
+            />
+            <AuthPasswordField
+              id="admin-login-password"
+              register={register}
               error={errors.password?.message}
-              required
-            >
-              {(fieldProps) => (
-                <div className="relative">
-                  <span
-                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-med-text-muted"
-                    aria-hidden="true"
-                  >
-                    <Icon icon={ICONS.lock} size={16} />
-                  </span>
-                  <Input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    className="pl-10 pr-10 py-2.5 text-sm"
-                    error={errors.password?.message}
-                    {...register('password', {
-                      required: 'La contraseña es obligatoria',
-                    })}
-                    {...fieldProps}
-                  />
-                  <IconButton
-                    type="button"
-                    icon={showPassword ? ICONS.eyeOff : ICONS.eye}
-                    label={
-                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                    }
-                    size={16}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 text-med-text-muted hover:text-med-text-main"
-                  />
-                </div>
-              )}
-            </FormField>
+              disabled={isSubmitting}
+            />
 
-            {/* Botón de Submit */}
-            <button
+            <Button
               type="submit"
-              className="mt-2 w-full flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-2.5 px-4 rounded-lg shadow-sm transition"
+              disabled={isSubmitting}
+              className="mt-2 flex w-full items-center justify-center gap-2"
             >
-              <span>Iniciar Sesión</span>
-              <span className="text-sm">→</span>
-            </button>
+              {isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
+              {!isSubmitting && <span aria-hidden="true">→</span>}
+            </Button>
 
-            {/* Error Message */}
-            {errorMessage && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
-                {errorMessage}
-              </div>
-            )}
+            <AuthFormError
+              message={
+                errorMessage ||
+                (sessionExpired || searchParams.get('session') === 'expired'
+                  ? 'Tu sesión venció. Iniciá sesión nuevamente.'
+                  : '')
+              }
+            />
           </form>
         </div>
 
-        {/* Banner Inferior Informativo */}
-        <div className="bg-med-primary-50 border-t border-med-primary-100 p-4 sm:p-5 flex items-start gap-3">
+        <div className="flex items-start gap-3 border-t border-med-primary-100 bg-med-primary-50 p-4 sm:p-5">
           <Icon icon={ICONS.shieldCheck} size={20} />
-          <p className="text-xs text-med-text-sub leading-relaxed">
-            <strong className="text-med-text-main font-semibold">
-              Solo Acceso Seguro:
+          <p className="text-xs leading-relaxed text-med-text-sub">
+            <strong className="font-semibold text-med-text-main">
+              Solo acceso seguro:
             </strong>{' '}
-            Este sistema es para personal médico autorizado. Los intentos de
-            acceso no autorizados son registrados y monitoreados para su
-            cumplimiento.
+            este sistema es para personal médico autorizado. Los intentos de
+            acceso no autorizados son registrados y monitoreados.
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* Switch to Patient Portal */}
       <div className="mt-6 text-center">
         <Link
           to={ROUTES.patientLogin}
-          className="text-xs text-med-primary-200 hover:text-white transition"
+          className="text-xs text-med-primary-200 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           ← Volver al Portal de Pacientes
         </Link>
       </div>
-    </div>
+    </main>
   );
 }
 

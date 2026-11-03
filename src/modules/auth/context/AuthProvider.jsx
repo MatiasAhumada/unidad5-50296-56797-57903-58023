@@ -1,80 +1,83 @@
-import { createContext, useState } from 'react';
-import { login } from '../services/login';
+import { createContext, useEffect, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
-import { STORAGE_KEYS, USER_ROLES } from '../../shared/constants/appConstants';
+import {
+  clearStoredSession,
+  createSession,
+  getStoredSession,
+} from '../helpers/session';
+import { STORAGE_KEYS } from '../../shared/constants/appConstants';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem(STORAGE_KEYS.token);
+  const [session, setSession] = useState(getStoredSession);
+  const [sessionExpired, setSessionExpired] = useState(() => {
+    const expired =
+      sessionStorage.getItem('medportal.sessionExpired') === 'true';
 
-    return Boolean(token);
+    sessionStorage.removeItem('medportal.sessionExpired');
+
+    return expired;
   });
 
-  const singout = () => {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.role);
-    setIsAuthenticated(false);
-  };
-
-  const setAuthSession = (session, defaultRole) => {
-    localStorage.setItem(STORAGE_KEYS.token, session.token);
-    localStorage.setItem(STORAGE_KEYS.role, session.role ?? defaultRole);
-    setIsAuthenticated(true);
-  };
-
-  const singin = async (username, password) => {
-    const { data, error } = await login(username, password);
-
-    if (error) {
-      return { error };
+  useEffect(() => {
+    if (!session) {
+      return undefined;
     }
 
-    setAuthSession(data, USER_ROLES.administrator);
+    const timeout = window.setTimeout(
+      () => {
+        clearStoredSession();
+        setSession(null);
+        setSessionExpired(true);
+      },
+      Math.max(session.expiresAt - Date.now(), 0)
+    );
 
-    return { error: null };
+    return () => window.clearTimeout(timeout);
+  }, [session]);
+
+  const signOut = () => {
+    clearStoredSession();
+    setSession(null);
+    setSessionExpired(false);
   };
 
-  const singinAdmin = async (username, password) => {
-    const { data, error } = await loginAdmin(username, password);
+  const saveSession = (response) => {
+    const nextSession = createSession(response);
 
-    if (error) {
-      return { error };
-    }
+    localStorage.setItem(STORAGE_KEYS.token, nextSession.token);
+    localStorage.setItem(STORAGE_KEYS.role, nextSession.role);
+    setSession(nextSession);
+    setSessionExpired(false);
 
-    setAuthSession(data, USER_ROLES.administrator);
-
-    return { error: null };
+    return nextSession;
   };
 
-  const singinPatient = async (username, password) => {
-    const { data, error } = await loginPatient(username, password);
+  const signInAdmin = async (email, password) => {
+    const { data } = await loginAdmin(email, password);
 
-    if (error) {
-      return { error };
-    }
-
-    setAuthSession(data, USER_ROLES.patient);
-
-    return { error: null };
+    return saveSession(data);
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        singin,
-        singinAdmin,
-        singinPatient,
-        singout,
-        setAuthSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const signInPatient = async (email, dni) => {
+    const { data } = await loginPatient(email, dni);
+
+    return saveSession(data);
+  };
+
+  const value = {
+    isAuthenticated: Boolean(session),
+    role: session?.role ?? null,
+    sessionExpired,
+    signInAdmin,
+    signInPatient,
+    signOut,
+    sessionExpiresAt: session?.expiresAt ?? null,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export { AuthProvider, AuthContext };

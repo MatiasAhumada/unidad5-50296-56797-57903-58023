@@ -40,7 +40,7 @@ instance.interceptors.response.use(
       localStorage.removeItem(STORAGE_KEYS.role);
 
       if (window.location.pathname !== loginRoute) {
-        window.location.assign(loginRoute);
+        window.location.assign(`${loginRoute}?session=expired`);
       }
     }
 
