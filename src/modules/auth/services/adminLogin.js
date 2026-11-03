@@ -1,19 +1,15 @@
 import { instance } from '../../shared/api/axiosInstance';
+import { AUTH_API_ROUTES } from '../constants/apiRoutes';
 
-export const loginAdmin = async (username, password) => {
-  if (
-    (username === 'admin' ||
-      username === 'admin@medportal.com' ||
-      username === 'admin@test.com') &&
-    password === 'admin123'
-  ) {
-    return { data: 'mock-admin-token-12345', error: null };
-  }
+export const loginAdmin = async (email, password) => {
+  const response = await instance.post(
+    AUTH_API_ROUTES.adminLogin,
+    {
+      email,
+      password,
+    },
+    { skipAuthRedirect: true }
+  );
 
-  const response = await instance.post('api/admin/auth/login', {
-    username,
-    password,
-  });
-
-  return { data: response.data.token, error: null };
+  return { data: response.data, error: null };
 };

@@ -23,23 +23,24 @@ import OverviewPage from './modules/dashboard/pages/OverviewPage';
 import DoctorsPage from './modules/doctors/pages/DoctorsPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
 import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
+import { ROUTES } from './modules/shared/constants/appConstants';
 
 const routes = [
   // Rutas públicas
   {
-    path: '/login',
+    path: ROUTES.patientLogin,
     element: <PatientLoginPage />,
   },
   {
-    path: '/admin/login',
+    path: ROUTES.adminLogin,
     element: <AdminLoginPage />,
   },
 
   // Rutas privadas de pacientes (URL base y turnos)
   {
-    path: '/',
+    path: ROUTES.home,
     element: (
-      <ProtectedRoute redirectTo="/login">
+      <ProtectedRoute redirectTo={ROUTES.patientLogin}>
         <PatientLayout />
       </ProtectedRoute>
     ),
@@ -49,7 +50,7 @@ const routes = [
         element: <PatientHome />,
       },
       {
-        path: 'appointments',
+        path: ROUTES.patientAppointments,
         element: <AppointmentsPage />,
       },
     ],
@@ -57,39 +58,39 @@ const routes = [
 
   // Rutas privadas de gestión clínica y administración
   {
-    path: '/admin',
+    path: ROUTES.admin,
     element: (
-      <ProtectedRoute redirectTo="/admin/login">
+      <ProtectedRoute redirectTo={ROUTES.adminLogin}>
         <DashboardLayout />
       </ProtectedRoute>
     ),
     children: [
       {
         index: true,
-        element: <Navigate to="/admin/home" replace />,
+        element: <Navigate to={ROUTES.adminHome} replace />,
       },
       {
-        path: 'home',
+        path: ROUTES.adminHome,
         element: <OverviewPage />,
       },
       {
-        path: 'patients',
+        path: ROUTES.adminPatients,
         element: <AppointmentsSearchPage />,
       },
       {
-        path: 'patient-search',
+        path: ROUTES.adminPatientSearch,
         element: <AppointmentsSearchPage />,
       },
       {
-        path: 'appointments',
-        element: <Navigate to="/admin/patients" replace />,
+        path: ROUTES.adminAppointments,
+        element: <Navigate to={ROUTES.adminPatients} replace />,
       },
       {
-        path: 'specialties',
+        path: ROUTES.adminSpecialties,
         element: <SpecialtiesPage />,
       },
       {
-        path: 'doctors',
+        path: ROUTES.adminDoctors,
         element: <DoctorsPage />,
       },
     ],
@@ -98,7 +99,7 @@ const routes = [
   // Redirección para cualquier otra URL
   {
     path: '*',
-    element: <Navigate to="/" replace />,
+    element: <Navigate to={ROUTES.home} replace />,
   },
 ];
 

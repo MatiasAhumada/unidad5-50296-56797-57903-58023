@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../shared/constants/appConstants';
 import useAuth from '../../auth/hook/useAuth';
 
 import Icon from '../../shared/components/Icon';
@@ -13,27 +14,27 @@ function DashboardLayout() {
 
   const handleLogout = () => {
     singout();
-    navigate('/admin/login');
+    navigate(ROUTES.adminLogin);
   };
 
   const navItems = [
     {
-      to: '/admin/home',
+      to: ROUTES.adminHome,
       label: 'Tablero',
       icon: <Icon icon={ICONS.grid} size={20} />,
     },
     {
-      to: '/admin/doctors',
+      to: ROUTES.adminDoctors,
       label: 'Doctores',
       icon: <Icon icon={ICONS.doctor} size={20} />,
     },
     {
-      to: '/admin/specialties',
+      to: ROUTES.adminSpecialties,
       label: 'Especialidades',
       icon: <Icon icon={ICONS.hospital} size={20} />,
     },
     {
-      to: '/admin/patients',
+      to: ROUTES.adminPatients,
       label: 'Búsqueda de Pacientes',
       icon: <Icon icon={ICONS.userSearch} size={20} />,
     },

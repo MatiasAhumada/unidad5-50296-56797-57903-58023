@@ -10,6 +10,7 @@ import { frontendErrorMessage } from '../../auth/helpers/backendError';
 
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
 
 function PatientLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
@@ -36,13 +37,9 @@ function PatientLoginPage() {
         return;
       }
 
-      navigate('/');
+      navigate(ROUTES.home);
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
-      } else {
-        setErrorMessage('Error al conectar con el servicio de pacientes');
-      }
+      setErrorMessage(frontendErrorMessage(error));
     }
   };
 
@@ -166,7 +163,7 @@ function PatientLoginPage() {
       {/* Switch to Admin Portal */}
       <div className="mt-6 text-center">
         <Link
-          to="/admin/login"
+          to={ROUTES.adminLogin}
           className="text-xs text-med-primary-200 hover:text-white transition"
         >
           ¿Es personal administrativo o médico? Ingrese aquí →
