@@ -10,13 +10,18 @@ async function getDoctorOptions(specialtyId, signal) {
   return response.data;
 }
 
-async function getDoctorAvailabilities(doctorId, signal) {
+async function getDoctorAvailableSlots(doctorId, startDate, endDate, signal) {
   const response = await instance.get(
-    DOCTORS_API_ROUTES.availabilities(doctorId),
-    { signal }
+    DOCTORS_API_ROUTES.availableSlots(doctorId),
+    { params: { startDate, endDate }, signal }
   );
 
-  return response.data;
+  return response.data.map((slot) => ({
+    id: slot.availabilitySlotId,
+    date: slot.date.slice(0, 10),
+    startTime: slot.startTime.slice(0, 5),
+    endTime: slot.endTime.slice(0, 5),
+  }));
 }
 
-export { getDoctorAvailabilities, getDoctorOptions };
+export { getDoctorAvailableSlots, getDoctorOptions };

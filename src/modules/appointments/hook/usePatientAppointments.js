@@ -7,7 +7,7 @@ import {
 } from '../services/appointmentsService';
 
 function usePatientAppointments() {
-  const { patientDni } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -19,11 +19,9 @@ function usePatientAppointments() {
   useEffect(() => {
     const controller = new AbortController();
 
-    if (!patientDni) {
+    if (!isAuthenticated) {
       setAppointments([]);
-      setLoadError(
-        'No encontramos el DNI de esta sesión. Cerrá la sesión e ingresá nuevamente.'
-      );
+      setLoadError('Necesitás iniciar sesión para consultar tus turnos.');
       setIsLoading(false);
 
       return () => controller.abort();
@@ -32,7 +30,7 @@ function usePatientAppointments() {
     setIsLoading(true);
     setLoadError('');
 
-    getPatientAppointments(patientDni, controller.signal)
+    getPatientAppointments(controller.signal)
       .then((data) => setAppointments(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
@@ -46,7 +44,7 @@ function usePatientAppointments() {
       });
 
     return () => controller.abort();
-  }, [patientDni, refreshKey]);
+  }, [isAuthenticated, refreshKey]);
 
   const cancelAppointment = async (appointmentId) => {
     setCancellingId(appointmentId);

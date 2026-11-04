@@ -1,13 +1,13 @@
-function getSlotDate(slotDay) {
-  const dateParts = slotDay?.match(/(\d{2})\/(\d{2})$/);
+function getSlotDate(slotDate) {
+  const dateParts = slotDate?.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
   if (!dateParts) {
     return null;
   }
 
-  const day = Number(dateParts[1]);
+  const year = Number(dateParts[1]);
   const month = Number(dateParts[2]);
-  const year = new Date().getFullYear();
+  const day = Number(dateParts[3]);
   const date = new Date(year, month - 1, day);
 
   if (
@@ -30,7 +30,7 @@ function getSlotDateKey(date) {
 }
 
 function isSlotInFuture(slot, now = new Date()) {
-  const date = getSlotDate(slot.day);
+  const date = getSlotDate(slot.date);
 
   if (!date) {
     return false;

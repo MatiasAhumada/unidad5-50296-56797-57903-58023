@@ -12,7 +12,7 @@ import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import { bookAppointment } from '../../appointments/services/appointmentsService';
 import {
-  getDoctorAvailabilities,
+  getDoctorAvailableSlots,
   getDoctorOptions,
 } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
@@ -24,7 +24,7 @@ import {
 } from '../../availabilities/helpers/availabilitySlot';
 
 function getBookingErrorMessage(error) {
-  if (error?.errorCode === 'APPOINTMENT_CONFLICT') {
+  if (error?.status === 409 || error?.errorCode === 'APPOINTMENT_CONFLICT') {
     return 'Ese horario acaba de ocuparse. Elegí otro horario disponible.';
   }
 
@@ -127,7 +127,15 @@ function PatientHome() {
     setIsLoadingSlots(true);
     setAvailabilityError('');
 
-    getDoctorAvailabilities(doctorId, controller.signal)
+    const today = new Date();
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+
+    getDoctorAvailableSlots(
+      doctorId,
+      getSlotDateKey(today),
+      getSlotDateKey(endDate),
+      controller.signal
+    )
       .then((data) => setSlots(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
@@ -149,7 +157,7 @@ function PatientHome() {
   const selectedDoctor = doctors.find((doctor) => doctor.id === doctorId);
   const futureSlots = slots
     .filter((slot) => slot.id && isSlotInFuture(slot))
-    .map((slot) => ({ ...slot, date: getSlotDate(slot.day) }))
+    .map((slot) => ({ ...slot, date: getSlotDate(slot.date) }))
     .filter((slot) => slot.date)
     .sort((first, second) => {
       const dateDifference = first.date - second.date;
