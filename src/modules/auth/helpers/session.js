@@ -2,6 +2,7 @@ import { STORAGE_KEYS, USER_ROLES } from '../../shared/constants/appConstants';
 
 const ROLE_CLAIM =
   'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+const PATIENT_DNI_SESSION_KEY = 'medportal.patientDni';
 
 function getTokenPayload(token) {
   try {
@@ -50,6 +51,7 @@ function isSupportedRole(role) {
 function clearStoredSession() {
   localStorage.removeItem(STORAGE_KEYS.token);
   localStorage.removeItem(STORAGE_KEYS.role);
+  sessionStorage.removeItem(PATIENT_DNI_SESSION_KEY);
 }
 
 function getStoredSession() {
@@ -79,10 +81,15 @@ function getStoredSession() {
 
   localStorage.setItem(STORAGE_KEYS.role, role);
 
-  return { token, role, expiresAt };
+  const patientDni =
+    role === USER_ROLES.patient
+      ? sessionStorage.getItem(PATIENT_DNI_SESSION_KEY)
+      : null;
+
+  return { token, role, expiresAt, patientDni };
 }
 
-function createSession(response) {
+function createSession(response, patientDni = null) {
   const token = response?.token;
   const tokenRole = typeof token === 'string' ? getSessionRole(token) : null;
   const responseRole = normalizeRole(response?.role);
@@ -102,7 +109,7 @@ function createSession(response) {
     throw new Error('El servidor no devolvió una sesión válida.');
   }
 
-  return { token, role, expiresAt };
+  return { token, role, expiresAt, patientDni };
 }
 
 export {
@@ -111,4 +118,5 @@ export {
   getSessionExpiration,
   getSessionRole,
   getStoredSession,
+  PATIENT_DNI_SESSION_KEY,
 };
