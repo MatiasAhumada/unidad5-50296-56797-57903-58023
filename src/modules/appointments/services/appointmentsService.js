@@ -1,6 +1,15 @@
 import { instance } from '../../shared/api/axiosInstance';
 import { APPOINTMENTS_API_ROUTES } from '../constants/apiRoutes';
 
+async function searchAppointments(filters, signal) {
+  const response = await instance.get(APPOINTMENTS_API_ROUTES.search, {
+    params: filters,
+    signal,
+  });
+
+  return response.data;
+}
+
 async function getPatientAppointments(signal) {
   const pageSize = 50;
   const appointments = [];
@@ -59,4 +68,9 @@ async function cancelAppointment(appointmentId) {
   return response.data;
 }
 
-export { bookAppointment, cancelAppointment, getPatientAppointments };
+export {
+  bookAppointment,
+  cancelAppointment,
+  getPatientAppointments,
+  searchAppointments,
+};
