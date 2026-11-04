@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../shared/constants/appConstants';
 import useAuth from '../../auth/hook/useAuth';
-
 import Icon from '../../shared/components/Icon';
-import { ICONS } from '../../shared/constants/icons';
 import IconButton from '../../shared/components/IconButton';
+import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
+import { PATIENT_NAVIGATION } from '../constants/navigation';
 
 function PatientLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,131 +17,100 @@ function PatientLayout() {
     navigate(ROUTES.patientLogin);
   };
 
-  const getNavLinkClass = ({ isActive }) =>
-    `px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+  const navLinkClass = ({ isActive }) =>
+    `rounded-lg px-3.5 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
       isActive
         ? 'bg-med-primary-900 text-white'
         : 'text-med-text-sub hover:bg-med-primary-50 hover:text-med-primary-900'
     }`;
 
   return (
-    <div className="min-h-screen bg-med-bg flex flex-col">
-      {/* Header Responsivo */}
-      <header className="bg-white shadow-xs border-b border-med-border sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          {/* Logo y Enlaces Desktop */}
+    <div className="flex min-h-screen flex-col bg-med-bg">
+      <header className="sticky top-0 z-30 border-b border-med-border bg-white shadow-xs">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-6 sm:gap-8">
             <NavLink to={ROUTES.home} className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-med-primary-900 text-xs font-bold text-white shadow-xs">
                 <Icon icon={ICONS.doctor} size={16} />
-              </div>
-              <span className="text-lg font-bold text-med-primary-900 tracking-tight">
+              </span>
+              <span className="text-lg font-bold tracking-tight text-med-primary-900">
                 Portal Salud
               </span>
             </NavLink>
 
-            {/* Enlaces de Navegación Desktop */}
-            <nav className="hidden md:flex items-center gap-2">
-              <NavLink to={ROUTES.home} end className={getNavLinkClass}>
-                Reservar Turno
-              </NavLink>
-              <NavLink
-                to={ROUTES.patientAppointments}
-                className={getNavLinkClass}
-              >
-                Mis Turnos
-              </NavLink>
+            <nav
+              aria-label="Navegación del paciente"
+              className="hidden items-center gap-2 md:flex"
+            >
+              {PATIENT_NAVIGATION.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={navLinkClass}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
             </nav>
           </div>
 
-          {/* Acciones Derecha Desktop / Mobile Avatar */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Iconos sutiles como en el mock */}
+          <div className="flex items-center gap-3">
+            <span className="hidden text-xs font-semibold text-med-text-sub sm:inline">
+              Sesión de paciente
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden rounded-lg border border-med-border px-2.5 py-1.5 text-xs font-semibold text-med-text-sub transition hover:bg-red-50/40 hover:text-red-600 sm:inline-flex"
+            >
+              Cerrar sesión
+            </button>
             <IconButton
               type="button"
-              label="Notificaciones"
-              icon={ICONS.notification}
-              size={20}
-              onClick={() => alert('No tienes notificaciones pendientes')}
-              className="hidden sm:flex p-2 rounded-lg text-med-text-muted hover:text-med-primary-900 hover:bg-gray-50 transition"
-            />
-
-            {/* Avatar Paciente */}
-            <div className="flex items-center gap-2.5 pl-2 sm:border-l sm:border-med-border">
-              <div className="w-8 h-8 rounded-full bg-med-primary-100 text-med-primary-900 font-bold text-xs flex items-center justify-center border border-med-primary-200">
-                JD
-              </div>
-              <span className="hidden sm:inline-block text-xs font-semibold text-med-text-main">
-                Johnathan Doe
-              </span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="hidden sm:inline-flex text-xs font-semibold text-med-text-sub hover:text-red-600 px-2.5 py-1.5 rounded-lg border border-med-border hover:bg-red-50/40 transition"
-            >
-              Salir
-            </button>
-
-            {/* Botón hamburguesa móvil */}
-            <IconButton
               label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
               icon={ICONS.menu}
               size={20}
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 rounded-lg border border-med-border text-med-text-sub hover:bg-gray-50"
+              onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+              className="rounded-lg border border-med-border p-1.5 text-med-text-sub md:hidden"
             />
           </div>
         </div>
 
-        {/* Desplegable móvil */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-med-border px-4 py-3 bg-white space-y-2">
-            <NavLink
-              to={ROUTES.home}
-              end
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-med-primary-900 text-white'
-                    : 'text-med-text-sub hover:bg-med-primary-50'
-                }`
-              }
-            >
-              Reservar Turno
-            </NavLink>
-            <NavLink
-              to={ROUTES.patientAppointments}
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-med-primary-900 text-white'
-                    : 'text-med-text-sub hover:bg-med-primary-50'
-                }`
-              }
-            >
-              Mis Turnos
-            </NavLink>
-            <div className="pt-2 border-t border-med-border-subtle flex items-center justify-between">
-              <span className="text-xs font-medium text-med-text-sub">
-                Paciente: Johnathan Doe
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-xs font-bold text-red-600"
+          <nav
+            aria-label="Navegación del paciente"
+            className="space-y-2 border-t border-med-border bg-white px-4 py-3 md:hidden"
+          >
+            {PATIENT_NAVIGATION.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `block rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-med-primary-900 text-white'
+                      : 'text-med-text-sub hover:bg-med-primary-50'
+                  } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700`
+                }
               >
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
+                {item.label}
+              </NavLink>
+            ))}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full border-t border-med-border-subtle pt-3 text-left text-xs font-bold text-red-600"
+            >
+              Cerrar sesión
+            </button>
+          </nav>
         )}
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 lg:p-8">
         <Outlet />
       </main>
     </div>

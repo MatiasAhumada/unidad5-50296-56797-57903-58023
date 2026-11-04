@@ -1,491 +1,536 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../shared/constants/appConstants';
-import Card from '../../shared/components/Card';
+import useAuth from '../../auth/hook/useAuth';
+import { getApiErrorMessage } from '../../shared/api/apiError';
 import Button from '../../shared/components/Button';
+import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
-import Select from '../../shared/components/Select';
-
-const specialtyOptions = [
-  { value: 'Cardiología', label: 'Cardiología' },
-  { value: 'Pediatría', label: 'Pediatría' },
-  { value: 'Neurología', label: 'Neurología' },
-  { value: 'Dermatología', label: 'Dermatología' },
-  { value: 'Medicina General', label: 'Medicina General' },
-];
-
 import Icon from '../../shared/components/Icon';
+import Select from '../../shared/components/Select';
+import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
-import IconButton from '../../shared/components/IconButton';
+import { ROUTES } from '../../shared/constants/appConstants';
+import { bookAppointment } from '../../appointments/services/appointmentsService';
+import {
+  getDoctorAvailableSlots,
+  getDoctorOptions,
+} from '../../doctors/services/doctorsService';
+import { getSpecialties } from '../../specialties/services/specialtiesService';
+import {
+  formatSlotDate,
+  getSlotDate,
+  getSlotDateKey,
+  isSlotInFuture,
+} from '../../availabilities/helpers/availabilitySlot';
+
+function getBookingErrorMessage(error) {
+  if (error?.status === 409 || error?.errorCode === 'APPOINTMENT_CONFLICT') {
+    return 'Ese horario acaba de ocuparse. Elegí otro horario disponible.';
+  }
+
+  if (error?.errorCode === 'PAST_SLOT') {
+    return 'Ese horario ya pasó. Actualizamos la disponibilidad para que elijas otro.';
+  }
+
+  if (error?.status === 404) {
+    return 'El médico o el horario ya no está disponible. Actualizamos las opciones.';
+  }
+
+  return getApiErrorMessage(error);
+}
 
 function PatientHome() {
   const navigate = useNavigate();
+  const { patientDni } = useAuth();
+  const bookingRequestRef = useRef(false);
+  const [specialties, setSpecialties] = useState([]);
+  const [specialtyId, setSpecialtyId] = useState('');
+  const [doctors, setDoctors] = useState([]);
+  const [doctorId, setDoctorId] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [reason, setReason] = useState('');
+  const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(true);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+  const [specialtyError, setSpecialtyError] = useState('');
+  const [doctorError, setDoctorError] = useState('');
+  const [availabilityError, setAvailabilityError] = useState('');
+  const [bookingError, setBookingError] = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [specialtiesRequestKey, setSpecialtiesRequestKey] = useState(0);
+  const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
+  const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
 
-  // Estados de selección de filtros
-  const [selectedSpecialty, setSelectedSpecialty] = useState('Cardiología');
-  const [selectedDoctorId, setSelectedDoctorId] = useState('doc-1');
+  useEffect(() => {
+    const controller = new AbortController();
 
-  // Médicos disponibles
-  const doctorsList = [
-    {
-      id: 'doc-1',
-      name: 'Dr. Alejandro Martínez',
-      specialty: 'Cardiología',
-      specialtyDetail: 'Cardiología Intervencionista',
-      clinic: 'Clínica San Rafael • Sede Central Consultorio 402',
-      badge: 'Verificado',
-      avatar: '👨‍⚕️',
-    },
-    {
-      id: 'doc-2',
-      name: 'Dra. Elena Martínez',
-      specialty: 'Pediatría',
-      specialtyDetail: 'Pediatría Avanzada',
-      clinic: 'Clínica San Rafael • Consultorio 104',
-      badge: 'Verificado',
-      avatar: '👩‍⚕️',
-    },
-    {
-      id: 'doc-3',
-      name: 'Dr. Marcos Torres',
-      specialty: 'Neurología',
-      specialtyDetail: 'Neurocirugía Clínica',
-      clinic: 'Clínica San Rafael • Consultorio 202',
-      badge: 'Verificado',
-      avatar: '👨‍⚕️',
-    },
-  ];
+    setIsLoadingSpecialties(true);
+    setSpecialtyError('');
 
-  const currentDoctor =
-    doctorsList.find((doc) => doc.id === selectedDoctorId) || doctorsList[0];
+    getSpecialties(controller.signal)
+      .then((data) => setSpecialties(data))
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setSpecialtyError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingSpecialties(false);
+        }
+      });
 
-  // Días de la semana disponible
-  const weekDays = [
-    { dayName: 'LUN', dateNumber: '22', fullDate: 'Lunes 22 de Mayo de 2024' },
-    { dayName: 'MAR', dateNumber: '23', fullDate: 'Martes 23 de Mayo de 2024' },
-    {
-      dayName: 'MIE',
-      dateNumber: '24',
-      fullDate: 'Miércoles 24 de Mayo de 2024',
-    },
-    { dayName: 'JUE', dateNumber: '25', fullDate: 'Jueves 25 de Mayo de 2024' },
-    {
-      dayName: 'VIE',
-      dateNumber: '26',
-      fullDate: 'Viernes 26 de Mayo de 2024',
-    },
-  ];
+    return () => controller.abort();
+  }, [specialtiesRequestKey]);
 
-  // Horarios por día
-  const slotsByDay = {
-    22: ['08:00', '08:30', '09:00', '09:30', '10:00', '11:30'],
-    23: ['08:00', '09:00', '10:30', '11:00', '12:30'],
-    24: ['08:30', '09:30', '11:00', '11:30'],
-    25: [], // Sin turnos disponibles
-    26: ['08:00', '08:30', '09:00', '14:00', '14:30'],
+  useEffect(() => {
+    if (!specialtyId) {
+      setDoctors([]);
+      setIsLoadingDoctors(false);
+
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    setIsLoadingDoctors(true);
+    setDoctorError('');
+
+    getDoctorOptions(specialtyId, controller.signal)
+      .then((data) => setDoctors(data))
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setDoctorError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingDoctors(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [specialtyId, doctorsRequestKey]);
+
+  useEffect(() => {
+    if (!doctorId) {
+      setSlots([]);
+      setIsLoadingSlots(false);
+
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    setIsLoadingSlots(true);
+    setAvailabilityError('');
+
+    const today = new Date();
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+
+    getDoctorAvailableSlots(
+      doctorId,
+      getSlotDateKey(today),
+      getSlotDateKey(endDate),
+      controller.signal
+    )
+      .then((data) => setSlots(data))
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setAvailabilityError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingSlots(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [doctorId, slotsRefreshKey]);
+
+  const selectedSpecialty = specialties.find(
+    (specialty) => specialty.id === specialtyId
+  );
+  const selectedDoctor = doctors.find((doctor) => doctor.id === doctorId);
+  const futureSlots = slots
+    .filter((slot) => slot.id && isSlotInFuture(slot))
+    .map((slot) => ({ ...slot, date: getSlotDate(slot.date) }))
+    .filter((slot) => slot.date)
+    .sort((first, second) => {
+      const dateDifference = first.date - second.date;
+
+      if (dateDifference !== 0) {
+        return dateDifference;
+      }
+
+      return first.startTime.localeCompare(second.startTime);
+    });
+  const slotsByDate = futureSlots.reduce((groups, slot) => {
+    const dateKey = getSlotDateKey(slot.date);
+
+    if (!groups[dateKey]) {
+      groups[dateKey] = { date: slot.date, slots: [] };
+    }
+
+    groups[dateKey].slots.push(slot);
+
+    return groups;
+  }, {});
+  const noDoctorsForSpecialty =
+    specialtyId && !isLoadingDoctors && !doctorError && doctors.length === 0;
+  const noFutureSlots =
+    !isLoadingSlots && !availabilityError && futureSlots.length === 0;
+
+  const handleSpecialtyChange = (event) => {
+    setSpecialtyId(event.target.value);
+    setDoctorId('');
+    setDoctors([]);
+    setSelectedSlot(null);
+    setSlots([]);
+    setBookingSuccess(null);
+    setDoctorError('');
+    setAvailabilityError('');
+    setBookingError('');
   };
 
-  // Día y slot horario seleccionado
-  const [selectedDayNumber, setSelectedDayNumber] = useState('22');
-  const [selectedSlot, setSelectedSlot] = useState('09:30');
-  const [confirmedModal, setConfirmedModal] = useState(false);
-
-  const selectedDayObj =
-    weekDays.find((d) => d.dateNumber === selectedDayNumber) || weekDays[0];
-
-  const handleSelectSlot = (dayNum, slot) => {
-    setSelectedDayNumber(dayNum);
-    setSelectedSlot(slot);
+  const handleDoctorChange = (event) => {
+    setDoctorId(event.target.value);
+    setSelectedSlot(null);
+    setSlots([]);
+    setBookingSuccess(null);
+    setAvailabilityError('');
+    setBookingError('');
   };
 
-  const handleConfirmAppointment = () => {
-    setConfirmedModal(true);
+  const handleBookAppointment = async (event) => {
+    event.preventDefault();
+
+    if (
+      bookingRequestRef.current ||
+      !selectedSlot ||
+      !doctorId ||
+      !patientDni ||
+      reason.trim().length < 5
+    ) {
+      return;
+    }
+
+    bookingRequestRef.current = true;
+    setIsBooking(true);
+    setBookingError('');
+    setBookingSuccess(null);
+
+    try {
+      const appointment = await bookAppointment({
+        doctorId,
+        availabilitySlotId: selectedSlot.id,
+        dni: patientDni,
+        reason: reason.trim(),
+      });
+
+      setBookingSuccess({
+        doctorName: selectedDoctor?.name,
+        specialtyName: selectedSpecialty?.name,
+        date: selectedSlot.date,
+        startTime: selectedSlot.startTime,
+        appointmentId: appointment.appointmentsId,
+      });
+      setSelectedSlot(null);
+      setReason('');
+      setSlotsRefreshKey((currentKey) => currentKey + 1);
+    } catch (error) {
+      setBookingError(getBookingErrorMessage(error));
+
+      if (
+        error?.errorCode === 'APPOINTMENT_CONFLICT' ||
+        error?.errorCode === 'PAST_SLOT' ||
+        error?.status === 404
+      ) {
+        setSelectedSlot(null);
+        setSlotsRefreshKey((currentKey) => currentKey + 1);
+      }
+    } finally {
+      bookingRequestRef.current = false;
+      setIsBooking(false);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      {/* 1. Card Superior: Selector de Especialidad y Doctor */}
-      <Card className="p-6 sm:p-7">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <Card className="p-5 sm:p-7">
         <div className="mb-5">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-med-primary-900">
-            Reservar Turno Médico
+          <h1 className="text-2xl font-bold tracking-tight text-med-primary-900 sm:text-3xl">
+            Reservar turno médico
           </h1>
-          <p className="text-xs sm:text-sm text-med-text-sub mt-1">
-            Seleccione la especialidad y el profesional para continuar.
+          <p className="mt-1 text-sm text-med-text-sub">
+            Elegí una especialidad, un profesional y un horario disponible.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-2">
           <FormField
             id="patient-specialty"
-            label="Seleccionar Especialidad"
-            className="md:col-span-5"
-            labelClassName="text-xs font-semibold text-med-text-sub"
+            label="Especialidad"
+            className="md:col-span-1"
           >
             {(fieldProps) => (
-              <div className="relative">
-                <Select
-                  id="patient-specialty"
-                  value={selectedSpecialty}
-                  onChange={(event) => setSelectedSpecialty(event.target.value)}
-                  className="appearance-none pr-10 cursor-pointer"
-                  options={specialtyOptions}
-                  {...fieldProps}
-                />
-                <span
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  ▼
-                </span>
-              </div>
+              <Select
+                {...fieldProps}
+                value={specialtyId}
+                onChange={handleSpecialtyChange}
+                disabled={isLoadingSpecialties || Boolean(specialtyError)}
+                options={[
+                  { value: '', label: 'Seleccioná una especialidad' },
+                  ...specialties.map((specialty) => ({
+                    value: specialty.id,
+                    label: specialty.name,
+                  })),
+                ]}
+              />
             )}
           </FormField>
 
-          <FormField
-            id="patient-doctor"
-            label="Seleccionar Doctor"
-            className="md:col-span-4"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
+          <FormField id="patient-doctor" label="Profesional">
             {(fieldProps) => (
-              <div className="relative">
-                <Select
-                  id="patient-doctor"
-                  value={selectedDoctorId}
-                  onChange={(event) => setSelectedDoctorId(event.target.value)}
-                  className="appearance-none pr-10 cursor-pointer"
-                  options={doctorsList.map((doctor) => ({
+              <Select
+                {...fieldProps}
+                value={doctorId}
+                onChange={handleDoctorChange}
+                disabled={
+                  !specialtyId || isLoadingDoctors || Boolean(doctorError)
+                }
+                options={[
+                  {
+                    value: '',
+                    label: isLoadingDoctors
+                      ? 'Cargando profesionales…'
+                      : 'Seleccioná un profesional',
+                  },
+                  ...doctors.map((doctor) => ({
                     value: doctor.id,
                     label: doctor.name,
-                  }))}
-                  {...fieldProps}
-                />
-                <span
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  ▼
-                </span>
-              </div>
+                  })),
+                ]}
+              />
             )}
           </FormField>
+        </div>
 
-          {/* Botón Buscar Disponibilidad */}
-          <div className="md:col-span-3">
+        {isLoadingSpecialties && (
+          <p className="mt-4 text-sm text-med-text-sub" role="status">
+            Cargando especialidades…
+          </p>
+        )}
+        {specialtyError && (
+          <div className="mt-4 flex flex-col items-start gap-3">
+            <StatusMessage variant="error">{specialtyError}</StatusMessage>
             <Button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-2.5 rounded-lg shadow-sm"
-              onClick={() => {}}
+              variant="outline"
+              onClick={() => setSpecialtiesRequestKey((key) => key + 1)}
             >
-              <Icon icon={ICONS.search} size={16} />
-              <span>Buscar Disponibilidad</span>
+              Reintentar
             </Button>
           </div>
-        </div>
+        )}
+        {noDoctorsForSpecialty && (
+          <div className="mt-4">
+            <StatusMessage>
+              No hay profesionales disponibles para esta especialidad.
+            </StatusMessage>
+          </div>
+        )}
+        {doctorError && (
+          <div className="mt-4 flex flex-col items-start gap-3">
+            <StatusMessage variant="error">{doctorError}</StatusMessage>
+            <Button
+              variant="outline"
+              onClick={() => setDoctorsRequestKey((key) => key + 1)}
+            >
+              Reintentar
+            </Button>
+          </div>
+        )}
       </Card>
 
-      {/* 2. Card de Información del Doctor Seleccionado (Sin reseñas de doctor) */}
-      <Card className="p-5 sm:p-6 flex items-center gap-4 border-med-border">
-        <div className="relative shrink-0">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-med-primary-100 flex items-center justify-center text-3xl border border-med-primary-200">
-            {currentDoctor.avatar}
-          </div>
-          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
-        </div>
-
-        <div className="overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-med-primary-900">
-              {currentDoctor.name}
-            </h2>
-            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-med-primary-100 text-med-primary-700">
-              {currentDoctor.badge}
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm font-semibold uppercase sm:normal-case tracking-wide sm:tracking-normal text-med-primary-700 sm:text-med-text-sub mt-0.5">
-            {currentDoctor.specialtyDetail}
-          </p>
-          <p className="text-xs text-med-text-muted mt-0.5 truncate">
-            {currentDoctor.clinic}
-          </p>
-        </div>
-      </Card>
-
-      {/* 3. Selector Semanal de Disponibilidad */}
-      <Card className="p-5 sm:p-6 border-med-border">
-        {/* Cabecera del calendario de semana */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-med-border-subtle">
-          <div className="flex items-center gap-3">
-            <IconButton
-              type="button"
-              label="Semana anterior"
-              icon={ICONS.previous}
-              size={16}
-              variant="outline"
-              className="p-1 rounded-md border border-med-border hover:bg-gray-50 text-med-text-sub transition"
-            />
-            <span className="font-bold text-sm sm:text-base text-med-primary-900">
-              Lunes 22 - Viernes 26, Mayo
-            </span>
-            <IconButton
-              type="button"
-              label="Semana siguiente"
-              icon={ICONS.next}
-              size={16}
-              variant="outline"
-              className="p-1 rounded-md border border-med-border hover:bg-gray-50 text-med-text-sub transition"
-            />
+      {doctorId && (
+        <Card className="border-med-border p-5 sm:p-6">
+          <div className="mb-5 flex flex-col gap-2 border-b border-med-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-med-primary-900">
+                Horarios disponibles
+              </h2>
+              <p className="mt-1 text-sm text-med-text-sub">
+                {selectedDoctor?.name}
+                {selectedSpecialty ? ` · ${selectedSpecialty.name}` : ''}
+              </p>
+            </div>
+            <p className="text-xs text-med-text-muted">
+              Los horarios se confirman al reservar.
+            </p>
           </div>
 
-          {/* Leyenda */}
-          <div className="flex items-center gap-4 text-xs text-med-text-sub">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-med-primary-900" />
-              Disponible
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              Seleccionado
-            </span>
-          </div>
-        </div>
-
-        {/* --- A) VISTA DESKTOP: Grid semanal de 5 columnas (visible en sm+) --- */}
-        <div className="hidden sm:grid sm:grid-cols-5 gap-3 pt-5">
-          {weekDays.map((day) => {
-            const slots = slotsByDay[day.dateNumber] || [];
-
-            return (
-              <div
-                key={day.dateNumber}
-                className="flex flex-col items-center gap-3"
+          {isLoadingSlots && (
+            <p className="text-sm text-med-text-sub" role="status">
+              Buscando horarios disponibles…
+            </p>
+          )}
+          {availabilityError && (
+            <div className="flex flex-col items-start gap-3">
+              <StatusMessage variant="error">{availabilityError}</StatusMessage>
+              <Button
+                variant="outline"
+                onClick={() => setSlotsRefreshKey((key) => key + 1)}
               >
-                {/* Cabecera del día */}
-                <div className="text-center">
-                  <span className="text-[11px] font-bold text-med-text-sub uppercase">
-                    {day.dayName}
-                  </span>
-                  <p className="text-xl font-bold text-med-primary-900 leading-tight">
-                    {day.dateNumber}
-                  </p>
-                </div>
+                Reintentar
+              </Button>
+            </div>
+          )}
+          {noFutureSlots && (
+            <StatusMessage>
+              No hay horarios futuros disponibles para este profesional.
+            </StatusMessage>
+          )}
 
-                {/* Slots del día */}
-                <div className="w-full flex flex-col gap-2">
-                  {slots.length > 0 ? (
-                    slots.map((slot) => {
-                      const isSelected =
-                        selectedDayNumber === day.dateNumber &&
-                        selectedSlot === slot;
+          {Object.entries(slotsByDate).length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(slotsByDate).map(([dateKey, group]) => (
+                <section
+                  key={dateKey}
+                  aria-label={formatSlotDate(group.date)}
+                  className="rounded-xl border border-med-border bg-med-bg p-4"
+                >
+                  <h3 className="mb-3 text-sm font-semibold text-med-primary-900">
+                    {formatSlotDate(group.date)}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.slots.map((slot) => {
+                      const isSelected = selectedSlot?.id === slot.id;
 
                       return (
                         <button
-                          key={slot}
+                          key={slot.id}
                           type="button"
-                          onClick={() => handleSelectSlot(day.dateNumber, slot)}
-                          className={`w-full py-2 px-3 text-xs font-semibold rounded-lg border transition-all text-center ${
+                          aria-pressed={isSelected}
+                          onClick={() => {
+                            setSelectedSlot(slot);
+                            setBookingError('');
+                            setBookingSuccess(null);
+                          }}
+                          className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
                             isSelected
-                              ? 'bg-emerald-400 text-white border-emerald-400 shadow-sm'
-                              : 'bg-white border-med-border text-med-primary-900 hover:border-med-primary-600 hover:bg-med-primary-50/50'
+                              ? 'border-med-primary-900 bg-med-primary-900 text-white'
+                              : 'border-med-border bg-white text-med-primary-900 hover:border-med-primary-600 hover:bg-med-primary-50'
                           }`}
                         >
-                          {slot}
+                          {slot.startTime}
                         </button>
                       );
-                    })
-                  ) : (
-                    <div className="h-44 flex items-center justify-center text-center p-2">
-                      <p className="text-xs text-med-text-muted leading-relaxed">
-                        No hay turnos disponibles para este día.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
-        {/* --- B) VISTA MOBILE: Selector de días horizontal + Horarios en bloques (visible en mobile) --- */}
-        <div className="block sm:hidden pt-4 space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-med-text-main">
-                Próximos Turnos
-              </span>
-              <span className="text-xs font-semibold text-med-primary-700">
-                Ver más ›
-              </span>
+      {bookingError && !selectedSlot && (
+        <StatusMessage variant="error">
+          {bookingError} Elegí otro horario para continuar.
+        </StatusMessage>
+      )}
+
+      {selectedSlot && (
+        <Card className="border-med-primary-200 bg-med-primary-50 p-5 sm:p-6">
+          <form
+            onSubmit={handleBookAppointment}
+            className="flex flex-col gap-4"
+          >
+            <div>
+              <h2 className="text-lg font-bold text-med-primary-900">
+                Confirmá tu turno
+              </h2>
+              <p className="mt-1 text-sm text-med-text-sub">
+                {selectedDoctor?.name} · {selectedSpecialty?.name} ·{' '}
+                {formatSlotDate(selectedSlot.date)} a las{' '}
+                {selectedSlot.startTime}
+              </p>
             </div>
 
-            {/* Días en fila desplazable */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {weekDays.map((day) => {
-                const isActive = selectedDayNumber === day.dateNumber;
+            <FormField
+              id="appointment-reason"
+              label="Motivo de la consulta"
+              hint="Escribí al menos 5 caracteres."
+              required
+            >
+              {(fieldProps) => (
+                <textarea
+                  {...fieldProps}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  minLength={5}
+                  rows={3}
+                  className="w-full resize-y rounded-lg border border-med-border bg-white px-3.5 py-2.5 text-sm text-med-text-main focus:border-transparent focus:outline-none focus:ring-2 focus:ring-med-primary-600"
+                  placeholder="Contanos brevemente el motivo"
+                />
+              )}
+            </FormField>
 
-                return (
-                  <button
-                    key={day.dateNumber}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDayNumber(day.dateNumber);
-                      const availableSlots = slotsByDay[day.dateNumber] || [];
-
-                      if (
-                        availableSlots.length > 0 &&
-                        !availableSlots.includes(selectedSlot)
-                      ) {
-                        setSelectedSlot(availableSlots[0]);
-                      }
-                    }}
-                    className={`flex-1 min-w-[68px] py-2.5 px-2 rounded-xl text-center border transition-all ${
-                      isActive
-                        ? 'bg-med-primary-900 text-white border-med-primary-900 shadow-sm'
-                        : 'bg-white border-med-border text-med-text-main hover:bg-gray-50'
-                    }`}
-                  >
-                    <span
-                      className={`block text-[10px] font-bold uppercase ${
-                        isActive ? 'text-white/80' : 'text-med-text-sub'
-                      }`}
-                    >
-                      {day.dayName}
-                    </span>
-                    <span className="block text-base font-extrabold my-0.5">
-                      {day.dateNumber}
-                    </span>
-                    <span
-                      className={`block text-[10px] uppercase ${
-                        isActive ? 'text-white/80' : 'text-med-text-muted'
-                      }`}
-                    >
-                      MAY
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Horarios disponibles para el día seleccionado en mobile */}
-          <div>
-            <span className="block text-xs font-bold text-med-text-sub mb-2.5">
-              Horarios disponibles (Bloques de 30 min)
-            </span>
-
-            {slotsByDay[selectedDayNumber]?.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {slotsByDay[selectedDayNumber].map((slot) => {
-                  const isSelected = selectedSlot === slot;
-
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => handleSelectSlot(selectedDayNumber, slot)}
-                      className={`py-2 px-2 text-xs font-semibold rounded-lg border transition-all ${
-                        isSelected
-                          ? 'border-2 border-med-primary-900 bg-white text-med-primary-900 font-bold shadow-xs'
-                          : 'bg-white border-med-border text-med-text-main hover:bg-gray-50'
-                      }`}
-                    >
-                      {slot} AM
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-6 bg-gray-50 border border-med-border rounded-xl text-center">
-                <p className="text-xs text-med-text-muted">
-                  No hay turnos disponibles para este día seleccionado.
-                </p>
-              </div>
+            {bookingError && (
+              <StatusMessage variant="error">{bookingError}</StatusMessage>
             )}
-          </div>
-        </div>
-      </Card>
 
-      {/* 4. Banner / Resumen de Selección y Confirmación */}
-      <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Detalle del Turno */}
-        <div className="border-l-4 border-med-primary-900 pl-3.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-med-text-sub">
-            Resumen de Selección
-          </span>
-          <p className="text-base sm:text-lg font-bold text-med-primary-900 mt-0.5 flex items-center gap-2">
-            <span>📅</span>
-            <span>
-              {selectedDayObj.fullDate}, {selectedSlot} HS
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-med-text-sub">
+                Duración estimada: 30 minutos.
+              </p>
+              <Button
+                type="submit"
+                disabled={
+                  isBooking ||
+                  reason.trim().length < 5 ||
+                  !patientDni ||
+                  isLoadingSlots
+                }
+                className="inline-flex items-center justify-center gap-2"
+              >
+                {isBooking ? 'Reservando…' : 'Reservar turno'}
+                {!isBooking && <Icon icon={ICONS.checkCircle} size={18} />}
+              </Button>
+            </div>
+            {!patientDni && (
+              <StatusMessage variant="error">
+                No encontramos el DNI de esta sesión. Cerrá la sesión e ingresá
+                nuevamente para reservar.
+              </StatusMessage>
+            )}
+          </form>
+        </Card>
+      )}
+
+      {bookingSuccess && (
+        <StatusMessage variant="success">
+          <span className="font-semibold">Turno reservado.</span>{' '}
+          {bookingSuccess.doctorName} · {bookingSuccess.specialtyName} ·{' '}
+          {formatSlotDate(bookingSuccess.date)} a las {bookingSuccess.startTime}
+          .
+          {bookingSuccess.appointmentId && (
+            <span className="ml-1">
+              Código: {bookingSuccess.appointmentId.slice(0, 8).toUpperCase()}.
             </span>
-          </p>
-          <p className="text-xs text-med-text-sub mt-0.5">
-            {currentDoctor.clinic} • Duración: 30 min
-          </p>
-        </div>
-
-        {/* Botón de Confirmación */}
-        <Button
-          type="button"
-          onClick={handleConfirmAppointment}
-          className="flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-3 px-6 rounded-xl shadow-md text-sm shrink-0"
-        >
-          <span>Confirmar Turno</span>
-          <Icon icon={ICONS.checkCircle} size={20} />
-        </Button>
-      </div>
-
-      {/* Modal de Confirmación Exitosa */}
-      {confirmedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 text-center animate-in fade-in zoom-in duration-150">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-              ✓
-            </div>
-            <h3 className="text-xl font-bold text-med-primary-900">
-              ¡Turno Confirmado con Éxito!
-            </h3>
-            <p className="text-xs text-med-text-sub mt-2 leading-relaxed">
-              Tu turno con el{' '}
-              <strong className="text-med-text-main">
-                {currentDoctor.name}
-              </strong>{' '}
-              ha sido reservado para el{' '}
-              <strong className="text-med-text-main">
-                {selectedDayObj.fullDate} a las {selectedSlot} hs
-              </strong>
-              .
-            </p>
-
-            <div className="mt-5 p-3.5 bg-med-primary-50 border border-med-primary-200/60 rounded-xl text-xs text-med-primary-900 text-left space-y-1">
-              <p>
-                <strong>Especialidad:</strong> {currentDoctor.specialtyDetail}
-              </p>
-              <p>
-                <strong>Lugar:</strong> {currentDoctor.clinic}
-              </p>
-              <p>
-                <strong>Paciente:</strong> Johnathan Doe (DNI: 40.123.456)
-              </p>
-            </div>
-
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Button
-                className="w-full text-xs py-2.5"
-                onClick={() => navigate(ROUTES.patientAppointments)}
-              >
-                Ver Mis Turnos
-              </Button>
-              <Button
-                variant="secondary"
-                className="w-full text-xs py-2.5"
-                onClick={() => setConfirmedModal(false)}
-              >
-                Reservar Otro
-              </Button>
-            </div>
-          </div>
-        </div>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            className="ml-2 px-2 py-1 text-sm underline"
+            onClick={() => navigate(ROUTES.patientAppointments)}
+          >
+            Ver mis turnos
+          </Button>
+        </StatusMessage>
       )}
     </div>
   );

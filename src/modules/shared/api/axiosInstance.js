@@ -2,6 +2,7 @@ import axios from 'axios';
 import { normalizeApiError } from './apiError';
 import { API_BASE_URL } from '../config/apiConfig';
 import { ROUTES, STORAGE_KEYS, USER_ROLES } from '../constants/appConstants';
+import { clearStoredSession } from '../../auth/helpers/session';
 
 const instance = axios.create({
   baseURL: API_BASE_URL,
@@ -36,8 +37,8 @@ instance.interceptors.response.use(
           ? ROUTES.adminLogin
           : ROUTES.patientLogin;
 
-      localStorage.removeItem(STORAGE_KEYS.token);
-      localStorage.removeItem(STORAGE_KEYS.role);
+      sessionStorage.setItem('medportal.sessionExpired', 'true');
+      clearStoredSession();
 
       if (window.location.pathname !== loginRoute) {
         window.location.assign(`${loginRoute}?session=expired`);

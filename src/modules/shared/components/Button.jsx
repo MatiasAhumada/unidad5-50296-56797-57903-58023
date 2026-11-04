@@ -23,7 +23,7 @@ function Button({
   };
 
   const appliedClass =
-    `${variantStyle[variant] || variantStyle.default} ${className}`.trim();
+    `${variantStyle[variant] || variantStyle.default} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${className}`.trim();
 
   return (
     <button {...restProps} className={appliedClass} type={type}>

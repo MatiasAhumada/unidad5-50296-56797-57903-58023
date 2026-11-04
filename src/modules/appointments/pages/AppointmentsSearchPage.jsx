@@ -1,102 +1,185 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
-import IconButton from '../../shared/components/IconButton';
-
-const specialtyFilterOptions = [
-  { value: 'Todas', label: 'Todas las Especialidades' },
-  { value: 'Cardiology', label: 'Cardiology' },
-  { value: 'Neurology', label: 'Neurology' },
-  { value: 'General Checkup', label: 'General Checkup' },
-];
-
-const doctorFilterOptions = [
-  { value: 'Todos', label: 'Todos los Doctores' },
-  { value: 'Dr. Robert Smith', label: 'Dr. Robert Smith' },
-  { value: 'Dra. Garcia', label: 'Dra. Garcia' },
-  { value: 'Dr. Miller', label: 'Dr. Miller' },
-];
-
 import Icon from '../../shared/components/Icon';
+import StatusMessage from '../../shared/components/StatusMessage';
+import TablePagination from '../../shared/components/TablePagination';
+import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
+import { getDoctors } from '../../doctors/services/doctorsService';
+import { getSpecialties } from '../../specialties/services/specialtiesService';
+import { searchAppointments } from '../services/appointmentsService';
+
+const APPOINTMENT_STATUS_LABELS = {
+  BOOKED: 'Reservado',
+  CANCELLED: 'Cancelado',
+  ATTENDED: 'Atendido',
+  NO_SHOW: 'Ausente',
+};
+
+const EMPTY_FILTERS = {
+  dni: '',
+  specialtyId: '',
+  doctorId: '',
+  date: '',
+};
 
 function AppointmentsSearchPage() {
-  const [patientQuery, setPatientQuery] = useState('Johnathan Doe');
-  const [specialtyFilter, setSpecialtyFilter] = useState('Todas');
-  const [doctorFilter, setDoctorFilter] = useState('Todos');
-  const [dateFilter, setDateFilter] = useState('2023-10-24');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [appointmentsPage, setAppointmentsPage] = useState({
+    data: [],
+    pageSize: 10,
+    total: 0,
+  });
+  const [specialties, setSpecialties] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [catalogError, setCatalogError] = useState('');
+  const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true);
+  const [catalogRequestKey, setCatalogRequestKey] = useState(0);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState('');
+  const [appointmentsRequestKey, setAppointmentsRequestKey] = useState(0);
 
-  const appointmentsData = [
-    {
-      id: 1,
-      date: '24 Oct, 2023',
-      time: '10:30 AM',
-      department: 'Cardiology',
-      doctor: 'Dr. Robert Smith',
-      patient: 'Johnathan Doe',
-      dni: '40.123.456',
-      status: 'CONFIRMADO',
-      statusType: 'confirmed',
-      icon: ICONS.heart,
-    },
-    {
-      id: 2,
-      date: '15 Oct, 2023',
-      time: '09:15 AM',
-      department: 'Neurology',
-      doctor: 'Dra. Garcia',
-      patient: 'Johnathan Doe',
-      dni: '40.123.456',
-      status: 'COMPLETADO',
-      statusType: 'completed',
-      icon: ICONS.brain,
-    },
-    {
-      id: 3,
-      date: '05 Oct, 2023',
-      time: '11:00 AM',
-      department: 'General Checkup',
-      doctor: 'Dr. Miller',
-      patient: 'Johnathan Doe',
-      dni: '40.123.456',
-      status: 'CANCELADO',
-      statusType: 'cancelled',
-      icon: ICONS.medicalFile,
-    },
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setIsLoadingCatalogs(true);
+    setCatalogError('');
+
+    Promise.all([
+      getSpecialties(controller.signal),
+      getDoctors(controller.signal),
+    ])
+      .then(([specialtiesData, doctorsData]) => {
+        setSpecialties(specialtiesData);
+        setDoctors(doctorsData);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setCatalogError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingCatalogs(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [catalogRequestKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setIsLoadingAppointments(true);
+    setAppointmentsError('');
+    const dni = appliedFilters.dni.replace(/\D/g, '');
+
+    searchAppointments(
+      {
+        pageSize: 10,
+        pageIndex,
+        dni: dni || undefined,
+        specialtyId: appliedFilters.specialtyId || undefined,
+        doctorId: appliedFilters.doctorId || undefined,
+        date: appliedFilters.date || undefined,
+      },
+      controller.signal
+    )
+      .then(setAppointmentsPage)
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setAppointmentsError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingAppointments(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [appliedFilters, appointmentsRequestKey, pageIndex]);
+
+  const visibleDoctors = useMemo(() => {
+    if (!filters.specialtyId) {
+      return doctors;
+    }
+
+    return doctors.filter(
+      (doctor) => doctor.specialty?.id === filters.specialtyId
+    );
+  }, [doctors, filters.specialtyId]);
+
+  const specialtyOptions = [
+    { value: '', label: 'Todas las especialidades' },
+    ...specialties.map((specialty) => ({
+      value: specialty.id,
+      label: specialty.name,
+    })),
   ];
+  const doctorOptions = [
+    { value: '', label: 'Todos los doctores' },
+    ...visibleDoctors.map((doctor) => ({
+      value: doctor.id,
+      label: doctor.name,
+    })),
+  ];
+
+  const applyFilters = (event) => {
+    event.preventDefault();
+    setAppliedFilters({ ...filters });
+    setPageIndex(1);
+  };
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setAppliedFilters(EMPTY_FILTERS);
+    setPageIndex(1);
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Título de la página */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-med-text-main">
+        <h1 className="text-2xl font-bold tracking-tight text-med-text-main sm:text-3xl">
           Búsqueda y Filtrado de Citas
         </h1>
-        <p className="text-sm text-med-text-sub mt-1">
-          Gestione y supervise el flujo de pacientes del departamento.
+        <p className="mt-1 text-sm text-med-text-sub">
+          Consultá los turnos registrados según sus filtros.
         </p>
       </div>
 
-      {/* Card Superior: Criterios de Búsqueda */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between pb-4 border-b border-med-border-subtle">
+      <Card className="p-5 sm:p-6">
+        <div className="mb-4 border-b border-med-border-subtle pb-4">
           <h2 className="text-base font-bold text-med-primary-900">
-            Criterios de Búsqueda
+            Criterios de búsqueda
           </h2>
-          <div className="flex items-center gap-1.5 text-xs text-med-text-muted">
-            <Icon icon={ICONS.refresh} size={16} />
-            <span>Última actualización: hace un momento</span>
-          </div>
         </div>
+        {catalogError && (
+          <div className="mb-4 flex flex-col items-start gap-3">
+            <StatusMessage variant="error">{catalogError}</StatusMessage>
+            <button
+              type="button"
+              className="text-sm font-semibold text-med-primary-700 underline"
+              onClick={() => setCatalogRequestKey((key) => key + 1)}
+            >
+              Reintentar catálogos
+            </button>
+          </div>
+        )}
 
-        {/* Inputs de Filtros */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4 items-end">
+        <form
+          onSubmit={applyFilters}
+          className="grid grid-cols-1 items-end gap-3.5 sm:grid-cols-2 lg:grid-cols-5"
+        >
           <FormField
-            id="appointment-patient-query"
-            label="Nombre o DNI del Paciente"
+            id="appointment-patient-dni"
+            label="DNI del paciente"
             labelClassName="text-xs font-semibold text-med-text-sub"
           >
             {(fieldProps) => (
@@ -108,13 +191,18 @@ function AppointmentsSearchPage() {
                   <Icon icon={ICONS.search} size={16} />
                 </span>
                 <Input
-                  id="appointment-patient-query"
-                  type="text"
-                  placeholder="Nombre o DNI..."
-                  value={patientQuery}
-                  onChange={(event) => setPatientQuery(event.target.value)}
-                  className="pl-9 pr-3 py-2 text-xs"
                   {...fieldProps}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Ingresá un DNI"
+                  value={filters.dni}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      dni: event.target.value,
+                    }))
+                  }
+                  className="pl-9 pr-3 py-2 text-xs"
                 />
               </div>
             )}
@@ -127,12 +215,18 @@ function AppointmentsSearchPage() {
           >
             {(fieldProps) => (
               <Select
-                id="appointment-specialty-filter"
-                value={specialtyFilter}
-                onChange={(event) => setSpecialtyFilter(event.target.value)}
-                className="px-3 py-2 text-xs"
-                options={specialtyFilterOptions}
                 {...fieldProps}
+                value={filters.specialtyId}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    specialtyId: event.target.value,
+                    doctorId: '',
+                  }))
+                }
+                disabled={isLoadingCatalogs || Boolean(catalogError)}
+                options={specialtyOptions}
+                className="px-3 py-2 text-xs"
               />
             )}
           </FormField>
@@ -144,12 +238,17 @@ function AppointmentsSearchPage() {
           >
             {(fieldProps) => (
               <Select
-                id="appointment-doctor-filter"
-                value={doctorFilter}
-                onChange={(event) => setDoctorFilter(event.target.value)}
-                className="px-3 py-2 text-xs"
-                options={doctorFilterOptions}
                 {...fieldProps}
+                value={filters.doctorId}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    doctorId: event.target.value,
+                  }))
+                }
+                disabled={isLoadingCatalogs || Boolean(catalogError)}
+                options={doctorOptions}
+                className="px-3 py-2 text-xs"
               />
             )}
           </FormField>
@@ -161,162 +260,124 @@ function AppointmentsSearchPage() {
           >
             {(fieldProps) => (
               <Input
-                id="appointment-date-filter"
-                type="date"
-                value={dateFilter}
-                onChange={(event) => setDateFilter(event.target.value)}
-                className="px-3 py-2 text-xs"
                 {...fieldProps}
+                type="date"
+                value={filters.date}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    date: event.target.value,
+                  }))
+                }
+                className="px-3 py-2 text-xs"
               />
             )}
           </FormField>
 
-          {/* Botón Aplicar Filtros */}
-          <div>
+          <div className="flex gap-2">
             <Button
-              onClick={() => alert('Filtros aplicados')}
-              className="w-full flex items-center justify-center gap-2 bg-med-primary-900 hover:bg-med-primary-800 text-white font-medium py-2 rounded-lg"
+              type="submit"
+              disabled={isLoadingCatalogs || Boolean(catalogError)}
+              className="flex flex-1 items-center justify-center gap-2"
             >
               <Icon icon={ICONS.filter} size={16} />
-              <span>Aplicar Filtros</span>
+              Aplicar filtros
+            </Button>
+            <Button type="button" variant="outline" onClick={clearFilters}>
+              Limpiar
             </Button>
           </div>
-        </div>
-
-        {/* Chips de Filtros Activos */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-med-border-subtle">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-sky-100/70 text-sky-800">
-            Paciente: Johnathan Doe
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-sky-100/70 text-sky-800">
-            DNI: 40.123.456
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Filtro Activo: Próximos 7 Días
-          </span>
-        </div>
+        </form>
       </Card>
 
-      {/* Card Inferior: Registros de Citas */}
-      <Card className="p-0 overflow-hidden border-med-border">
-        <div className="p-5 border-b border-med-border">
+      {appointmentsError && (
+        <div className="flex flex-col items-start gap-3">
+          <StatusMessage variant="error">{appointmentsError}</StatusMessage>
+          <button
+            type="button"
+            className="text-sm font-semibold text-med-primary-700 underline"
+            onClick={() => setAppointmentsRequestKey((key) => key + 1)}
+          >
+            Reintentar búsqueda
+          </button>
+        </div>
+      )}
+
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-med-border p-5">
           <h2 className="text-base font-bold text-med-primary-900">
             Registros de Citas
           </h2>
         </div>
-
-        {/* Tabla de Citas */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub border-b border-med-border">
-              <tr>
-                <th className="px-6 py-3.5">Fecha</th>
-                <th className="px-6 py-3.5">Departamento</th>
-                <th className="px-6 py-3.5">Paciente</th>
-                <th className="px-6 py-3.5 text-center">Estado</th>
-                <th className="px-6 py-3.5 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-med-border-subtle">
-              {appointmentsData.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50/70 transition-colors"
-                >
-                  {/* Fecha y Hora */}
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-med-primary-900 text-sm">
-                      {item.date}
-                    </p>
-                    <p className="text-xs text-med-text-muted mt-0.5">
-                      {item.time}
-                    </p>
-                  </td>
-
-                  {/* Departamento / Especialidad con Icono */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-med-primary-100 text-med-primary-700 flex items-center justify-center shrink-0">
-                        <Icon icon={item.icon} size={20} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-med-primary-900">
-                          {item.department}
-                        </p>
-                        <p className="text-xs text-med-text-muted">
-                          {item.doctor}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Paciente y DNI */}
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-med-text-main">
-                      {item.patient}
-                    </p>
-                    <p className="text-xs text-med-text-muted mt-0.5">
-                      DNI: {item.dni}
-                    </p>
-                  </td>
-
-                  {/* Estado (CONFIRMADO, COMPLETADO, CANCELADO) */}
-                  <td className="px-6 py-4 text-center">
-                    {item.statusType === 'confirmed' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-med-active-bg text-med-active-text">
-                        <span className="w-1.5 h-1.5 rounded-full bg-med-active-text" />
-                        {item.status}
-                      </span>
-                    )}
-                    {item.statusType === 'completed' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                        {item.status}
-                      </span>
-                    )}
-                    {item.statusType === 'cancelled' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-med-danger-bg text-med-danger-text">
-                        <span className="w-1.5 h-1.5 rounded-full bg-med-danger-text" />
-                        {item.status}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Acciones */}
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() =>
-                        alert(`Ver detalle de cita de ${item.patient}`)
-                      }
-                      className="text-xs font-semibold text-med-primary-700 hover:text-med-primary-900 transition hover:underline"
+        {isLoadingAppointments ? (
+          <p className="p-5 text-sm text-med-text-sub" role="status">
+            Buscando citas…
+          </p>
+        ) : !appointmentsError && appointmentsPage.data.length === 0 ? (
+          <p className="p-5 text-sm text-med-text-sub">
+            No se encontraron citas para estos filtros.
+          </p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">
+                  <tr>
+                    <th className="px-6 py-3.5">Código</th>
+                    <th className="px-6 py-3.5">Especialidad y doctor</th>
+                    <th className="px-6 py-3.5">Paciente</th>
+                    <th className="px-6 py-3.5 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-med-border-subtle">
+                  {appointmentsPage.data.map((appointment) => (
+                    <tr
+                      key={appointment.appointmentsId}
+                      className="hover:bg-gray-50/70"
                     >
-                      Ver Detalle
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginador inferior normalizado */}
-        <div className="p-4 bg-med-primary-50/50 border-t border-med-border flex items-center justify-between text-xs text-med-text-muted">
-          <span>Mostrando 3 de 42 registros</span>
-          <div className="flex items-center gap-1">
-            <IconButton
-              label="Página anterior"
-              icon={ICONS.previous}
-              size={16}
-              variant="outline"
+                      <td className="px-6 py-4 font-semibold text-med-primary-900">
+                        {appointment.appointmentsId.slice(0, 8).toUpperCase()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-med-primary-900">
+                          {appointment.doctor.specialty.name}
+                        </p>
+                        <p className="mt-0.5 text-xs text-med-text-muted">
+                          {appointment.doctor.name}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-med-text-main">
+                          {appointment.patient.fullName ||
+                            'Nombre no disponible'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-med-text-muted">
+                          DNI: {appointment.patient.dni}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex rounded-full bg-med-primary-100 px-3 py-1 text-xs font-semibold text-med-primary-700">
+                          {APPOINTMENT_STATUS_LABELS[
+                            appointment.appointmentsStatus
+                          ] ?? appointment.appointmentsStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <TablePagination
+              currentPage={appointmentsPage.pageIndex}
+              pageSize={appointmentsPage.pageSize}
+              totalItems={appointmentsPage.total}
+              totalPages={Math.ceil(
+                appointmentsPage.total / appointmentsPage.pageSize
+              )}
+              onPageChange={setPageIndex}
             />
-            <IconButton
-              label="Página siguiente"
-              icon={ICONS.next}
-              size={16}
-              variant="outline"
-            />
-          </div>
-        </div>
+          </>
+        )}
       </Card>
     </div>
   );

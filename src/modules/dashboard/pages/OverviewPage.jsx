@@ -1,149 +1,169 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../shared/constants/appConstants';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
-
 import Icon from '../../shared/components/Icon';
+import StatusMessage from '../../shared/components/StatusMessage';
+import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
-import IconButton from '../../shared/components/IconButton';
+import { getDashboardSummary } from '../services/dashboardService';
+import { getDoctorsPage } from '../../doctors/services/doctorsService';
+
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 
 function OverviewPage() {
   const navigate = useNavigate();
+  const [summary, setSummary] = useState(null);
+  const [summaryError, setSummaryError] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryRequestKey, setSummaryRequestKey] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [doctorsPage, setDoctorsPage] = useState({ data: [], total: 0 });
+  const [doctorsError, setDoctorsError] = useState('');
+  const [doctorsLoading, setDoctorsLoading] = useState(true);
+  const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
 
-  const previewDoctors = [
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setSummaryLoading(true);
+    setSummaryError('');
+
+    getDashboardSummary(getTodayDate(), controller.signal)
+      .then(setSummary)
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setSummaryError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setSummaryLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [summaryRequestKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setDoctorsLoading(true);
+    setDoctorsError('');
+
+    getDoctorsPage(
+      {
+        pageSize: 5,
+        pageIndex: 1,
+        name: searchTerm.trim() || undefined,
+      },
+      controller.signal
+    )
+      .then(setDoctorsPage)
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setDoctorsError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setDoctorsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [doctorsRequestKey, searchTerm]);
+
+  const metricCards = [
     {
-      id: 1,
-      name: 'Dr. James Wilson',
-      specialty: 'Cardiología',
-      status: 'Activo',
-      statusType: 'active',
-      avatar: '👨‍⚕️',
+      label: 'Doctores activos',
+      value: summary?.activeDoctors,
+      icon: ICONS.doctor,
     },
     {
-      id: 2,
-      name: 'Dr. Elena Rodriguez',
-      specialty: 'Neurología',
-      status: 'Activo',
-      statusType: 'active',
-      avatar: '👩‍⚕️',
+      label: 'Especialidades activas',
+      value: summary?.activeSpecialities,
+      icon: ICONS.grid,
     },
     {
-      id: 3,
-      name: 'Dr. Robert Chen',
-      specialty: 'Pediatría',
-      status: 'De Licencia',
-      statusType: 'leave',
-      avatar: '👨‍⚕️',
+      label: 'Turnos confirmados hoy',
+      value: summary?.confirmedAppointments,
+      icon: ICONS.appointments,
     },
   ];
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header con Título y Acciones Principales */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-med-text-main">
+          <h1 className="text-2xl font-bold tracking-tight text-med-text-main sm:text-3xl">
             Vista General de Gestión
           </h1>
-          <p className="text-sm text-med-text-sub mt-1">
-            Configure el personal médico y las especialidades del departamento.
+          <p className="mt-1 text-sm text-med-text-sub">
+            Resumen actualizado del sistema de turnos.
           </p>
         </div>
-
         <div className="flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => navigate(ROUTES.adminDoctors)}
-            className="flex items-center gap-2"
-          >
-            <span>+</span>
-            <span>Agregar Nuevo Doctor</span>
+          <Button onClick={() => navigate(ROUTES.adminDoctors)}>
+            Ver doctores
           </Button>
-
           <Button
             variant="secondary"
             onClick={() => navigate(ROUTES.adminSpecialties)}
-            className="flex items-center gap-2"
           >
-            <span>+</span>
-            <span>Agregar Nueva Especialidad</span>
+            Ver especialidades
           </Button>
         </div>
       </div>
 
-      {/* Tarjetas de Métricas de la Imagen 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Doctores Activos */}
-        <Card className="flex flex-col justify-between p-6">
-          <div className="flex items-start justify-between">
-            <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <Icon icon={ICONS.doctor} size={24} />
+      {summaryError && (
+        <div className="flex flex-col items-start gap-3">
+          <StatusMessage variant="error">{summaryError}</StatusMessage>
+          <button
+            type="button"
+            className="text-sm font-semibold text-med-primary-700 underline"
+            onClick={() => setSummaryRequestKey((key) => key + 1)}
+          >
+            Reintentar resumen
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {metricCards.map((metric) => (
+          <Card
+            key={metric.label}
+            className="flex flex-col justify-between p-6"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-med-primary-50 text-med-primary-900">
+              <Icon icon={metric.icon} size={24} />
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-med-active-bg text-med-active-text">
-              +4 este mes
-            </span>
-          </div>
-
-          <div className="mt-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-med-text-sub">
-              Doctores Activos
-            </span>
-            <p className="text-3xl sm:text-4xl font-extrabold text-med-primary-900 mt-1">
-              124
-            </p>
-          </div>
-        </Card>
-
-        {/* Especialidades Activas */}
-        <Card className="flex flex-col justify-between p-6">
-          <div className="flex items-start justify-between">
-            <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <Icon icon={ICONS.grid} size={24} />
+            <div className="mt-6">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-med-text-sub">
+                {metric.label}
+              </span>
+              <p className="mt-1 text-3xl font-extrabold text-med-primary-900 sm:text-4xl">
+                {summaryLoading ? '…' : (metric.value ?? '—')}
+              </p>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-              Estable
-            </span>
-          </div>
-
-          <div className="mt-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-med-text-sub">
-              Especialidades Activas
-            </span>
-            <p className="text-3xl sm:text-4xl font-extrabold text-med-primary-900 mt-1">
-              32
-            </p>
-          </div>
-        </Card>
-
-        {/* Turnos Confirmados para Hoy */}
-        <Card className="flex flex-col justify-between p-6">
-          <div className="flex items-start justify-between">
-            <div className="w-11 h-11 rounded-xl bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
-              <Icon icon={ICONS.appointments} size={24} />
-            </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-med-primary-100 text-med-primary-700">
-              Hoy
-            </span>
-          </div>
-
-          <div className="mt-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-med-text-sub">
-              Turnos Confirmados Para Hoy
-            </span>
-            <p className="text-3xl sm:text-4xl font-extrabold text-med-primary-900 mt-1">
-              48
-            </p>
-          </div>
-        </Card>
+          </Card>
+        ))}
       </div>
 
-      {/* Directorio de Profesionales Médicos (Tabla Resumen) */}
-      <Card className="p-0 overflow-hidden border-med-border">
-        {/* Cabecera de la tabla con Buscador */}
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-med-border">
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-col gap-4 border-b border-med-border p-5 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-bold text-med-primary-900">
-            Directorio de Profesionales Médicos
+            Profesionales médicos
           </h2>
           <div className="relative w-full sm:w-72">
             <FormField
@@ -160,11 +180,11 @@ function OverviewPage() {
                     <Icon icon={ICONS.search} size={16} />
                   </span>
                   <Input
-                    id="dashboard-doctor-search"
-                    type="text"
-                    placeholder="Buscar por nombre..."
-                    className="pl-9 pr-3 py-1.5 text-xs bg-med-primary-50/70"
                     {...fieldProps}
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Buscar por nombre..."
+                    className="bg-med-primary-50/70 pl-9 pr-3 py-1.5 text-xs"
                   />
                 </div>
               )}
@@ -172,79 +192,64 @@ function OverviewPage() {
           </div>
         </div>
 
-        {/* Tabla */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub border-b border-med-border">
-              <tr>
-                <th className="px-6 py-3.5">Nombre del Doctor</th>
-                <th className="px-6 py-3.5">Especialidad</th>
-                <th className="px-6 py-3.5">Estado de Disponibilidad</th>
-                <th className="px-6 py-3.5 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-med-border-subtle text-sm">
-              {previewDoctors.map((doc) => (
-                <tr
-                  key={doc.id}
-                  className="hover:bg-gray-50/70 transition-colors"
-                >
-                  <td className="px-6 py-4 flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-full bg-med-primary-100 flex items-center justify-center text-lg">
-                      {doc.avatar}
-                    </span>
-                    <span className="font-semibold text-med-primary-900">
-                      {doc.name}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-med-text-sub">
-                    {doc.specialty}
-                  </td>
-                  <td className="px-6 py-4">
-                    {doc.statusType === 'active' ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-med-active-bg text-med-active-text">
-                        <span className="w-1.5 h-1.5 rounded-full bg-med-active-text" />
-                        {doc.status}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-med-leave-bg text-med-leave-text">
-                        <span className="w-1.5 h-1.5 rounded-full bg-med-leave-text" />
-                        {doc.status}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => navigate(ROUTES.adminDoctors)}
-                      className="text-xs font-semibold text-med-primary-700 hover:text-med-primary-900"
-                    >
-                      Ver Detalle
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginador inferior normalizado */}
-        <div className="p-4 bg-med-primary-50/50 border-t border-med-border flex items-center justify-between text-xs text-med-text-muted">
-          <span>Mostrando 3 de 124 registros</span>
-          <div className="flex items-center gap-1">
-            <IconButton
-              label="Página anterior"
-              icon={ICONS.previous}
-              size={16}
-              variant="outline"
-            />
-            <IconButton
-              label="Página siguiente"
-              icon={ICONS.next}
-              size={16}
-              variant="outline"
-            />
+        {doctorsError && (
+          <div className="flex flex-col items-start gap-3 p-5">
+            <StatusMessage variant="error">{doctorsError}</StatusMessage>
+            <button
+              type="button"
+              className="text-sm font-semibold text-med-primary-700 underline"
+              onClick={() => setDoctorsRequestKey((key) => key + 1)}
+            >
+              Reintentar listado
+            </button>
           </div>
-        </div>
+        )}
+        {doctorsLoading ? (
+          <p className="p-5 text-sm text-med-text-sub" role="status">
+            Cargando profesionales…
+          </p>
+        ) : !doctorsError && doctorsPage.data.length === 0 ? (
+          <p className="p-5 text-sm text-med-text-sub">
+            No se encontraron profesionales.
+          </p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">
+                  <tr>
+                    <th className="px-6 py-3.5">Nombre del doctor</th>
+                    <th className="px-6 py-3.5">Especialidad</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-med-border-subtle">
+                  {doctorsPage.data.map((doctor) => (
+                    <tr key={doctor.id} className="hover:bg-gray-50/70">
+                      <td className="px-6 py-4 font-semibold text-med-primary-900">
+                        {doctor.name}
+                      </td>
+                      <td className="px-6 py-4 text-med-text-sub">
+                        {doctor.specialty?.name ?? 'Sin especialidad'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-col gap-3 border-t border-med-border bg-med-primary-50/50 p-4 text-xs text-med-text-muted sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Mostrando {doctorsPage.data.length} de {doctorsPage.total}
+              </span>
+              <button
+                type="button"
+                className="self-start font-semibold text-med-primary-700 underline sm:self-auto"
+                onClick={() => navigate(ROUTES.adminDoctors)}
+              >
+                Ver directorio completo
+              </button>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
