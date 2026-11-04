@@ -37,6 +37,7 @@ instance.interceptors.response.use(
           ? ROUTES.adminLogin
           : ROUTES.patientLogin;
 
+      sessionStorage.setItem('medportal.sessionExpired', 'true');
       clearStoredSession();
 
       if (window.location.pathname !== loginRoute) {

@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
 import {
@@ -21,23 +21,6 @@ function AuthProvider({ children }) {
 
     return expired;
   });
-
-  useEffect(() => {
-    if (!session) {
-      return undefined;
-    }
-
-    const timeout = window.setTimeout(
-      () => {
-        clearStoredSession();
-        setSession(null);
-        setSessionExpired(true);
-      },
-      Math.max(session.expiresAt - Date.now(), 0)
-    );
-
-    return () => window.clearTimeout(timeout);
-  }, [session]);
 
   const signOut = () => {
     clearStoredSession();
@@ -87,7 +70,6 @@ function AuthProvider({ children }) {
     signInAdmin,
     signInPatient,
     signOut,
-    sessionExpiresAt: session?.expiresAt ?? null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
