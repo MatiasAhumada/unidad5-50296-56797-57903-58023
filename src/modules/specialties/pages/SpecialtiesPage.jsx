@@ -176,7 +176,9 @@ function SpecialtiesPage() {
 
     try {
       await deleteSpecialty(specialtyToDelete.id);
-      setActionSuccess(`Especialidad "${specialtyToDelete.name}" eliminada.`);
+      setActionSuccess(
+        `Especialidad "${specialtyToDelete.name}" eliminada físicamente de la base de datos.`
+      );
       setSpecialtyToDelete(null);
       setRequestKey((k) => k + 1);
     } catch (delError) {
@@ -350,7 +352,7 @@ function SpecialtiesPage() {
                             className="p-1.5 rounded hover:bg-med-primary-50 text-med-text-sub hover:text-med-primary-900"
                           />
                           <IconButton
-                            label={`Eliminar ${specialty.name}`}
+                            label={`Eliminar físicamente ${specialty.name}`}
                             icon={ICONS.delete}
                             size={16}
                             onClick={() => setSpecialtyToDelete(specialty)}
@@ -462,17 +464,18 @@ function SpecialtiesPage() {
         </div>
       )}
 
-      {/* Modal Confirmación de Eliminación */}
+      {/* Modal Confirmación de Eliminación Física */}
       {specialtyToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-med-border">
             <h3 className="text-base font-bold text-med-primary-900">
-              ¿Eliminar especialidad?
+              ¿Eliminar especialidad definitivamente?
             </h3>
             <p className="mt-2 text-xs text-med-text-sub">
-              ¿Está seguro de dar de baja la especialidad{' '}
+              ¿Está seguro de eliminar físicamente la especialidad{' '}
               <strong className="text-med-text-main">{specialtyToDelete.name}</strong>?
-              Esta operación realiza una eliminación lógica en el backend.
+              Esta acción borrará de forma permanente el registro de la base de datos (baja física).
+              Si solo desea suspenderla, use el botón de Estado.
             </p>
 
             {deleteModalError && (
@@ -499,7 +502,7 @@ function SpecialtiesPage() {
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? 'Eliminando…' : 'Sí, eliminar'}
+                {isDeleting ? 'Eliminando…' : 'Sí, eliminar definitivamente'}
               </Button>
             </div>
           </div>

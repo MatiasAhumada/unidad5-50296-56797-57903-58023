@@ -212,7 +212,9 @@ function DoctorsPage() {
 
     try {
       await deleteDoctor(doctorToDelete.id);
-      setActionSuccess(`Doctor "${doctorToDelete.name}" dado de baja.`);
+      setActionSuccess(
+        `Doctor "${doctorToDelete.name}" eliminado físicamente de la base de datos.`
+      );
       setDoctorToDelete(null);
       setRequestKey((k) => k + 1);
     } catch (delError) {
@@ -513,7 +515,7 @@ function DoctorsPage() {
                             className="p-1.5 rounded hover:bg-med-primary-50 text-med-text-sub hover:text-med-primary-900"
                           />
                           <IconButton
-                            label={`Eliminar ${doctor.name}`}
+                            label={`Eliminar físicamente ${doctor.name}`}
                             icon={ICONS.delete}
                             size={16}
                             onClick={() => setDoctorToDelete(doctor)}
@@ -741,16 +743,18 @@ function DoctorsPage() {
         </div>
       )}
 
-      {/* Modal Confirmación de Eliminación */}
+      {/* Modal Confirmación de Eliminación Física */}
       {doctorToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-med-border">
             <h3 className="text-base font-bold text-med-primary-900">
-              ¿Dar de baja doctor?
+              ¿Eliminar doctor definitivamente?
             </h3>
             <p className="mt-2 text-xs text-med-text-sub">
-              ¿Está seguro de eliminar a <strong className="text-med-text-main">{doctorToDelete.name}</strong>?
-              Esta operación realiza una eliminación lógica en la base de datos.
+              ¿Está seguro de eliminar físicamente al doctor{' '}
+              <strong className="text-med-text-main">{doctorToDelete.name}</strong>?
+              Esta acción borrará de forma permanente al profesional de la base de datos (baja física).
+              Si solo desea suspenderlo, use el botón de Estado.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -768,7 +772,7 @@ function DoctorsPage() {
                 onClick={handleDeleteDoctor}
                 disabled={isDeleting}
               >
-                {isDeleting ? 'Eliminando…' : 'Sí, eliminar'}
+                {isDeleting ? 'Eliminando…' : 'Sí, eliminar definitivamente'}
               </Button>
             </div>
           </div>
