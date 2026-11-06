@@ -139,6 +139,16 @@ function DoctorsPage() {
 
     if (!trimmedLicense) {
       errors.licenseNumber = 'La matrícula es obligatoria.';
+    } else if (trimmedLicense.length > 50) {
+      errors.licenseNumber = 'La matrícula no puede superar los 50 caracteres.';
+    } else if (
+      page.data.some(
+        (d) =>
+          d.id !== editingDoctor?.id &&
+          d.licenseNumber?.trim().toLowerCase() === trimmedLicense.toLowerCase()
+      )
+    ) {
+      errors.licenseNumber = 'Ya existe un médico registrado con esa matrícula.';
     }
 
     if (!doctorForm.specialtyId) {
@@ -176,7 +186,16 @@ function DoctorsPage() {
       setShowDoctorModal(false);
       setRequestKey((k) => k + 1);
     } catch (submitErr) {
-      setActionError(getApiErrorMessage(submitErr));
+      const msg = getApiErrorMessage(submitErr);
+      if (
+        submitErr?.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
+        submitErr?.status === 409 ||
+        msg.toLowerCase().includes('matrícula')
+      ) {
+        setFormErrors((prev) => ({ ...prev, licenseNumber: msg }));
+      } else {
+        setActionError(msg);
+      }
     } finally {
       setIsSubmittingDoctor(false);
     }
