@@ -35,4 +35,34 @@ async function getSpecialties(signal) {
   return specialties;
 }
 
-export { getSpecialties, getSpecialtiesPage };
+async function createSpecialty({ name, description }) {
+  const response = await instance.post(SPECIALTIES_API_ROUTES.create, {
+    name,
+    description,
+  });
+
+  return response.data;
+}
+
+async function updateSpecialty(id, { name, description }) {
+  const response = await instance.put(SPECIALTIES_API_ROUTES.update(id), {
+    name,
+    description,
+  });
+
+  return response.data;
+}
+
+async function deleteSpecialty(id) {
+  const response = await instance.delete(SPECIALTIES_API_ROUTES.delete(id));
+
+  return response.data;
+}
+
+export {
+  createSpecialty,
+  deleteSpecialty,
+  getSpecialties,
+  getSpecialtiesPage,
+  updateSpecialty,
+};

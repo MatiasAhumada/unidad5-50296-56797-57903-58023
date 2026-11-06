@@ -58,9 +58,65 @@ async function getDoctorAvailableSlots(doctorId, startDate, endDate, signal) {
   }));
 }
 
+async function createDoctor({ name, licenseNumber, specialtyId }) {
+  const response = await instance.post(DOCTORS_API_ROUTES.create, {
+    name,
+    licenseNumber,
+    specialtyId,
+  });
+
+  return response.data;
+}
+
+async function updateDoctor(id, { name, licenseNumber, specialtyId }) {
+  const response = await instance.put(DOCTORS_API_ROUTES.update(id), {
+    name,
+    licenseNumber,
+    specialtyId,
+  });
+
+  return response.data;
+}
+
+async function deleteDoctor(id) {
+  const response = await instance.delete(DOCTORS_API_ROUTES.delete(id));
+
+  return response.data;
+}
+
+async function getDoctorAvailabilities(doctorId, signal) {
+  const response = await instance.get(
+    DOCTORS_API_ROUTES.availabilities(doctorId),
+    { signal }
+  );
+
+  return response.data;
+}
+
+async function saveDoctorAvailabilities(
+  { doctorId, days },
+  isUpdate = false
+) {
+  const method = isUpdate ? 'put' : 'post';
+  const response = await instance[method](
+    DOCTORS_API_ROUTES.saveAvailability,
+    {
+      doctorId,
+      days,
+    }
+  );
+
+  return response.data;
+}
+
 export {
+  createDoctor,
+  deleteDoctor,
   getDoctorAvailableSlots,
+  getDoctorAvailabilities,
   getDoctorOptions,
   getDoctors,
   getDoctorsPage,
+  saveDoctorAvailabilities,
+  updateDoctor,
 };

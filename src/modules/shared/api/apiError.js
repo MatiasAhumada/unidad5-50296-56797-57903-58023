@@ -9,7 +9,10 @@ function normalizeApiError(error) {
     status,
     errorCode: responseData.errorCode ?? null,
     details: responseData.details ?? [],
-    message: API_ERROR_MESSAGES[category] ?? API_ERROR_MESSAGES.unexpected,
+    message:
+      responseData.message ||
+      API_ERROR_MESSAGES[category] ||
+      API_ERROR_MESSAGES.unexpected,
     originalError: error,
   };
 }
