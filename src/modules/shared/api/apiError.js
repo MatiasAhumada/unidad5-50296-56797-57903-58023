@@ -9,18 +9,30 @@ function normalizeApiError(error) {
     status,
     errorCode: responseData.errorCode ?? null,
     details: responseData.details ?? [],
-    message: API_ERROR_MESSAGES[category] ?? API_ERROR_MESSAGES.unexpected,
+    message:
+      responseData.message ||
+      API_ERROR_MESSAGES[category] ||
+      API_ERROR_MESSAGES.unexpected,
     originalError: error,
   };
 }
 
 function getApiErrorMessage(error) {
+  const normalizedError =
+    error?.status !== undefined ? error : normalizeApiError(error ?? {});
+
+  if (Array.isArray(normalizedError.details) && normalizedError.details.length > 0) {
+    const detailMsgs = normalizedError.details
+      .map((d) => d.issue || d.message || (typeof d === 'string' ? d : null))
+      .filter(Boolean);
+    if (detailMsgs.length > 0) {
+      return detailMsgs.join('. ');
+    }
+  }
+
   if (error?.message && !error?.response && error?.status === undefined) {
     return error.message;
   }
-
-  const normalizedError =
-    error?.status !== undefined ? error : normalizeApiError(error ?? {});
 
   return normalizedError.message;
 }
