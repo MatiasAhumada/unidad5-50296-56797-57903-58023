@@ -577,12 +577,12 @@ function AppointmentsSearchPage() {
             </div>
 
             <TablePagination
-              currentPage={appointmentsPage.pageIndex}
+              currentPage={pageIndex}
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
-              totalPages={Math.ceil(
-                appointmentsPage.total / appointmentsPage.pageSize
-              )}
+              totalPages={
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) || 1
+              }
               onPageChange={setPageIndex}
             />
           </>

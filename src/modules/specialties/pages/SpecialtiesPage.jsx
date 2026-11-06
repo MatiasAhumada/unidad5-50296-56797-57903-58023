@@ -319,10 +319,10 @@ function SpecialtiesPage() {
             </div>
 
             <TablePagination
-              currentPage={page.pageIndex}
+              currentPage={pageIndex}
               pageSize={page.pageSize}
               totalItems={page.total}
-              totalPages={Math.ceil(page.total / page.pageSize)}
+              totalPages={Math.ceil(page.total / page.pageSize) || 1}
               onPageChange={setPageIndex}
             />
           </>
