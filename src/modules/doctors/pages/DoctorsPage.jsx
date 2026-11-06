@@ -21,12 +21,12 @@ import {
 import { getSpecialties } from '../../specialties/services/specialtiesService';
 
 const WEEK_DAYS = [
-  'LUNES',
-  'MARTES',
-  'MIÉRCOLES',
-  'JUEVES',
-  'VIERNES',
-  'SÁBADO',
+  { key: 'LUNES',     label: 'Lunes' },
+  { key: 'MARTES',    label: 'Martes' },
+  { key: 'MIERCOLES', label: 'Miércoles' },
+  { key: 'JUEVES',    label: 'Jueves' },
+  { key: 'VIERNES',   label: 'Viernes' },
+  { key: 'SABADO',    label: 'Sábado' },
 ];
 
 function DoctorsPage() {
@@ -216,17 +216,23 @@ function DoctorsPage() {
       const scheduleMap = new Map();
       if (hasExisting) {
         availabilities.forEach((item) => {
-          scheduleMap.set(item.day?.toUpperCase(), {
+          // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
+          const normalizedDay = (item.day || '')
+            .toUpperCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+          scheduleMap.set(normalizedDay, {
             startTime: item.startTime?.slice(0, 5) || '08:00',
             endTime: item.endTime?.slice(0, 5) || '16:00',
           });
         });
       }
 
-      const initialSchedule = WEEK_DAYS.map((day) => {
-        const existing = scheduleMap.get(day);
+      const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
+        const existing = scheduleMap.get(key);
         return {
-          day,
+          day: key,
+          label,
           active: Boolean(existing),
           startTime: existing?.startTime || '08:00',
           endTime: existing?.endTime || '16:00',
@@ -278,12 +284,16 @@ function DoctorsPage() {
 
     setIsSavingAvailability(true);
     try {
+      // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
+      const toTimeSpan = (hhmm) =>
+        hhmm.length === 5 ? `${hhmm}:00` : hhmm;
+
       const payload = {
         doctorId: availabilityDoctor.id,
         days: activeDays.map((d) => ({
           day: d.day,
-          startTime: d.startTime,
-          endTime: d.endTime,
+          startTime: toTimeSpan(d.startTime),
+          endTime: toTimeSpan(d.endTime),
         })),
       };
 
@@ -610,7 +620,7 @@ function DoctorsPage() {
                           onChange={() => handleScheduleDayToggle(idx)}
                           className="rounded text-med-primary-700"
                         />
-                        <span>{sched.day}</span>
+                        <span>{sched.label ?? sched.day}</span>
                       </label>
 
                       {sched.active ? (
