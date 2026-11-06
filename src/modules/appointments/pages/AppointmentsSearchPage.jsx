@@ -24,6 +24,13 @@ const APPOINTMENT_STATUS_OPTIONS = [
   { value: 'NO_SHOW', label: 'Ausente' },
 ];
 
+const STATUS_PARAM_MAP = {
+  BOOKED: 'Booked',
+  CANCELLED: 'Cancelled',
+  ATTENDED: 'Attended',
+  NO_SHOW: 'NoShow',
+};
+
 const STATUS_CONFIG = {
   BOOKED: {
     label: 'Reservado',
@@ -138,7 +145,9 @@ function AppointmentsSearchPage() {
         dni: dni ? Number(dni) : undefined,
         specialtyId: appliedFilters.specialtyId || undefined,
         doctorId: appliedFilters.doctorId || undefined,
-        status: appliedFilters.status || undefined,
+        status: appliedFilters.status
+          ? STATUS_PARAM_MAP[appliedFilters.status] || appliedFilters.status
+          : undefined,
         startDate: appliedFilters.startDate || undefined,
         endDate: appliedFilters.endDate || undefined,
       },
