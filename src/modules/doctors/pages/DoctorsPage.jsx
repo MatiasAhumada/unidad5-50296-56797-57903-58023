@@ -16,6 +16,7 @@ import {
   getDoctorAvailabilities,
   getDoctorsPage,
   saveDoctorAvailabilities,
+  toggleDoctorStatus,
   updateDoctor,
 } from '../services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
@@ -39,6 +40,7 @@ function DoctorsPage() {
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
+  const [togglingDoctorId, setTogglingDoctorId] = useState(null);
 
   // Modal Create / Edit Doctor
   const [showDoctorModal, setShowDoctorModal] = useState(false);
@@ -217,6 +219,24 @@ function DoctorsPage() {
       setActionError(getApiErrorMessage(delError));
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleToggleDoctorStatus = async (doctor) => {
+    setTogglingDoctorId(doctor.id);
+    setActionSuccess('');
+    setActionError('');
+    try {
+      const newStatus = doctor.isActive === false;
+      await toggleDoctorStatus(doctor.id, newStatus);
+      setActionSuccess(
+        `Doctor "${doctor.name}" ${newStatus ? 'activado' : 'desactivado'} correctamente.`
+      );
+      setRequestKey((k) => k + 1);
+    } catch (err) {
+      setActionError(getApiErrorMessage(err));
+    } finally {
+      setTogglingDoctorId(null);
     }
   };
 
@@ -423,6 +443,7 @@ function DoctorsPage() {
                     <th className="px-6 py-3.5">Nombre del doctor</th>
                     <th className="px-6 py-3.5">Matrícula</th>
                     <th className="px-6 py-3.5">Especialidad</th>
+                    <th className="px-6 py-3.5 text-center">Estado</th>
                     <th className="px-6 py-3.5 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -446,6 +467,31 @@ function DoctorsPage() {
 
                       <td className="px-6 py-4 text-xs font-medium text-med-text-sub">
                         {doctor.specialty?.name ?? 'Sin especialidad'}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          type="button"
+                          disabled={togglingDoctorId === doctor.id}
+                          onClick={() => handleToggleDoctorStatus(doctor)}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer disabled:opacity-50 ${
+                            doctor.isActive !== false
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title={
+                            doctor.isActive !== false
+                              ? 'Activo - Clic para desactivar'
+                              : 'Inactivo - Clic para activar'
+                          }
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              doctor.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'
+                            }`}
+                          />
+                          <span>{doctor.isActive !== false ? 'Activo' : 'Inactivo'}</span>
+                        </button>
                       </td>
 
                       <td className="px-6 py-4 text-right">

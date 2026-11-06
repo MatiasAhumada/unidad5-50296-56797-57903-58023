@@ -13,6 +13,7 @@ import {
   createSpecialty,
   deleteSpecialty,
   getSpecialtiesPage,
+  toggleSpecialtyStatus,
   updateSpecialty,
 } from '../services/specialtiesService';
 
@@ -25,6 +26,7 @@ function SpecialtiesPage() {
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
+  const [togglingId, setTogglingId] = useState(null);
 
   // Modal / Form state
   const [showFormModal, setShowFormModal] = useState(false);
@@ -186,6 +188,24 @@ function SpecialtiesPage() {
     }
   };
 
+  const handleToggleStatus = async (specialty) => {
+    setTogglingId(specialty.id);
+    setActionSuccess('');
+    setActionError('');
+    try {
+      const newStatus = specialty.isActive === false;
+      await toggleSpecialtyStatus(specialty.id, newStatus);
+      setActionSuccess(
+        `Especialidad "${specialty.name}" ${newStatus ? 'activada' : 'desactivada'} correctamente.`
+      );
+      setRequestKey((k) => k + 1);
+    } catch (err) {
+      setActionError(getApiErrorMessage(err));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -275,6 +295,7 @@ function SpecialtiesPage() {
                   <tr>
                     <th className="px-6 py-3.5">Especialidad</th>
                     <th className="px-6 py-3.5">Descripción</th>
+                    <th className="px-6 py-3.5 text-center">Estado</th>
                     <th className="px-6 py-3.5 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -292,6 +313,31 @@ function SpecialtiesPage() {
 
                       <td className="max-w-xl px-6 py-4 text-med-text-sub text-xs">
                         {specialty.description}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          type="button"
+                          disabled={togglingId === specialty.id}
+                          onClick={() => handleToggleStatus(specialty)}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer disabled:opacity-50 ${
+                            specialty.isActive !== false
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title={
+                            specialty.isActive !== false
+                              ? 'Activo - Clic para desactivar'
+                              : 'Inactivo - Clic para activar'
+                          }
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              specialty.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'
+                            }`}
+                          />
+                          <span>{specialty.isActive !== false ? 'Activo' : 'Inactivo'}</span>
+                        </button>
                       </td>
 
                       <td className="px-6 py-4 text-right">

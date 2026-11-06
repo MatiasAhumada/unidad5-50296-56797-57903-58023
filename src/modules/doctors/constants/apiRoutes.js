@@ -3,6 +3,7 @@ const DOCTORS_API_ROUTES = {
   create: '/api/doctors',
   update: (id) => `/api/doctors/${id}`,
   delete: (id) => `/api/doctors/${id}`,
+  status: (id) => `/api/doctors/${id}/status`,
   availabilities: (id) => `/api/doctors/${id}/availabilities`,
   saveAvailability: '/api/availabilities',
   optionsBySpecialty: (specialtyId) =>
