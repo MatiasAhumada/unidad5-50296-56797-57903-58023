@@ -31,10 +31,12 @@ function SpecialtiesPage() {
   const [editingSpecialty, setEditingSpecialty] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [formErrors, setFormErrors] = useState({});
+  const [modalError, setModalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Delete modal state
   const [specialtyToDelete, setSpecialtyToDelete] = useState(null);
+  const [deleteModalError, setDeleteModalError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -71,6 +73,7 @@ function SpecialtiesPage() {
     setEditingSpecialty(null);
     setFormData({ name: '', description: '' });
     setFormErrors({});
+    setModalError('');
     setActionSuccess('');
     setActionError('');
     setShowFormModal(true);
@@ -83,6 +86,7 @@ function SpecialtiesPage() {
       description: specialty.description || '',
     });
     setFormErrors({});
+    setModalError('');
     setActionSuccess('');
     setActionError('');
     setShowFormModal(true);
@@ -97,6 +101,14 @@ function SpecialtiesPage() {
       errors.name = 'El nombre de la especialidad es obligatorio.';
     } else if (trimmedName.length < 3 || trimmedName.length > 100) {
       errors.name = 'El nombre debe tener entre 3 y 100 caracteres.';
+    } else if (
+      page.data.some(
+        (s) =>
+          s.id !== editingSpecialty?.id &&
+          s.name?.trim().toLowerCase() === trimmedName.toLowerCase()
+      )
+    ) {
+      errors.name = 'Ya existe una especialidad con ese nombre.';
     }
 
     if (!trimmedDesc) {
@@ -114,6 +126,7 @@ function SpecialtiesPage() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setModalError('');
     setActionSuccess('');
     setActionError('');
 
@@ -134,7 +147,18 @@ function SpecialtiesPage() {
       setShowFormModal(false);
       setRequestKey((k) => k + 1);
     } catch (submitError) {
-      setActionError(getApiErrorMessage(submitError));
+      const msg = getApiErrorMessage(submitError);
+      setModalError(msg);
+      if (
+        msg.toLowerCase().includes('nombre') ||
+        msg.toLowerCase().includes('duplicate') ||
+        submitError.status === 409
+      ) {
+        setFormErrors((prev) => ({
+          ...prev,
+          name: msg,
+        }));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -144,6 +168,7 @@ function SpecialtiesPage() {
     if (!specialtyToDelete) return;
 
     setIsDeleting(true);
+    setDeleteModalError('');
     setActionSuccess('');
     setActionError('');
 
@@ -153,7 +178,9 @@ function SpecialtiesPage() {
       setSpecialtyToDelete(null);
       setRequestKey((k) => k + 1);
     } catch (delError) {
-      setActionError(getApiErrorMessage(delError));
+      const msg = getApiErrorMessage(delError);
+      setDeleteModalError(msg);
+      setActionError(msg);
     } finally {
       setIsDeleting(false);
     }
@@ -315,6 +342,12 @@ function SpecialtiesPage() {
               </p>
             </div>
 
+            {modalError && (
+              <div className="mb-4">
+                <StatusMessage variant="error">{modalError}</StatusMessage>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormField
                 id="modal-specialty-name"
@@ -396,11 +429,20 @@ function SpecialtiesPage() {
               Esta operación realiza una eliminación lógica en el backend.
             </p>
 
+            {deleteModalError && (
+              <div className="mt-3">
+                <StatusMessage variant="error">{deleteModalError}</StatusMessage>
+              </div>
+            )}
+
             <div className="mt-6 flex justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setSpecialtyToDelete(null)}
+                onClick={() => {
+                  setSpecialtyToDelete(null);
+                  setDeleteModalError('');
+                }}
                 disabled={isDeleting}
               >
                 Cancelar
