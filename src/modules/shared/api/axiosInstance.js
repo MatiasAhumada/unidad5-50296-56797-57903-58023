@@ -11,6 +11,11 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   (config) => {
+    // Normalizar para evitar duplicación '/api/api/...' cuando baseURL ya incluye '/api'
+    if (config.baseURL?.endsWith('/api') && config.url?.startsWith('/api/')) {
+      config.url = config.url.slice(4);
+    }
+
     const token = config.skipAuthRedirect
       ? null
       : localStorage.getItem(STORAGE_KEYS.token);
