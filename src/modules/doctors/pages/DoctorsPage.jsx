@@ -8,6 +8,9 @@ import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
+import StatusBadge from '../../shared/components/StatusBadge';
+import ConfirmModal from '../../shared/components/ConfirmModal';
+import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -168,26 +171,12 @@ function DoctorsPage() {
         </div>
       </div>
 
-      {actionSuccess && (
-        <StatusMessage variant="success">{actionSuccess}</StatusMessage>
-      )}
-
-      {actionError && (
-        <StatusMessage variant="error">{actionError}</StatusMessage>
-      )}
-
-      {error && (
-        <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{error}</StatusMessage>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setRequestKey((key) => key + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      <FeedbackAlerts
+        actionSuccess={actionSuccess}
+        actionError={actionError}
+        queryError={error}
+        onRetry={() => setRequestKey((key) => key + 1)}
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">
@@ -274,24 +263,7 @@ function DoctorsPage() {
                         </td>
 
                         <td className={`px-6 py-4 text-center ${cellClasses}`}>
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                              doctor.isActive !== false
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-gray-100 text-gray-600 border border-gray-300'
-                            }`}
-                          >
-                            <span
-                              className={`h-2 w-2 rounded-full ${
-                                doctor.isActive !== false
-                                  ? 'bg-emerald-500'
-                                  : 'bg-gray-400'
-                              }`}
-                            />
-                            <span>
-                              {doctor.isActive !== false ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </span>
+                          <StatusBadge isActive={doctor.isActive} />
                         </td>
 
                         <td className={`px-6 py-4 text-center ${cellClasses}`}>
@@ -373,39 +345,26 @@ function DoctorsPage() {
       </Card>
 
       {/* Modal Confirmación de Baja Lógica */}
-      {doctorToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-med-border">
-            <h3 className="text-base font-bold text-med-primary-900">
-              ¿Dar de baja al doctor?
-            </h3>
-            <p className="mt-2 text-xs text-med-text-sub">
+      <ConfirmModal
+        isOpen={Boolean(doctorToDelete)}
+        title="¿Dar de baja al doctor?"
+        message={
+          doctorToDelete && (
+            <>
               ¿Está seguro de dar de baja al doctor{' '}
-              <strong className="text-med-text-main">{doctorToDelete.name}</strong>?
-              Esta acción realizará una baja lógica en el sistema.
-            </p>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDoctorToDelete(null)}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                onClick={handleDeleteDoctor}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Dando de baja…' : 'Sí, dar de baja'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <strong className="text-med-text-main">
+                {doctorToDelete.name}
+              </strong>
+              ? Esta acción realizará una baja lógica en el sistema.
+            </>
+          )
+        }
+        confirmText="Sí, dar de baja"
+        loadingText="Dando de baja…"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteDoctor}
+        onCancel={() => setDoctorToDelete(null)}
+      />
     </div>
   );
 }

@@ -7,6 +7,9 @@ import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
+import StatusBadge from '../../shared/components/StatusBadge';
+import ConfirmModal from '../../shared/components/ConfirmModal';
+import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -147,26 +150,12 @@ function SpecialtiesPage() {
         </div>
       </div>
 
-      {actionSuccess && (
-        <StatusMessage variant="success">{actionSuccess}</StatusMessage>
-      )}
-
-      {actionError && (
-        <StatusMessage variant="error">{actionError}</StatusMessage>
-      )}
-
-      {error && (
-        <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{error}</StatusMessage>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setRequestKey((key) => key + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      <FeedbackAlerts
+        actionSuccess={actionSuccess}
+        actionError={actionError}
+        queryError={error}
+        onRetry={() => setRequestKey((key) => key + 1)}
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">
@@ -231,26 +220,7 @@ function SpecialtiesPage() {
                       </td>
 
                       <td className="px-6 py-4 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                            specialty.isActive !== false
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-gray-100 text-gray-600 border border-gray-300'
-                          }`}
-                        >
-                          <span
-                            className={`h-2 w-2 rounded-full ${
-                              specialty.isActive !== false
-                                ? 'bg-emerald-500'
-                                : 'bg-gray-400'
-                            }`}
-                          />
-                          <span>
-                            {specialty.isActive !== false
-                              ? 'Activo'
-                              : 'Inactivo'}
-                          </span>
-                        </span>
+                        <StatusBadge isActive={specialty.isActive} />
                       </td>
 
                       <td className="px-6 py-4 text-center">
@@ -317,50 +287,30 @@ function SpecialtiesPage() {
       </Card>
 
       {/* Modal Confirmación de Baja Lógica */}
-      {specialtyToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-med-border">
-            <h3 className="text-base font-bold text-med-primary-900">
-              ¿Dar de baja a la especialidad?
-            </h3>
-            <p className="mt-2 text-xs text-med-text-sub">
+      <ConfirmModal
+        isOpen={Boolean(specialtyToDelete)}
+        title="¿Dar de baja a la especialidad?"
+        message={
+          specialtyToDelete && (
+            <>
               ¿Está seguro de dar de baja a la especialidad{' '}
               <strong className="text-med-text-main">
                 {specialtyToDelete.name}
               </strong>
               ? Esta acción realizará una baja lógica en el sistema.
-            </p>
-
-            {deleteModalError && (
-              <div className="mt-3">
-                <StatusMessage variant="error">{deleteModalError}</StatusMessage>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSpecialtyToDelete(null);
-                  setDeleteModalError('');
-                }}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Dando de baja…' : 'Sí, dar de baja'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )
+        }
+        error={deleteModalError}
+        confirmText="Sí, dar de baja"
+        loadingText="Dando de baja…"
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setSpecialtyToDelete(null);
+          setDeleteModalError('');
+        }}
+      />
     </div>
   );
 }

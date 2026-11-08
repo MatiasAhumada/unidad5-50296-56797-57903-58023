@@ -6,6 +6,7 @@ import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
+import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -435,26 +436,13 @@ function AppointmentsSearchPage() {
         </form>
       </Card>
 
-      {actionSuccess && (
-        <StatusMessage variant="success">{actionSuccess}</StatusMessage>
-      )}
-
-      {actionError && (
-        <StatusMessage variant="error">{actionError}</StatusMessage>
-      )}
-
-      {appointmentsError && (
-        <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{appointmentsError}</StatusMessage>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setAppointmentsRequestKey((key) => key + 1)}
-          >
-            Reintentar búsqueda
-          </button>
-        </div>
-      )}
+      <FeedbackAlerts
+        actionSuccess={actionSuccess}
+        actionError={actionError}
+        queryError={appointmentsError}
+        onRetry={() => setAppointmentsRequestKey((key) => key + 1)}
+        retryLabel="Reintentar búsqueda"
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">

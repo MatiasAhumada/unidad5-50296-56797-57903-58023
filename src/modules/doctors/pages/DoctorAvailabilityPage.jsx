@@ -6,6 +6,7 @@ import FormField from '../../shared/components/FormField';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
+import BreadcrumbNav from '../../shared/components/BreadcrumbNav';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
@@ -220,19 +221,11 @@ export default function DoctorAvailabilityPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Navegación Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs font-medium text-med-text-muted">
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.adminDoctors)}
-          className="hover:text-med-primary-900 transition-colors"
-        >
-          Doctores
-        </button>
-        <span>›</span>
-        <span className="font-semibold text-med-primary-900">
-          Disponibilidad Horaria
-        </span>
-      </nav>
+      <BreadcrumbNav
+        parentLabel="Doctores"
+        parentRoute={ROUTES.adminDoctors}
+        currentLabel="Disponibilidad Horaria"
+      />
 
       {/* Encabezado */}
       <div>

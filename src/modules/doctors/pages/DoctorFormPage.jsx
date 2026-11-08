@@ -7,6 +7,7 @@ import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
+import BreadcrumbNav from '../../shared/components/BreadcrumbNav';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
@@ -193,19 +194,11 @@ export default function DoctorFormPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Navegación Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs font-medium text-med-text-muted">
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.adminDoctors)}
-          className="hover:text-med-primary-900 transition-colors"
-        >
-          Doctores
-        </button>
-        <span>›</span>
-        <span className="font-semibold text-med-primary-900">
-          {isEdit ? 'Editar Doctor' : 'Agregar Nuevo Doctor'}
-        </span>
-      </nav>
+      <BreadcrumbNav
+        parentLabel="Doctores"
+        parentRoute={ROUTES.adminDoctors}
+        currentLabel={isEdit ? 'Editar Doctor' : 'Agregar Nuevo Doctor'}
+      />
 
       {/* Tarjeta de Formulario Principal */}
       <Card className="max-w-4xl p-6 sm:p-8 bg-white border border-med-border rounded-2xl shadow-xs">

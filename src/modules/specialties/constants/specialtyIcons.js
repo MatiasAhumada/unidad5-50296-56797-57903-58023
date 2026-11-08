@@ -16,6 +16,7 @@ import {
   StethoscopeIcon,
   SyringeIcon,
 } from '@hugeicons/core-free-icons';
+import { createMetadataStore } from '../../shared/helpers/metadataStorage';
 
 export const SPECIALTY_ICON_PRESETS = [
   { key: 'hospital',    label: 'Hospital / General',  icon: HospitalIcon },
@@ -36,16 +37,7 @@ export const SPECIALTY_ICON_PRESETS = [
   { key: 'file',        label: 'Archivo Clínico',     icon: MedicalFileIcon },
 ];
 
-const STORAGE_KEY = 'med_specialty_icons_v1';
-
-function getAllStoredIcons() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
+const specialtyIconStore = createMetadataStore('med_specialty_icons_v1');
 
 /**
  * Obtiene la configuración de icono para una especialidad.
@@ -54,11 +46,9 @@ function getAllStoredIcons() {
 export function getSpecialtyIcon(specialty) {
   if (!specialty) return { key: 'hospital', customUrl: null, iconComponent: HospitalIcon };
 
-  const store = getAllStoredIcons();
-  // Busca por id o por nombre normalizado
   const config =
-    (specialty.id && store[specialty.id]) ||
-    (specialty.name && store[specialty.name.trim().toLowerCase()]);
+    specialtyIconStore.get(specialty.id) ||
+    specialtyIconStore.get(specialty.name);
 
   if (config) {
     if (config.customUrl) {
@@ -93,18 +83,11 @@ export function getSpecialtyIcon(specialty) {
 }
 
 /**
- * Guarda el icono para una especialidad dada (asocia tanto id como nombre).
+ * Guarda el icono para una especialidad dada.
  */
 export function saveSpecialtyIcon({ id, name, iconKey, customUrl }) {
-  try {
-    const store = getAllStoredIcons();
-    const config = { key: iconKey || 'hospital', customUrl: customUrl || null };
-
-    if (id) store[id] = config;
-    if (name) store[name.trim().toLowerCase()] = config;
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch (err) {
-    console.warn('Error guardando icono de especialidad en localStorage:', err);
-  }
+  specialtyIconStore.set([id, name], {
+    key: iconKey || 'hospital',
+    customUrl: customUrl || null,
+  });
 }

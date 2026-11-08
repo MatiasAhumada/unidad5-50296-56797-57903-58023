@@ -1,13 +1,6 @@
-const STORAGE_KEY = 'med_doctor_photos_v1';
+import { createMetadataStore } from '../../shared/helpers/metadataStorage';
 
-function getAllStoredPhotos() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
+const doctorPhotoStore = createMetadataStore('med_doctor_photos_v1');
 
 /**
  * Obtiene la URL o Base64 de la foto de un doctor.
@@ -15,34 +8,18 @@ function getAllStoredPhotos() {
 export function getDoctorPhoto(doctor) {
   if (!doctor) return null;
 
-  const store = getAllStoredPhotos();
   return (
-    (doctor.id && store[doctor.id]) ||
-    (doctor.licenseNumber && store[doctor.licenseNumber]) ||
-    (doctor.name && store[doctor.name.trim().toLowerCase()]) ||
-    null
+    doctorPhotoStore.get(doctor.id) ||
+    doctorPhotoStore.get(doctor.licenseNumber) ||
+    doctorPhotoStore.get(doctor.name)
   );
 }
 
 /**
- * Guarda la foto de un doctor por ID, matrícula y nombre.
+ * Guarda o elimina la foto de un doctor por ID, matrícula y nombre.
  */
 export function saveDoctorPhoto({ id, licenseNumber, name, photoUrl }) {
-  try {
-    const store = getAllStoredPhotos();
-    if (photoUrl) {
-      if (id) store[id] = photoUrl;
-      if (licenseNumber) store[licenseNumber] = photoUrl;
-      if (name) store[name.trim().toLowerCase()] = photoUrl;
-    } else {
-      if (id) delete store[id];
-      if (licenseNumber) delete store[licenseNumber];
-      if (name) delete store[name.trim().toLowerCase()];
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch (err) {
-    console.warn('Error guardando foto del doctor en localStorage:', err);
-  }
+  doctorPhotoStore.set([id, licenseNumber, name], photoUrl || null);
 }
 
 /**

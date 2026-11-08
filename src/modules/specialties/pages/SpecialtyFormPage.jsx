@@ -6,6 +6,7 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
+import BreadcrumbNav from '../../shared/components/BreadcrumbNav';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
@@ -178,19 +179,11 @@ export default function SpecialtyFormPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Navegación Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs font-medium text-med-text-muted">
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.adminSpecialties)}
-          className="hover:text-med-primary-900 transition-colors"
-        >
-          Especialidades
-        </button>
-        <span>›</span>
-        <span className="font-semibold text-med-primary-900">
-          {isEdit ? 'Editar Especialidad' : 'Agregar Nueva Especialidad'}
-        </span>
-      </nav>
+      <BreadcrumbNav
+        parentLabel="Especialidades"
+        parentRoute={ROUTES.adminSpecialties}
+        currentLabel={isEdit ? 'Editar Especialidad' : 'Agregar Nueva Especialidad'}
+      />
 
       {/* Tarjeta de Formulario Principal */}
       <Card className="max-w-4xl p-6 sm:p-8 bg-white border border-med-border rounded-2xl shadow-xs">
