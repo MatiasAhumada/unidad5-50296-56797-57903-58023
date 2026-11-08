@@ -38,7 +38,9 @@ export default function DoctorFormPage() {
     specialtyId: initialDoctor?.specialty?.id || '',
   });
 
-  const [photoUrl, setPhotoUrl] = useState(() => getDoctorPhoto(initialDoctor) || '');
+  const [photoUrl, setPhotoUrl] = useState(
+    () => getDoctorPhoto(initialDoctor) || ''
+  );
   const fileInputRef = useRef(null);
 
   const [specialties, setSpecialties] = useState([]);
@@ -50,6 +52,7 @@ export default function DoctorFormPage() {
   // Cargar especialidades y datos del doctor (si se está editando y no vinieron por state)
   useEffect(() => {
     const controller = new AbortController();
+
     setIsLoading(true);
     setApiError('');
 
@@ -65,6 +68,7 @@ export default function DoctorFormPage() {
 
         if (allDoctors) {
           const found = allDoctors.find((d) => d.id === doctorId);
+
           if (found) {
             setFormData({
               name: found.name || '',
@@ -72,6 +76,7 @@ export default function DoctorFormPage() {
               specialtyId: found.specialty?.id || '',
             });
             const loadedPhoto = getDoctorPhoto(found);
+
             if (loadedPhoto) setPhotoUrl(loadedPhoto);
           } else {
             setApiError('No se encontró el doctor especificado.');
@@ -94,14 +99,17 @@ export default function DoctorFormPage() {
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
       setApiError('La foto no debe superar los 2MB.');
+
       return;
     }
 
     const reader = new FileReader();
+
     reader.onload = () => {
       setPhotoUrl(reader.result);
     };
@@ -122,7 +130,8 @@ export default function DoctorFormPage() {
     if (!trimmedLicense) {
       errors.licenseNumber = 'El número de licencia médica es obligatorio.';
     } else if (trimmedLicense.length > 50) {
-      errors.licenseNumber = 'La matrícula o licencia no puede superar los 50 caracteres.';
+      errors.licenseNumber =
+        'La matrícula o licencia no puede superar los 50 caracteres.';
     }
 
     if (!formData.specialtyId) {
@@ -130,11 +139,13 @@ export default function DoctorFormPage() {
     }
 
     setFormErrors(errors);
+
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -148,6 +159,7 @@ export default function DoctorFormPage() {
 
     try {
       let savedDoctor = null;
+
       if (isEdit) {
         savedDoctor = await updateDoctor(doctorId, payload);
       } else {
@@ -171,6 +183,7 @@ export default function DoctorFormPage() {
       });
     } catch (err) {
       const msg = getApiErrorMessage(err);
+
       if (
         err?.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
         err?.status === 409 ||
@@ -220,7 +233,8 @@ export default function DoctorFormPage() {
               {isEdit ? 'Editar Doctor' : 'Registrar Nuevo Doctor'}
             </h1>
             <p className="mt-1 text-xs text-med-text-sub">
-              Complete todos los campos obligatorios para integrar al facultativo al sistema del centro médico.
+              Complete todos los campos obligatorios para integrar al
+              facultativo al sistema del centro médico.
             </p>
           </div>
         </div>
@@ -247,7 +261,11 @@ export default function DoctorFormPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Icon icon={ICONS.doctor} size={30} className="text-med-text-muted" />
+                  <Icon
+                    icon={ICONS.doctor}
+                    size={30}
+                    className="text-med-text-muted"
+                  />
                 )}
               </div>
 
@@ -256,7 +274,8 @@ export default function DoctorFormPage() {
                   Foto de Perfil del Profesional
                 </span>
                 <p className="text-xs text-med-text-muted">
-                  Suba una imagen o foto (JPG, PNG o WebP, máx. 2MB). Se mostrará en el listado y en su disponibilidad.
+                  Suba una imagen o foto (JPG, PNG o WebP, máx. 2MB). Se
+                  mostrará en el listado y en su disponibilidad.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -290,7 +309,9 @@ export default function DoctorFormPage() {
                   {/* Sugerencias de ejemplo si no tiene foto a mano */}
                   {!photoUrl && (
                     <div className="flex items-center gap-1.5 ml-2">
-                      <span className="text-[11px] text-med-text-muted">O elija un avatar:</span>
+                      <span className="text-[11px] text-med-text-muted">
+                        O elija un avatar:
+                      </span>
                       {SAMPLE_DOCTOR_AVATARS.slice(0, 3).map((sample, idx) => (
                         <button
                           key={sample}
@@ -299,7 +320,11 @@ export default function DoctorFormPage() {
                           className="h-7 w-7 rounded-lg overflow-hidden border border-med-border hover:border-med-primary-500 transition cursor-pointer"
                           title={`Avatar de ejemplo ${idx + 1}`}
                         >
-                          <img src={sample} alt="" className="h-full w-full object-cover" />
+                          <img
+                            src={sample}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
                         </button>
                       ))}
                     </div>
@@ -435,8 +460,8 @@ export default function DoctorFormPage() {
                   {isSubmitting
                     ? 'Guardando…'
                     : isEdit
-                    ? 'Actualizar Doctor'
-                    : 'Guardar Doctor'}
+                      ? 'Actualizar Doctor'
+                      : 'Guardar Doctor'}
                 </span>
               </Button>
             </div>

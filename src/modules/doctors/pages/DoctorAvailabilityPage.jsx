@@ -18,13 +18,13 @@ import {
 import { getDoctorPhoto } from '../constants/doctorPhotos';
 
 const WEEK_DAYS = [
-  { key: 'LUNES',     label: 'Lunes' },
-  { key: 'MARTES',    label: 'Martes' },
+  { key: 'LUNES', label: 'Lunes' },
+  { key: 'MARTES', label: 'Martes' },
   { key: 'MIERCOLES', label: 'Miércoles' },
-  { key: 'JUEVES',    label: 'Jueves' },
-  { key: 'VIERNES',   label: 'Viernes' },
-  { key: 'SABADO',    label: 'Sábado' },
-  { key: 'DOMINGO',   label: 'Domingo' },
+  { key: 'JUEVES', label: 'Jueves' },
+  { key: 'VIERNES', label: 'Viernes' },
+  { key: 'SABADO', label: 'Sábado' },
+  { key: 'DOMINGO', label: 'Domingo' },
 ];
 
 function buildDefaultSchedule() {
@@ -56,17 +56,22 @@ export default function DoctorAvailabilityPage() {
   // 1. Cargar lista de médicos
   useEffect(() => {
     const controller = new AbortController();
+
     setIsLoadingDoctors(true);
     setError('');
 
     getDoctors(controller.signal, false)
       .then((data) => {
         setDoctors(data);
+
         if (data.length > 0) {
           // Si el id del param coincide con uno existente, seleccionarlo; si no, elegir el primero
-          const matched = doctorIdParam && data.some((d) => d.id === doctorIdParam);
+          const matched =
+            doctorIdParam && data.some((d) => d.id === doctorIdParam);
           const initialId = matched ? doctorIdParam : data[0].id;
+
           setSelectedDoctorId(initialId);
+
           if (initialId !== doctorIdParam) {
             setSearchParams({ doctorId: initialId }, { replace: true });
           }
@@ -91,22 +96,27 @@ export default function DoctorAvailabilityPage() {
     if (!selectedDoctorId) return;
 
     const controller = new AbortController();
+
     setIsLoadingSchedule(true);
     setError('');
     setSuccessMessage('');
 
     getDoctorAvailabilities(selectedDoctorId, controller.signal)
       .then((availabilities) => {
-        const hasExisting = Array.isArray(availabilities) && availabilities.length > 0;
+        const hasExisting =
+          Array.isArray(availabilities) && availabilities.length > 0;
+
         setHasExistingAvailability(hasExisting);
 
         const scheduleMap = new Map();
+
         if (hasExisting) {
           availabilities.forEach((item) => {
             const normalizedDay = (item.day || '')
               .toUpperCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '');
+
             scheduleMap.set(normalizedDay, {
               startTime: item.startTime?.slice(0, 5) || '08:00',
               endTime: item.endTime?.slice(0, 5) || '16:00',
@@ -116,6 +126,7 @@ export default function DoctorAvailabilityPage() {
 
         const loadedSchedule = WEEK_DAYS.map(({ key, label }) => {
           const existing = scheduleMap.get(key);
+
           return {
             day: key,
             label,
@@ -143,6 +154,7 @@ export default function DoctorAvailabilityPage() {
 
   const handleDoctorChange = (e) => {
     const newId = e.target.value;
+
     setSelectedDoctorId(newId);
     setSearchParams({ doctorId: newId });
   };
@@ -169,12 +181,15 @@ export default function DoctorAvailabilityPage() {
 
     if (!selectedDoctorId) {
       setError('Debe seleccionar un profesional médico.');
+
       return;
     }
 
     const activeDays = schedule.filter((d) => d.active);
+
     if (activeDays.length === 0) {
       setError('Debe activar al menos un día de atención semanal.');
+
       return;
     }
 
@@ -183,6 +198,7 @@ export default function DoctorAvailabilityPage() {
         setError(
           `En el día ${d.label}, el horario de entrada (${d.startTime}) debe ser anterior al de salida (${d.endTime}).`
         );
+
         return;
       }
     }
@@ -202,8 +218,13 @@ export default function DoctorAvailabilityPage() {
 
       await saveDoctorAvailabilities(payload, hasExistingAvailability);
       setHasExistingAvailability(true);
-      const docName = doctors.find((d) => d.id === selectedDoctorId)?.name || 'el profesional';
-      setSuccessMessage(`Disponibilidad horaria configurada con éxito para ${docName}.`);
+      const docName =
+        doctors.find((d) => d.id === selectedDoctorId)?.name ||
+        'el profesional';
+
+      setSuccessMessage(
+        `Disponibilidad horaria configurada con éxito para ${docName}.`
+      );
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -233,7 +254,8 @@ export default function DoctorAvailabilityPage() {
           Gestionar Disponibilidad Horaria
         </h1>
         <p className="mt-1 text-sm text-med-text-sub">
-          Defina los días y rangos horarios de atención para el profesional seleccionado.
+          Defina los días y rangos horarios de atención para el profesional
+          seleccionado.
         </p>
       </div>
 
@@ -266,7 +288,12 @@ export default function DoctorAvailabilityPage() {
                   value={selectedDoctorId}
                   onChange={handleDoctorChange}
                   options={[
-                    { value: '', label: isLoadingDoctors ? 'Cargando doctores…' : 'Seleccione un profesional' },
+                    {
+                      value: '',
+                      label: isLoadingDoctors
+                        ? 'Cargando doctores…'
+                        : 'Seleccione un profesional',
+                    },
                     ...doctorOptions,
                   ]}
                   disabled={isLoadingDoctors || isSaving}
@@ -316,7 +343,9 @@ export default function DoctorAvailabilityPage() {
               i
             </div>
             <p className="text-xs leading-relaxed text-med-text-sub">
-              Los cambios realizados se aplicarán a partir de la próxima semana calendario. Las citas ya programadas no se verán afectadas automáticamente.
+              Los cambios realizados se aplicarán a partir de la próxima semana
+              calendario. Las citas ya programadas no se verán afectadas
+              automáticamente.
             </p>
           </div>
         </div>
@@ -344,7 +373,9 @@ export default function DoctorAvailabilityPage() {
             {/* Contenido / Tabla */}
             {isLoadingSchedule ? (
               <div className="flex flex-col items-center justify-center py-16 text-med-text-muted">
-                <p className="text-xs">Consultando disponibilidad configurada…</p>
+                <p className="text-xs">
+                  Consultando disponibilidad configurada…
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -360,6 +391,7 @@ export default function DoctorAvailabilityPage() {
                   <tbody className="divide-y divide-med-border-subtle bg-white">
                     {schedule.map((dayItem, idx) => {
                       const isActive = dayItem.active;
+
                       return (
                         <tr
                           key={dayItem.day}
@@ -372,7 +404,9 @@ export default function DoctorAvailabilityPage() {
                           {/* Columna Día */}
                           <td
                             className={`px-6 py-4 font-semibold ${
-                              isActive ? 'text-med-primary-900' : 'text-gray-400'
+                              isActive
+                                ? 'text-med-primary-900'
+                                : 'text-gray-400'
                             }`}
                           >
                             {dayItem.label}
@@ -389,12 +423,16 @@ export default function DoctorAvailabilityPage() {
                             >
                               <span
                                 className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${
-                                  isActive ? 'bg-med-primary-700' : 'bg-gray-300'
+                                  isActive
+                                    ? 'bg-med-primary-700'
+                                    : 'bg-gray-300'
                                 }`}
                               >
                                 <span
                                   className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
-                                    isActive ? 'translate-x-4.5' : 'translate-x-1'
+                                    isActive
+                                      ? 'translate-x-4.5'
+                                      : 'translate-x-1'
                                   }`}
                                 />
                               </span>
@@ -489,7 +527,9 @@ export default function DoctorAvailabilityPage() {
                 disabled={isSaving || !selectedDoctor || isLoadingSchedule}
               >
                 <Icon icon={ICONS.appointments} size={16} />
-                <span>{isSaving ? 'Guardando…' : 'Guardar Disponibilidad'}</span>
+                <span>
+                  {isSaving ? 'Guardando…' : 'Guardar Disponibilidad'}
+                </span>
               </Button>
             </div>
           </Card>

@@ -212,6 +212,7 @@ function DoctorsPage() {
                     const cellClasses = isSelected
                       ? 'bg-[#ecfccb]/50 border-t-2 border-b-2 border-emerald-300 first:border-l-2 first:border-l-emerald-300 last:border-r-2 last:border-r-emerald-300'
                       : 'border-b border-med-border-subtle';
+
                     return (
                       <tr
                         key={doctor.id}
@@ -221,14 +222,13 @@ function DoctorsPage() {
                           )
                         }
                         className={`transition cursor-pointer ${
-                          isSelected
-                            ? 'relative z-10'
-                            : 'hover:bg-gray-50/70'
+                          isSelected ? 'relative z-10' : 'hover:bg-gray-50/70'
                         }`}
                       >
                         <td className={`px-6 py-4 ${cellClasses}`}>
                           {(() => {
                             const photo = getDoctorPhoto(doctor);
+
                             return (
                               <div className="flex items-center gap-3">
                                 {photo ? (

@@ -1,6 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 
-export default function BreadcrumbNav({ parentLabel, parentRoute, currentLabel }) {
+export default function BreadcrumbNav({
+  parentLabel,
+  parentRoute,
+  currentLabel,
+}) {
   const navigate = useNavigate();
 
   return (

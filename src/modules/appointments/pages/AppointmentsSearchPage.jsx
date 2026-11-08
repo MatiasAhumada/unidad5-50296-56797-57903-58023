@@ -206,6 +206,7 @@ function AppointmentsSearchPage() {
       setValidationError(
         'La fecha de inicio no puede ser posterior a la fecha de fin.'
       );
+
       return;
     }
 
@@ -578,7 +579,8 @@ function AppointmentsSearchPage() {
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
               totalPages={
-                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) || 1
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) ||
+                1
               }
               onPageChange={setPageIndex}
             />

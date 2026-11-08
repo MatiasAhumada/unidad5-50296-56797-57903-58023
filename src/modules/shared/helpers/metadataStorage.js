@@ -6,6 +6,7 @@ export function createMetadataStore(storageKey) {
   function getAll() {
     try {
       const raw = localStorage.getItem(storageKey);
+
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -14,7 +15,9 @@ export function createMetadataStore(storageKey) {
 
   function get(key) {
     if (!key) return null;
+
     const store = getAll();
+
     return store[key] || store[key.toString().trim().toLowerCase()] || null;
   }
 

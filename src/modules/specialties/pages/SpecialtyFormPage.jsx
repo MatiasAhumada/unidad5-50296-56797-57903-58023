@@ -36,8 +36,12 @@ export default function SpecialtyFormPage() {
     description: initialSpecialty?.description || '',
   });
 
-  const [selectedIconKey, setSelectedIconKey] = useState(initialIconData.key || 'hospital');
-  const [customIconUrl, setCustomIconUrl] = useState(initialIconData.customUrl || '');
+  const [selectedIconKey, setSelectedIconKey] = useState(
+    initialIconData.key || 'hospital'
+  );
+  const [customIconUrl, setCustomIconUrl] = useState(
+    initialIconData.customUrl || ''
+  );
 
   const fileInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,18 +54,21 @@ export default function SpecialtyFormPage() {
     if (!isEdit || location.state?.specialty) return;
 
     const controller = new AbortController();
+
     setIsLoading(true);
     setApiError('');
 
     getSpecialties(controller.signal, true)
       .then((specialties) => {
         const found = specialties.find((s) => s.id === specialtyId);
+
         if (found) {
           setFormData({
             name: found.name || '',
             description: found.description || '',
           });
           const loadedIcon = getSpecialtyIcon(found);
+
           setSelectedIconKey(loadedIcon.key);
           setCustomIconUrl(loadedIcon.customUrl || '');
         } else {
@@ -85,14 +92,17 @@ export default function SpecialtyFormPage() {
   // Manejador para subir archivo de icono (SVG, PNG, JPG)
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
       setApiError('El archivo de icono no debe superar los 2MB.');
+
       return;
     }
 
     const reader = new FileReader();
+
     reader.onload = () => {
       setCustomIconUrl(reader.result);
       setSelectedIconKey('custom');
@@ -114,15 +124,18 @@ export default function SpecialtyFormPage() {
     if (!trimmedDesc) {
       errors.description = 'La descripción es obligatoria.';
     } else if (trimmedDesc.length < 10 || trimmedDesc.length > 100) {
-      errors.description = 'La descripción debe tener entre 10 y 100 caracteres.';
+      errors.description =
+        'La descripción debe tener entre 10 y 100 caracteres.';
     }
 
     setFormErrors(errors);
+
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -135,6 +148,7 @@ export default function SpecialtyFormPage() {
 
     try {
       let savedSpecialty = null;
+
       if (isEdit) {
         savedSpecialty = await updateSpecialty(specialtyId, payload);
       } else {
@@ -158,6 +172,7 @@ export default function SpecialtyFormPage() {
       });
     } catch (err) {
       const msg = getApiErrorMessage(err);
+
       if (
         err?.errorCode === 'DUPLICATE_SPECIALTY_NAME' ||
         err?.status === 409 ||
@@ -174,7 +189,9 @@ export default function SpecialtyFormPage() {
   };
 
   // Icono actualmente seleccionado para la cabecera
-  const currentPreset = SPECIALTY_ICON_PRESETS.find((p) => p.key === selectedIconKey);
+  const currentPreset = SPECIALTY_ICON_PRESETS.find(
+    (p) => p.key === selectedIconKey
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -182,7 +199,9 @@ export default function SpecialtyFormPage() {
       <BreadcrumbNav
         parentLabel="Especialidades"
         parentRoute={ROUTES.adminSpecialties}
-        currentLabel={isEdit ? 'Editar Especialidad' : 'Agregar Nueva Especialidad'}
+        currentLabel={
+          isEdit ? 'Editar Especialidad' : 'Agregar Nueva Especialidad'
+        }
       />
 
       {/* Tarjeta de Formulario Principal */}
@@ -205,7 +224,8 @@ export default function SpecialtyFormPage() {
               {isEdit ? 'Editar Especialidad' : 'Registrar Nueva Especialidad'}
             </h1>
             <p className="mt-1 text-xs text-med-text-sub">
-              Complete la información técnica y seleccione el icono distintivo para el servicio médico.
+              Complete la información técnica y seleccione el icono distintivo
+              para el servicio médico.
             </p>
           </div>
         </div>
@@ -287,13 +307,15 @@ export default function SpecialtyFormPage() {
                 Icono de la Especialidad
               </label>
               <p className="text-xs text-med-text-muted -mt-1">
-                Elija un icono clínico predeterminado o suba uno personalizado (SVG/PNG).
+                Elija un icono clínico predeterminado o suba uno personalizado
+                (SVG/PNG).
               </p>
 
               {/* Grilla de iconos predeterminados */}
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 p-3 rounded-2xl bg-med-bg/60 border border-med-border-subtle">
                 {SPECIALTY_ICON_PRESETS.map((preset) => {
                   const isSelected = selectedIconKey === preset.key;
+
                   return (
                     <button
                       key={preset.key}
@@ -380,8 +402,8 @@ export default function SpecialtyFormPage() {
                 {isSubmitting
                   ? 'Guardando…'
                   : isEdit
-                  ? 'Actualizar Especialidad'
-                  : 'Guardar Especialidad'}
+                    ? 'Actualizar Especialidad'
+                    : 'Guardar Especialidad'}
               </Button>
             </div>
           </form>

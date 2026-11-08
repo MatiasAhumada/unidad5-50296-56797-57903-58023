@@ -20,7 +20,10 @@ async function getSpecialties(signal, includeInactive = false) {
   let total = Number.POSITIVE_INFINITY;
 
   while (specialties.length < total) {
-    const page = await getSpecialtiesPage({ pageSize, pageIndex, includeInactive }, signal);
+    const page = await getSpecialtiesPage(
+      { pageSize, pageIndex, includeInactive },
+      signal
+    );
 
     specialties.push(...page.data);
     total = page.total;

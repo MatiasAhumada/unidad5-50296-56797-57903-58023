@@ -95,6 +95,7 @@ function SpecialtiesPage() {
       setRequestKey((k) => k + 1);
     } catch (delError) {
       const msg = getApiErrorMessage(delError);
+
       setDeleteModalError(msg);
       setActionError(msg);
     } finally {
@@ -193,6 +194,7 @@ function SpecialtiesPage() {
                       <td className="px-6 py-4 font-semibold text-med-primary-900">
                         {(() => {
                           const iconData = getSpecialtyIcon(specialty);
+
                           return (
                             <div className="flex items-center gap-3">
                               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700 overflow-hidden border border-med-border-subtle">
@@ -204,7 +206,9 @@ function SpecialtiesPage() {
                                   />
                                 ) : (
                                   <Icon
-                                    icon={iconData.iconComponent || ICONS.hospital}
+                                    icon={
+                                      iconData.iconComponent || ICONS.hospital
+                                    }
                                     size={18}
                                   />
                                 )}
