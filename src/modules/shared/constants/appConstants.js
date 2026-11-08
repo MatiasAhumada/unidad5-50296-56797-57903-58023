@@ -14,7 +14,7 @@ const ROUTES = {
   patientAppointments: '/appointments',
   admin: '/admin',
   adminLogin: '/admin/login',
-  accessDenied: '/acceso-denegado',
+  accessDenied: '/access-denied',
   adminHome: '/admin/home',
   adminPatients: '/admin/patients',
   adminPatientSearch: '/admin/patient-search',
