@@ -15,8 +15,6 @@ function normalizeRole(role) {
   );
 }
 
-
-
 function clearStoredSession() {
   localStorage.removeItem(STORAGE_KEYS.token);
   localStorage.removeItem(STORAGE_KEYS.role);
@@ -51,7 +49,7 @@ function createSession(response, patientDni = null) {
 
   return { token, role, patientDni };
 }
-// Nueva función centralizada para guardar la sesión en storage
+
 function storeSession(response, patientDni = null) {
   const nextSession = createSession(response, patientDni);
 
@@ -64,14 +62,13 @@ function storeSession(response, patientDni = null) {
       String(nextSession.patientDni)
     );
   } else {
-    // Al limpiar o al ser admin, se remueve cualquier DNI previo de paciente
+    
     sessionStorage.removeItem(PATIENT_DNI_SESSION_KEY);
   }
 
   return nextSession;
 }
 
-// Consumir la marca de expiración de sessionStorage
 function consumeSessionExpired() {
   const expired = sessionStorage.getItem(SESSION_EXPIRED_KEY) === 'true';
   if (expired) {
