@@ -6,7 +6,6 @@ import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
-import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -206,7 +205,6 @@ function AppointmentsSearchPage() {
       setValidationError(
         'La fecha de inicio no puede ser posterior a la fecha de fin.'
       );
-
       return;
     }
 
@@ -437,13 +435,26 @@ function AppointmentsSearchPage() {
         </form>
       </Card>
 
-      <FeedbackAlerts
-        actionSuccess={actionSuccess}
-        actionError={actionError}
-        queryError={appointmentsError}
-        onRetry={() => setAppointmentsRequestKey((key) => key + 1)}
-        retryLabel="Reintentar búsqueda"
-      />
+      {actionSuccess && (
+        <StatusMessage variant="success">{actionSuccess}</StatusMessage>
+      )}
+
+      {actionError && (
+        <StatusMessage variant="error">{actionError}</StatusMessage>
+      )}
+
+      {appointmentsError && (
+        <div className="flex flex-col items-start gap-3">
+          <StatusMessage variant="error">{appointmentsError}</StatusMessage>
+          <button
+            type="button"
+            className="text-sm font-semibold text-med-primary-700 underline"
+            onClick={() => setAppointmentsRequestKey((key) => key + 1)}
+          >
+            Reintentar búsqueda
+          </button>
+        </div>
+      )}
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">
@@ -579,8 +590,7 @@ function AppointmentsSearchPage() {
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
               totalPages={
-                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) ||
-                1
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) || 1
               }
               onPageChange={setPageIndex}
             />

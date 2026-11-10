@@ -7,3 +7,4 @@ const SPECIALTIES_API_ROUTES = {
 };
 
 export { SPECIALTIES_API_ROUTES };
+
