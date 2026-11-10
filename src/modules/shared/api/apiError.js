@@ -21,10 +21,14 @@ function getApiErrorMessage(error) {
   const normalizedError =
     error?.status !== undefined ? error : normalizeApiError(error ?? {});
 
-  if (Array.isArray(normalizedError.details) && normalizedError.details.length > 0) {
+  if (
+    Array.isArray(normalizedError.details) &&
+    normalizedError.details.length > 0
+  ) {
     const detailMsgs = normalizedError.details
       .map((d) => d.issue || d.message || (typeof d === 'string' ? d : null))
       .filter(Boolean);
+
     if (detailMsgs.length > 0) {
       return detailMsgs.join('. ');
     }

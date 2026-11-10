@@ -1,87 +1,64 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../shared/constants/appConstants';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
-import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
+import StatusBadge from '../../shared/components/StatusBadge';
+import ConfirmModal from '../../shared/components/ConfirmModal';
+import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import {
-  createDoctor,
   deleteDoctor,
-  getDoctorAvailabilities,
   getDoctorsPage,
-  saveDoctorAvailabilities,
   toggleDoctorStatus,
-  updateDoctor,
 } from '../services/doctorsService';
-import { getSpecialties } from '../../specialties/services/specialtiesService';
-
-const WEEK_DAYS = [
-  { key: 'LUNES',     label: 'Lunes' },
-  { key: 'MARTES',    label: 'Martes' },
-  { key: 'MIERCOLES', label: 'Miércoles' },
-  { key: 'JUEVES',    label: 'Jueves' },
-  { key: 'VIERNES',   label: 'Viernes' },
-  { key: 'SABADO',    label: 'Sábado' },
-];
+import { getDoctorPhoto } from '../constants/doctorPhotos';
 
 function DoctorsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
-  const [specialties, setSpecialties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
-  const [togglingDoctorId, setTogglingDoctorId] = useState(null);
-
-  // Modal Create / Edit Doctor
-  const [showDoctorModal, setShowDoctorModal] = useState(false);
-  const [editingDoctor, setEditingDoctor] = useState(null);
-  const [doctorForm, setDoctorForm] = useState({
-    name: '',
-    licenseNumber: '',
-    specialtyId: '',
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [isSubmittingDoctor, setIsSubmittingDoctor] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
 
   // Modal Delete Doctor
   const [doctorToDelete, setDoctorToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Modal Availabilities
-  const [availabilityDoctor, setAvailabilityDoctor] = useState(null);
-  const [doctorSchedule, setDoctorSchedule] = useState([]);
-  const [hasExistingAvailability, setHasExistingAvailability] = useState(false);
-  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
-  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState('');
+  // Recibir mensaje de éxito si viene de crear/editar doctor
+  useEffect(() => {
+    if (location.state?.actionSuccess) {
+      setActionSuccess(location.state.actionSuccess);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
-  // Fetch doctors and specialties
+  // Fetch doctors
   useEffect(() => {
     const controller = new AbortController();
 
     setIsLoading(true);
     setError('');
 
-    Promise.all([
-      getDoctorsPage(
-        { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
-        controller.signal
-      ),
-      getSpecialties(controller.signal),
-    ])
-      .then(([doctorsData, specialtiesData]) => {
+    getDoctorsPage(
+      { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
+      controller.signal
+    )
+      .then((doctorsData) => {
         setPage(doctorsData);
-        setSpecialties(specialtiesData);
       })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
@@ -102,107 +79,6 @@ function DoctorsPage() {
     setPageIndex(1);
   };
 
-  const openCreateDoctorModal = () => {
-    setEditingDoctor(null);
-    setDoctorForm({
-      name: '',
-      licenseNumber: '',
-      specialtyId: specialties[0]?.id || '',
-    });
-    setFormErrors({});
-    setActionSuccess('');
-    setActionError('');
-    setShowDoctorModal(true);
-  };
-
-  const openEditDoctorModal = (doctor) => {
-    setEditingDoctor(doctor);
-    setDoctorForm({
-      name: doctor.name || '',
-      licenseNumber: doctor.licenseNumber || '',
-      specialtyId: doctor.specialty?.id || '',
-    });
-    setFormErrors({});
-    setActionSuccess('');
-    setActionError('');
-    setShowDoctorModal(true);
-  };
-
-  const validateDoctorForm = () => {
-    const errors = {};
-    const trimmedName = doctorForm.name.trim();
-    const trimmedLicense = doctorForm.licenseNumber.trim();
-
-    if (!trimmedName) {
-      errors.name = 'El nombre del doctor es obligatorio.';
-    } else if (trimmedName.length < 3 || trimmedName.length > 100) {
-      errors.name = 'El nombre debe tener entre 3 y 100 caracteres.';
-    }
-
-    if (!trimmedLicense) {
-      errors.licenseNumber = 'La matrícula es obligatoria.';
-    } else if (trimmedLicense.length > 50) {
-      errors.licenseNumber = 'La matrícula no puede superar los 50 caracteres.';
-    } else if (
-      page.data.some(
-        (d) =>
-          d.id !== editingDoctor?.id &&
-          d.licenseNumber?.trim().toLowerCase() === trimmedLicense.toLowerCase()
-      )
-    ) {
-      errors.licenseNumber = 'Ya existe un médico registrado con esa matrícula.';
-    }
-
-    if (!doctorForm.specialtyId) {
-      errors.specialtyId = 'Debe seleccionar una especialidad.';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleDoctorSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateDoctorForm()) return;
-
-    setIsSubmittingDoctor(true);
-    setActionSuccess('');
-    setActionError('');
-
-    try {
-      if (editingDoctor) {
-        await updateDoctor(editingDoctor.id, {
-          name: doctorForm.name.trim(),
-          licenseNumber: doctorForm.licenseNumber.trim(),
-          specialtyId: doctorForm.specialtyId,
-        });
-        setActionSuccess('Datos del doctor actualizados con éxito.');
-      } else {
-        await createDoctor({
-          name: doctorForm.name.trim(),
-          licenseNumber: doctorForm.licenseNumber.trim(),
-          specialtyId: doctorForm.specialtyId,
-        });
-        setActionSuccess('Doctor registrado exitosamente.');
-      }
-      setShowDoctorModal(false);
-      setRequestKey((k) => k + 1);
-    } catch (submitErr) {
-      const msg = getApiErrorMessage(submitErr);
-      if (
-        submitErr?.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
-        submitErr?.status === 409 ||
-        msg.toLowerCase().includes('matrícula')
-      ) {
-        setFormErrors((prev) => ({ ...prev, licenseNumber: msg }));
-      } else {
-        setActionError(msg);
-      }
-    } finally {
-      setIsSubmittingDoctor(false);
-    }
-  };
-
   const handleDeleteDoctor = async () => {
     if (!doctorToDelete) return;
 
@@ -213,7 +89,7 @@ function DoctorsPage() {
     try {
       await deleteDoctor(doctorToDelete.id);
       setActionSuccess(
-        `Doctor "${doctorToDelete.name}" eliminado físicamente de la base de datos.`
+        `Doctor "${doctorToDelete.name}" dado de baja exitosamente.`
       );
       setDoctorToDelete(null);
       setRequestKey((k) => k + 1);
@@ -223,137 +99,6 @@ function DoctorsPage() {
       setIsDeleting(false);
     }
   };
-
-  const handleToggleDoctorStatus = async (doctor) => {
-    setTogglingDoctorId(doctor.id);
-    setActionSuccess('');
-    setActionError('');
-    try {
-      const newStatus = doctor.isActive === false;
-      await toggleDoctorStatus(doctor.id, newStatus);
-      setActionSuccess(
-        `Doctor "${doctor.name}" ${newStatus ? 'activado' : 'desactivado'} correctamente.`
-      );
-      setRequestKey((k) => k + 1);
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setTogglingDoctorId(null);
-    }
-  };
-
-  // Open availability configuration modal
-  const openAvailabilityModal = async (doctor) => {
-    setAvailabilityDoctor(doctor);
-    setAvailabilityError('');
-    setIsLoadingAvailability(true);
-
-    try {
-      const availabilities = await getDoctorAvailabilities(doctor.id);
-      const hasExisting = Array.isArray(availabilities) && availabilities.length > 0;
-      setHasExistingAvailability(hasExisting);
-
-      // Mapear cada día de la semana con su horario si ya estaba configurado
-      const scheduleMap = new Map();
-      if (hasExisting) {
-        availabilities.forEach((item) => {
-          // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
-          const normalizedDay = (item.day || '')
-            .toUpperCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-          scheduleMap.set(normalizedDay, {
-            startTime: item.startTime?.slice(0, 5) || '08:00',
-            endTime: item.endTime?.slice(0, 5) || '16:00',
-          });
-        });
-      }
-
-      const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
-        const existing = scheduleMap.get(key);
-        return {
-          day: key,
-          label,
-          active: Boolean(existing),
-          startTime: existing?.startTime || '08:00',
-          endTime: existing?.endTime || '16:00',
-        };
-      });
-
-      setDoctorSchedule(initialSchedule);
-    } catch (err) {
-      setAvailabilityError(getApiErrorMessage(err));
-    } finally {
-      setIsLoadingAvailability(false);
-    }
-  };
-
-  const handleScheduleDayToggle = (dayIndex) => {
-    setDoctorSchedule((current) =>
-      current.map((item, idx) =>
-        idx === dayIndex ? { ...item, active: !item.active } : item
-      )
-    );
-  };
-
-  const handleScheduleTimeChange = (dayIndex, field, value) => {
-    setDoctorSchedule((current) =>
-      current.map((item, idx) =>
-        idx === dayIndex ? { ...item, [field]: value } : item
-      )
-    );
-  };
-
-  const handleSaveAvailability = async () => {
-    setAvailabilityError('');
-
-    const activeDays = doctorSchedule.filter((d) => d.active);
-    if (activeDays.length === 0) {
-      setAvailabilityError('Debe activar al menos un día de atención.');
-      return;
-    }
-
-    // Validar startTime < endTime
-    for (const d of activeDays) {
-      if (d.startTime >= d.endTime) {
-        setAvailabilityError(
-          `En ${d.day}, la hora de inicio (${d.startTime}) debe ser anterior a la hora de fin (${d.endTime}).`
-        );
-        return;
-      }
-    }
-
-    setIsSavingAvailability(true);
-    try {
-      // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
-      const toTimeSpan = (hhmm) =>
-        hhmm.length === 5 ? `${hhmm}:00` : hhmm;
-
-      const payload = {
-        doctorId: availabilityDoctor.id,
-        days: activeDays.map((d) => ({
-          day: d.day,
-          startTime: toTimeSpan(d.startTime),
-          endTime: toTimeSpan(d.endTime),
-        })),
-      };
-
-      await saveDoctorAvailabilities(payload, hasExistingAvailability);
-      setActionSuccess(
-        `Disponibilidad horaria configurada con éxito para ${availabilityDoctor.name}.`
-      );
-      setAvailabilityDoctor(null);
-    } catch (err) {
-      setAvailabilityError(getApiErrorMessage(err));
-    } finally {
-      setIsSavingAvailability(false);
-    }
-  };
-
-  const specialtyOptions = [
-    { value: '', label: 'Seleccione una especialidad' },
-    ...specialties.map((s) => ({ value: s.id, label: s.name })),
-  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -394,32 +139,44 @@ function DoctorsPage() {
             </FormField>
           </div>
 
-          <Button onClick={openCreateDoctorModal} className="flex items-center gap-1.5 whitespace-nowrap">
+          <Button
+            variant={selectedDoctorId ? 'primary' : 'secondary'}
+            disabled={!selectedDoctorId}
+            onClick={() => {
+              if (selectedDoctorId) {
+                navigate(
+                  `${ROUTES.adminDoctorAvailability}?doctorId=${selectedDoctorId}`
+                );
+              }
+            }}
+            className={`flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              !selectedDoctorId ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            title={
+              selectedDoctorId
+                ? 'Gestionar disponibilidad horaria del médico seleccionado'
+                : 'Seleccione un médico del listado para gestionar su disponibilidad'
+            }
+          >
+            <Icon icon={ICONS.clock} size={16} />
+            <span>Disponibilidad Horaria</span>
+          </Button>
+
+          <Button
+            onClick={() => navigate(ROUTES.adminDoctorCreate)}
+            className="flex items-center gap-1.5 whitespace-nowrap"
+          >
             <span>+ Nuevo Doctor</span>
           </Button>
         </div>
       </div>
 
-      {actionSuccess && (
-        <StatusMessage variant="success">{actionSuccess}</StatusMessage>
-      )}
-
-      {actionError && (
-        <StatusMessage variant="error">{actionError}</StatusMessage>
-      )}
-
-      {error && (
-        <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{error}</StatusMessage>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setRequestKey((key) => key + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      <FeedbackAlerts
+        actionSuccess={actionSuccess}
+        actionError={actionError}
+        queryError={error}
+        onRetry={() => setRequestKey((key) => key + 1)}
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">
@@ -446,85 +203,132 @@ function DoctorsPage() {
                     <th className="px-6 py-3.5">Matrícula</th>
                     <th className="px-6 py-3.5">Especialidad</th>
                     <th className="px-6 py-3.5 text-center">Estado</th>
-                    <th className="px-6 py-3.5 text-right">Acciones</th>
+                    <th className="px-6 py-3.5 text-center">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-med-border-subtle">
-                  {page.data.map((doctor) => (
-                    <tr key={doctor.id} className="hover:bg-gray-50/70 transition">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
-                            <Icon icon={ICONS.doctor} size={20} />
-                          </span>
-                          <span className="font-semibold text-med-primary-900">
-                            {doctor.name}
-                          </span>
-                        </div>
-                      </td>
+                <tbody>
+                  {page.data.map((doctor) => {
+                    const isSelected = selectedDoctorId === doctor.id;
+                    const cellClasses = isSelected
+                      ? 'bg-[#ecfccb]/50 border-t-2 border-b-2 border-emerald-300 first:border-l-2 first:border-l-emerald-300 last:border-r-2 last:border-r-emerald-300'
+                      : 'border-b border-med-border-subtle';
 
-                      <td className="px-6 py-4 text-xs text-med-text-sub">
-                        {doctor.licenseNumber}
-                      </td>
+                    return (
+                      <tr
+                        key={doctor.id}
+                        onClick={() =>
+                          setSelectedDoctorId((prev) =>
+                            prev === doctor.id ? null : doctor.id
+                          )
+                        }
+                        className={`transition cursor-pointer ${
+                          isSelected ? 'relative z-10' : 'hover:bg-gray-50/70'
+                        }`}
+                      >
+                        <td className={`px-6 py-4 ${cellClasses}`}>
+                          {(() => {
+                            const photo = getDoctorPhoto(doctor);
 
-                      <td className="px-6 py-4 text-xs font-medium text-med-text-sub">
-                        {doctor.specialty?.name ?? 'Sin especialidad'}
-                      </td>
+                            return (
+                              <div className="flex items-center gap-3">
+                                {photo ? (
+                                  <img
+                                    src={photo}
+                                    alt={doctor.name}
+                                    className="h-10 w-10 shrink-0 rounded-xl object-cover border border-med-border shadow-xs"
+                                  />
+                                ) : (
+                                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
+                                    <Icon icon={ICONS.doctor} size={20} />
+                                  </span>
+                                )}
+                                <span className="font-semibold text-med-primary-900">
+                                  {doctor.name}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </td>
 
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          type="button"
-                          disabled={togglingDoctorId === doctor.id}
-                          onClick={() => handleToggleDoctorStatus(doctor)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer disabled:opacity-50 ${
-                            doctor.isActive !== false
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
-                          }`}
-                          title={
-                            doctor.isActive !== false
-                              ? 'Activo - Clic para desactivar'
-                              : 'Inactivo - Clic para activar'
-                          }
+                        <td
+                          className={`px-6 py-4 text-xs text-med-text-sub ${cellClasses}`}
                         >
-                          <span
-                            className={`h-2 w-2 rounded-full ${
-                              doctor.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'
-                            }`}
-                          />
-                          <span>{doctor.isActive !== false ? 'Activo' : 'Inactivo'}</span>
-                        </button>
-                      </td>
+                          {doctor.licenseNumber}
+                        </td>
 
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openAvailabilityModal(doctor)}
-                            className="inline-flex items-center gap-1 rounded bg-med-primary-50 px-2 py-1 text-xs font-semibold text-med-primary-800 hover:bg-med-primary-100 transition"
-                            title="Gestionar disponibilidad horaria"
-                          >
-                            <Icon icon={ICONS.clock} size={14} />
-                            <span>Horarios</span>
-                          </button>
-                          <IconButton
-                            label={`Editar ${doctor.name}`}
-                            icon={ICONS.edit}
-                            size={16}
-                            onClick={() => openEditDoctorModal(doctor)}
-                            className="p-1.5 rounded hover:bg-med-primary-50 text-med-text-sub hover:text-med-primary-900"
-                          />
-                          <IconButton
-                            label={`Eliminar físicamente ${doctor.name}`}
-                            icon={ICONS.delete}
-                            size={16}
-                            onClick={() => setDoctorToDelete(doctor)}
-                            className="p-1.5 rounded hover:bg-red-50 text-med-text-sub hover:text-red-600"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        <td
+                          className={`px-6 py-4 text-xs font-medium text-med-text-sub ${cellClasses}`}
+                        >
+                          {doctor.specialty?.name ?? 'Sin especialidad'}
+                        </td>
+
+                        <td className={`px-6 py-4 text-center ${cellClasses}`}>
+                          <StatusBadge isActive={doctor.isActive} />
+                        </td>
+
+                        <td className={`px-6 py-4 text-center ${cellClasses}`}>
+                          <div className="flex items-center justify-center gap-2">
+                            <IconButton
+                              label={`Gestionar disponibilidad horaria de ${doctor.name}`}
+                              icon={ICONS.clock}
+                              size={16}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(
+                                  `${ROUTES.adminDoctorAvailability}?doctorId=${doctor.id}`
+                                );
+                              }}
+                              className="p-1.5 rounded hover:bg-med-primary-50 text-med-text-sub hover:text-med-primary-900"
+                            />
+                            <IconButton
+                              label={`Editar ${doctor.name}`}
+                              icon={ICONS.edit}
+                              size={16}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(
+                                  `${ROUTES.adminDoctorCreate}?doctorId=${doctor.id}`,
+                                  { state: { doctor } }
+                                );
+                              }}
+                              className="p-1.5 rounded hover:bg-med-primary-50 text-med-text-sub hover:text-med-primary-900"
+                            />
+                            {doctor.isActive === false ? (
+                              <IconButton
+                                label={`Reactivar ${doctor.name}`}
+                                icon={ICONS.refresh}
+                                size={16}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await toggleDoctorStatus(doctor.id, true);
+                                    setActionSuccess(
+                                      `Doctor "${doctor.name}" reactivado exitosamente.`
+                                    );
+                                    setRequestKey((k) => k + 1);
+                                  } catch (err) {
+                                    setActionError(getApiErrorMessage(err));
+                                  }
+                                }}
+                                className="p-1.5 rounded hover:bg-emerald-50 text-med-text-sub hover:text-emerald-700"
+                              />
+                            ) : (
+                              <IconButton
+                                label={`Dar de baja a ${doctor.name}`}
+                                icon={ICONS.delete}
+                                size={16}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDoctorToDelete(doctor);
+                                }}
+                                className="p-1.5 rounded hover:bg-red-50 text-med-text-sub hover:text-red-600"
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -540,244 +344,27 @@ function DoctorsPage() {
         )}
       </Card>
 
-      {/* Modal Crear / Editar Doctor */}
-      {showDoctorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-med-border">
-            <div className="mb-4 border-b border-med-border-subtle pb-3">
-              <h3 className="text-lg font-bold text-med-primary-900">
-                {editingDoctor ? 'Editar Doctor' : 'Registrar Nuevo Doctor'}
-              </h3>
-              <p className="text-xs text-med-text-sub mt-1">
-                Complete los campos para integrar al facultativo al sistema.
-              </p>
-            </div>
-
-            <form onSubmit={handleDoctorSubmit} className="space-y-4">
-              <FormField
-                id="modal-doctor-name"
-                label="Nombre Completo del Doctor"
-                labelClassName="text-xs font-semibold text-med-text-sub"
-              >
-                {(fieldProps) => (
-                  <Input
-                    {...fieldProps}
-                    value={doctorForm.name}
-                    onChange={(e) =>
-                      setDoctorForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Ej: Dr. Alejandro Martínez"
-                    className="px-3 py-2 text-xs"
-                  />
-                )}
-              </FormField>
-              {formErrors.name && (
-                <p className="text-xs text-red-600">{formErrors.name}</p>
-              )}
-
-              <FormField
-                id="modal-doctor-license"
-                label="Número de Licencia Médica / Matrícula"
-                labelClassName="text-xs font-semibold text-med-text-sub"
-              >
-                {(fieldProps) => (
-                  <Input
-                    {...fieldProps}
-                    value={doctorForm.licenseNumber}
-                    onChange={(e) =>
-                      setDoctorForm((prev) => ({
-                        ...prev,
-                        licenseNumber: e.target.value,
-                      }))
-                    }
-                    placeholder="Ej: MP-45920-X"
-                    className="px-3 py-2 text-xs"
-                  />
-                )}
-              </FormField>
-              {formErrors.licenseNumber && (
-                <p className="text-xs text-red-600">{formErrors.licenseNumber}</p>
-              )}
-
-              <FormField
-                id="modal-doctor-specialty"
-                label="Especialidad"
-                labelClassName="text-xs font-semibold text-med-text-sub"
-              >
-                {(fieldProps) => (
-                  <Select
-                    {...fieldProps}
-                    value={doctorForm.specialtyId}
-                    onChange={(e) =>
-                      setDoctorForm((prev) => ({
-                        ...prev,
-                        specialtyId: e.target.value,
-                      }))
-                    }
-                    options={specialtyOptions}
-                    className="px-3 py-2 text-xs"
-                  />
-                )}
-              </FormField>
-              {formErrors.specialtyId && (
-                <p className="text-xs text-red-600">{formErrors.specialtyId}</p>
-              )}
-
-              <div className="mt-6 flex justify-end gap-3 pt-3 border-t border-med-border-subtle">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowDoctorModal(false)}
-                  disabled={isSubmittingDoctor}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmittingDoctor}>
-                  {isSubmittingDoctor
-                    ? 'Guardando…'
-                    : editingDoctor
-                    ? 'Actualizar Doctor'
-                    : 'Guardar Doctor'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Disponibilidad Horaria */}
-      {availabilityDoctor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-med-border max-h-[90vh] overflow-y-auto">
-            <div className="mb-4 border-b border-med-border-subtle pb-3">
-              <h3 className="text-lg font-bold text-med-primary-900">
-                Gestionar Disponibilidad Horaria
-              </h3>
-              <p className="text-xs text-med-text-sub mt-1">
-                Profesional: <strong className="text-med-text-main">{availabilityDoctor.name}</strong> ({availabilityDoctor.specialty?.name})
-              </p>
-            </div>
-
-            {availabilityError && (
-              <div className="mb-4">
-                <StatusMessage variant="error">{availabilityError}</StatusMessage>
-              </div>
-            )}
-
-            {isLoadingAvailability ? (
-              <p className="p-4 text-xs text-med-text-sub text-center">
-                Consultando disponibilidad configurada…
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs text-med-text-muted">
-                  Active los días que el médico atiende y especifique los horarios de entrada y salida. Se generarán turnos de 30 minutos para el mes en curso.
-                </p>
-
-                <div className="divide-y divide-med-border-subtle">
-                  {doctorSchedule.map((sched, idx) => (
-                    <div
-                      key={sched.day}
-                      className="py-2.5 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <label className="flex items-center gap-2 font-semibold text-med-primary-900 cursor-pointer min-w-24">
-                        <input
-                          type="checkbox"
-                          checked={sched.active}
-                          onChange={() => handleScheduleDayToggle(idx)}
-                          className="rounded text-med-primary-700"
-                        />
-                        <span>{sched.label ?? sched.day}</span>
-                      </label>
-
-                      {sched.active ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-med-text-muted">De:</span>
-                          <input
-                            type="time"
-                            value={sched.startTime}
-                            onChange={(e) =>
-                              handleScheduleTimeChange(idx, 'startTime', e.target.value)
-                            }
-                            className="rounded border border-med-border px-2 py-1 text-xs"
-                          />
-                          <span className="text-med-text-muted">A:</span>
-                          <input
-                            type="time"
-                            value={sched.endTime}
-                            onChange={(e) =>
-                              handleScheduleTimeChange(idx, 'endTime', e.target.value)
-                            }
-                            className="rounded border border-med-border px-2 py-1 text-xs"
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-med-text-muted italic">
-                          No atiende
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-med-border-subtle">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setAvailabilityDoctor(null)}
-                    disabled={isSavingAvailability}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSaveAvailability}
-                    disabled={isSavingAvailability}
-                  >
-                    {isSavingAvailability ? 'Guardando…' : 'Guardar Disponibilidad'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal Confirmación de Eliminación Física */}
-      {doctorToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-med-border">
-            <h3 className="text-base font-bold text-med-primary-900">
-              ¿Eliminar doctor definitivamente?
-            </h3>
-            <p className="mt-2 text-xs text-med-text-sub">
-              ¿Está seguro de eliminar físicamente al doctor{' '}
-              <strong className="text-med-text-main">{doctorToDelete.name}</strong>?
-              Esta acción borrará de forma permanente al profesional de la base de datos (baja física).
-              Si solo desea suspenderlo, use el botón de Estado.
-            </p>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDoctorToDelete(null)}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                onClick={handleDeleteDoctor}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Eliminando…' : 'Sí, eliminar definitivamente'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Confirmación de Baja Lógica */}
+      <ConfirmModal
+        isOpen={Boolean(doctorToDelete)}
+        title="¿Dar de baja al doctor?"
+        message={
+          doctorToDelete && (
+            <>
+              ¿Está seguro de dar de baja al doctor{' '}
+              <strong className="text-med-text-main">
+                {doctorToDelete.name}
+              </strong>
+              ? Esta acción realizará una baja lógica en el sistema.
+            </>
+          )
+        }
+        confirmText="Sí, dar de baja"
+        loadingText="Dando de baja…"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteDoctor}
+        onCancel={() => setDoctorToDelete(null)}
+      />
     </div>
   );
 }
