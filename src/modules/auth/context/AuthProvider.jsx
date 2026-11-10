@@ -11,7 +11,7 @@ import {
 const AuthContext = createContext(null);
 
 function AuthProvider({ children }) {
-
+  const [session, setSession] = useState(getStoredSession);
   const [sessionExpired, setSessionExpired] = useState(() => consumeSessionExpired());
   
 
