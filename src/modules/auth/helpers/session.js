@@ -1,6 +1,7 @@
 import { STORAGE_KEYS, USER_ROLES } from '../../shared/constants/appConstants';
 
 const PATIENT_DNI_SESSION_KEY = 'medportal.patientDni';
+const SESSION_EXPIRED_KEY = 'medportal.sessionExpired';
 
 function normalizeRole(role) {
   if (typeof role !== 'string') {
@@ -49,9 +50,36 @@ function createSession(response, patientDni = null) {
   return { token, role, patientDni };
 }
 
+function storeSession(response, patientDni = null) {
+  const nextSession = createSession(response, patientDni);
+
+  localStorage.setItem(STORAGE_KEYS.token, nextSession.token);
+  localStorage.setItem(STORAGE_KEYS.role, nextSession.role);
+
+  if (nextSession.patientDni) {
+    sessionStorage.setItem(
+      PATIENT_DNI_SESSION_KEY,
+      String(nextSession.patientDni)
+    );
+  } else {
+    
+    sessionStorage.removeItem(PATIENT_DNI_SESSION_KEY);
+  }
+
+  return nextSession;
+}
+
+function consumeSessionExpired() {
+  const expired = sessionStorage.getItem(SESSION_EXPIRED_KEY) === 'true';
+  if (expired) {
+    sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+  }
+  return expired;
+}
+
 export {
   clearStoredSession,
-  createSession,
   getStoredSession,
-  PATIENT_DNI_SESSION_KEY,
+  storeSession,
+  consumeSessionExpired,
 };
