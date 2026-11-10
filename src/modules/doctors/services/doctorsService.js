@@ -20,10 +20,7 @@ async function getDoctors(signal, includeInactive = false) {
   let total = Infinity;
 
   while (doctors.length < total) {
-    const page = await getDoctorsPage(
-      { pageSize, pageIndex, includeInactive },
-      signal
-    );
+    const page = await getDoctorsPage({ pageSize, pageIndex, includeInactive }, signal);
 
     doctors.push(...page.data);
     total = page.total;
@@ -104,12 +101,18 @@ async function getDoctorAvailabilities(doctorId, signal) {
   return response.data;
 }
 
-async function saveDoctorAvailabilities({ doctorId, days }, isUpdate = false) {
+async function saveDoctorAvailabilities(
+  { doctorId, days },
+  isUpdate = false
+) {
   const method = isUpdate ? 'put' : 'post';
-  const response = await instance[method](DOCTORS_API_ROUTES.saveAvailability, {
-    doctorId,
-    days,
-  });
+  const response = await instance[method](
+    DOCTORS_API_ROUTES.saveAvailability,
+    {
+      doctorId,
+      days,
+    }
+  );
 
   return response.data;
 }
