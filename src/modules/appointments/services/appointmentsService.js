@@ -68,9 +68,19 @@ async function cancelAppointment(appointmentId) {
   return response.data;
 }
 
+async function markAppointmentAttendance(appointmentId, attended) {
+  const response = await instance.put(
+    APPOINTMENTS_API_ROUTES.attendance(appointmentId),
+    { attended }
+  );
+
+  return response.data;
+}
+
 export {
   bookAppointment,
   cancelAppointment,
   getPatientAppointments,
+  markAppointmentAttendance,
   searchAppointments,
 };

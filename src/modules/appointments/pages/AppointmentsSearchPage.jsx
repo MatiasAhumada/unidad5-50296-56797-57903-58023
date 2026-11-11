@@ -6,30 +6,86 @@ import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
+import FeedbackAlerts from '../../shared/components/FeedbackAlerts';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
-import { searchAppointments } from '../services/appointmentsService';
+import {
+  markAppointmentAttendance,
+  searchAppointments,
+} from '../services/appointmentsService';
 
-const APPOINTMENT_STATUS_LABELS = {
-  BOOKED: 'Reservado',
-  CANCELLED: 'Cancelado',
-  ATTENDED: 'Atendido',
-  NO_SHOW: 'Ausente',
+const APPOINTMENT_STATUS_OPTIONS = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'BOOKED', label: 'Reservado' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+  { value: 'ATTENDED', label: 'Atendido' },
+  { value: 'NO_SHOW', label: 'Ausente' },
+];
+
+const STATUS_PARAM_MAP = {
+  BOOKED: 'Booked',
+  CANCELLED: 'Cancelled',
+  ATTENDED: 'Attended',
+  NO_SHOW: 'NoShow',
 };
+
+const STATUS_CONFIG = {
+  BOOKED: {
+    label: 'Reservado',
+    className: 'bg-blue-50 text-blue-700 border border-blue-200',
+  },
+  CANCELLED: {
+    label: 'Cancelado',
+    className: 'bg-red-50 text-red-700 border border-red-200',
+  },
+  ATTENDED: {
+    label: 'Atendido',
+    className: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  },
+  NO_SHOW: {
+    label: 'Ausente',
+    className: 'bg-amber-50 text-amber-700 border border-amber-200',
+  },
+};
+
+function formatAppointmentDate(dateStr, timeStr) {
+  if (!dateStr) {
+    return 'Sin fecha';
+  }
+
+  try {
+    const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const formattedDate = new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+
+    const formattedTime = timeStr ? ` ${timeStr.slice(0, 5)} hs` : '';
+
+    return `${formattedDate}${formattedTime}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 const EMPTY_FILTERS = {
   dni: '',
   specialtyId: '',
   doctorId: '',
-  date: '',
+  status: '',
+  startDate: '',
+  endDate: '',
 };
 
 function AppointmentsSearchPage() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [validationError, setValidationError] = useState('');
   const [pageIndex, setPageIndex] = useState(1);
   const [appointmentsPage, setAppointmentsPage] = useState({
     data: [],
@@ -44,6 +100,9 @@ function AppointmentsSearchPage() {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [appointmentsError, setAppointmentsError] = useState('');
   const [appointmentsRequestKey, setAppointmentsRequestKey] = useState(0);
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [updatingAppointmentId, setUpdatingAppointmentId] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,10 +143,14 @@ function AppointmentsSearchPage() {
       {
         pageSize: 10,
         pageIndex,
-        dni: dni || undefined,
+        dni: dni ? Number(dni) : undefined,
         specialtyId: appliedFilters.specialtyId || undefined,
         doctorId: appliedFilters.doctorId || undefined,
-        date: appliedFilters.date || undefined,
+        status: appliedFilters.status
+          ? STATUS_PARAM_MAP[appliedFilters.status] || appliedFilters.status
+          : undefined,
+        startDate: appliedFilters.startDate || undefined,
+        endDate: appliedFilters.endDate || undefined,
       },
       controller.signal
     )
@@ -123,6 +186,7 @@ function AppointmentsSearchPage() {
       label: specialty.name,
     })),
   ];
+
   const doctorOptions = [
     { value: '', label: 'Todos los doctores' },
     ...visibleDoctors.map((doctor) => ({
@@ -133,14 +197,49 @@ function AppointmentsSearchPage() {
 
   const applyFilters = (event) => {
     event.preventDefault();
+
+    if (
+      filters.startDate &&
+      filters.endDate &&
+      filters.startDate > filters.endDate
+    ) {
+      setValidationError(
+        'La fecha de inicio no puede ser posterior a la fecha de fin.'
+      );
+
+      return;
+    }
+
+    setValidationError('');
+    setActionSuccess('');
+    setActionError('');
     setAppliedFilters({ ...filters });
     setPageIndex(1);
   };
 
   const clearFilters = () => {
+    setValidationError('');
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
     setPageIndex(1);
+  };
+
+  const handleAttendanceChange = async (appointmentId, attended) => {
+    setUpdatingAppointmentId(appointmentId);
+    setActionSuccess('');
+    setActionError('');
+
+    try {
+      await markAppointmentAttendance(appointmentId, attended);
+      setActionSuccess(
+        `Turno marcado como ${attended ? 'asistido' : 'ausente'} correctamente.`
+      );
+      setAppointmentsRequestKey((k) => k + 1);
+    } catch (error) {
+      setActionError(getApiErrorMessage(error));
+    } finally {
+      setUpdatingAppointmentId(null);
+    }
   };
 
   return (
@@ -150,7 +249,7 @@ function AppointmentsSearchPage() {
           Búsqueda y Filtrado de Citas
         </h1>
         <p className="mt-1 text-sm text-med-text-sub">
-          Consultá los turnos registrados según sus filtros.
+          Gestione y supervise el flujo de turnos y pacientes del centro médico.
         </p>
       </div>
 
@@ -160,6 +259,7 @@ function AppointmentsSearchPage() {
             Criterios de búsqueda
           </h2>
         </div>
+
         {catalogError && (
           <div className="mb-4 flex flex-col items-start gap-3">
             <StatusMessage variant="error">{catalogError}</StatusMessage>
@@ -173,149 +273,192 @@ function AppointmentsSearchPage() {
           </div>
         )}
 
-        <form
-          onSubmit={applyFilters}
-          className="grid grid-cols-1 items-end gap-3.5 sm:grid-cols-2 lg:grid-cols-5"
-        >
-          <FormField
-            id="appointment-patient-dni"
-            label="DNI del paciente"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <div className="relative">
-                <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  <Icon icon={ICONS.search} size={16} />
-                </span>
-                <Input
+        {validationError && (
+          <div className="mb-4">
+            <StatusMessage variant="error">{validationError}</StatusMessage>
+          </div>
+        )}
+
+        <form onSubmit={applyFilters} className="space-y-4">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <FormField
+              id="appointment-patient-dni"
+              label="DNI del paciente"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <div className="relative">
+                  <span
+                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                    aria-hidden="true"
+                  >
+                    <Icon icon={ICONS.search} size={16} />
+                  </span>
+                  <Input
+                    {...fieldProps}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Ingresá un DNI (ej: 30123456)"
+                    value={filters.dni}
+                    onChange={(event) =>
+                      setFilters((current) => ({
+                        ...current,
+                        dni: event.target.value,
+                      }))
+                    }
+                    className="pl-9 pr-3 py-2 text-xs"
+                  />
+                </div>
+              )}
+            </FormField>
+
+            <FormField
+              id="appointment-specialty-filter"
+              label="Especialidad"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Select
                   {...fieldProps}
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Ingresá un DNI"
-                  value={filters.dni}
+                  value={filters.specialtyId}
                   onChange={(event) =>
                     setFilters((current) => ({
                       ...current,
-                      dni: event.target.value,
+                      specialtyId: event.target.value,
+                      doctorId: '',
                     }))
                   }
-                  className="pl-9 pr-3 py-2 text-xs"
+                  disabled={isLoadingCatalogs || Boolean(catalogError)}
+                  options={specialtyOptions}
+                  className="px-3 py-2 text-xs"
                 />
-              </div>
-            )}
-          </FormField>
+              )}
+            </FormField>
 
-          <FormField
-            id="appointment-specialty-filter"
-            label="Especialidad"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Select
-                {...fieldProps}
-                value={filters.specialtyId}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    specialtyId: event.target.value,
-                    doctorId: '',
-                  }))
-                }
-                disabled={isLoadingCatalogs || Boolean(catalogError)}
-                options={specialtyOptions}
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
+            <FormField
+              id="appointment-doctor-filter"
+              label="Doctor"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  value={filters.doctorId}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      doctorId: event.target.value,
+                    }))
+                  }
+                  disabled={isLoadingCatalogs || Boolean(catalogError)}
+                  options={doctorOptions}
+                  className="px-3 py-2 text-xs"
+                />
+              )}
+            </FormField>
 
-          <FormField
-            id="appointment-doctor-filter"
-            label="Doctor"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Select
-                {...fieldProps}
-                value={filters.doctorId}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    doctorId: event.target.value,
-                  }))
-                }
-                disabled={isLoadingCatalogs || Boolean(catalogError)}
-                options={doctorOptions}
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
+            <FormField
+              id="appointment-status-filter"
+              label="Estado del turno"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  value={filters.status}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      status: event.target.value,
+                    }))
+                  }
+                  options={APPOINTMENT_STATUS_OPTIONS}
+                  className="px-3 py-2 text-xs"
+                />
+              )}
+            </FormField>
 
-          <FormField
-            id="appointment-date-filter"
-            label="Fecha"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Input
-                {...fieldProps}
-                type="date"
-                value={filters.date}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    date: event.target.value,
-                  }))
-                }
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
+            <FormField
+              id="appointment-start-date"
+              label="Fecha Desde"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Input
+                  {...fieldProps}
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      startDate: event.target.value,
+                    }))
+                  }
+                  className="px-3 py-2 text-xs"
+                />
+              )}
+            </FormField>
 
-          <div className="flex gap-2">
+            <FormField
+              id="appointment-end-date"
+              label="Fecha Hasta"
+              labelClassName="text-xs font-semibold text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Input
+                  {...fieldProps}
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      endDate: event.target.value,
+                    }))
+                  }
+                  className="px-3 py-2 text-xs"
+                />
+              )}
+            </FormField>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={clearFilters}>
+              Limpiar filtros
+            </Button>
             <Button
               type="submit"
               disabled={isLoadingCatalogs || Boolean(catalogError)}
-              className="flex flex-1 items-center justify-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <Icon icon={ICONS.filter} size={16} />
               Aplicar filtros
-            </Button>
-            <Button type="button" variant="outline" onClick={clearFilters}>
-              Limpiar
             </Button>
           </div>
         </form>
       </Card>
 
-      {appointmentsError && (
-        <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{appointmentsError}</StatusMessage>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setAppointmentsRequestKey((key) => key + 1)}
-          >
-            Reintentar búsqueda
-          </button>
-        </div>
-      )}
+      <FeedbackAlerts
+        actionSuccess={actionSuccess}
+        actionError={actionError}
+        queryError={appointmentsError}
+        onRetry={() => setAppointmentsRequestKey((key) => key + 1)}
+        retryLabel="Reintentar búsqueda"
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-med-border p-5">
           <h2 className="text-base font-bold text-med-primary-900">
-            Registros de Citas
+            Registros de Citas ({appointmentsPage.total})
           </h2>
         </div>
+
         {isLoadingAppointments ? (
           <p className="p-5 text-sm text-med-text-sub" role="status">
             Buscando citas…
           </p>
         ) : !appointmentsError && appointmentsPage.data.length === 0 ? (
           <p className="p-5 text-sm text-med-text-sub">
-            No se encontraron citas para estos filtros.
+            No se encontraron citas con los filtros aplicados.
           </p>
         ) : (
           <>
@@ -324,56 +467,121 @@ function AppointmentsSearchPage() {
                 <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">
                   <tr>
                     <th className="px-6 py-3.5">Código</th>
-                    <th className="px-6 py-3.5">Especialidad y doctor</th>
+                    <th className="px-6 py-3.5">Fecha y Horario</th>
+                    <th className="px-6 py-3.5">Especialidad y Profesional</th>
                     <th className="px-6 py-3.5">Paciente</th>
                     <th className="px-6 py-3.5 text-center">Estado</th>
+                    <th className="px-6 py-3.5 text-right">Asistencia</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-med-border-subtle">
-                  {appointmentsPage.data.map((appointment) => (
-                    <tr
-                      key={appointment.appointmentsId}
-                      className="hover:bg-gray-50/70"
-                    >
-                      <td className="px-6 py-4 font-semibold text-med-primary-900">
-                        {appointment.appointmentsId.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-med-primary-900">
-                          {appointment.doctor.specialty.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-med-text-muted">
-                          {appointment.doctor.name}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-med-text-main">
-                          {appointment.patient.fullName ||
-                            'Nombre no disponible'}
-                        </p>
-                        <p className="mt-0.5 text-xs text-med-text-muted">
-                          DNI: {appointment.patient.dni}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-flex rounded-full bg-med-primary-100 px-3 py-1 text-xs font-semibold text-med-primary-700">
-                          {APPOINTMENT_STATUS_LABELS[
-                            appointment.appointmentsStatus
-                          ] ?? appointment.appointmentsStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {appointmentsPage.data.map((appointment) => {
+                    const rawStatus = (
+                      appointment.appointmentsStatus || ''
+                    ).toUpperCase();
+                    const statusConfig =
+                      STATUS_CONFIG[rawStatus] || STATUS_CONFIG.BOOKED;
+                    const isBooked = rawStatus === 'BOOKED';
+                    const isUpdating =
+                      updatingAppointmentId === appointment.appointmentsId;
+
+                    return (
+                      <tr
+                        key={appointment.appointmentsId}
+                        className="hover:bg-gray-50/70 transition"
+                      >
+                        <td className="px-6 py-4 font-semibold text-med-primary-900">
+                          {appointment.appointmentsId.slice(0, 8).toUpperCase()}
+                        </td>
+
+                        <td className="px-6 py-4 text-xs font-medium text-med-text-main">
+                          {formatAppointmentDate(
+                            appointment.date,
+                            appointment.startTime
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <p className="font-semibold text-med-primary-900">
+                            {appointment.doctor?.specialty?.name ??
+                              'Sin especialidad'}
+                          </p>
+                          <p className="mt-0.5 text-xs text-med-text-muted">
+                            {appointment.doctor?.name ?? 'Médico no asignado'}
+                          </p>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <p className="font-semibold text-med-text-main">
+                            {appointment.patient?.fullName ||
+                              'Nombre no registrado'}
+                          </p>
+                          <p className="mt-0.5 text-xs text-med-text-muted">
+                            DNI: {appointment.patient?.dni}
+                          </p>
+                        </td>
+
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusConfig.className}`}
+                          >
+                            {statusConfig.label}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
+                          {isBooked ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() =>
+                                  handleAttendanceChange(
+                                    appointment.appointmentsId,
+                                    true
+                                  )
+                                }
+                                className="rounded px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 transition"
+                                title="Marcar como atendido"
+                              >
+                                {isUpdating ? '...' : 'Presente'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() =>
+                                  handleAttendanceChange(
+                                    appointment.appointmentsId,
+                                    false
+                                  )
+                                }
+                                className="rounded px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition"
+                                title="Marcar como ausente"
+                              >
+                                {isUpdating ? '...' : 'Ausente'}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-med-text-muted">
+                              Registrado
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
             <TablePagination
-              currentPage={appointmentsPage.pageIndex}
+              currentPage={pageIndex}
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
-              totalPages={Math.ceil(
-                appointmentsPage.total / appointmentsPage.pageSize
-              )}
+              totalPages={
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) ||
+                1
+              }
               onPageChange={setPageIndex}
             />
           </>
