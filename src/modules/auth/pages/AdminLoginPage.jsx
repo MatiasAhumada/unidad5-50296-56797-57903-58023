@@ -5,7 +5,6 @@ import AuthEmailField from '../components/AuthEmailField';
 import AuthFormError from '../components/AuthFormError';
 import AuthPasswordField from '../components/AuthPasswordField';
 import useAuth from '../hook/useAuth';
-import { frontendErrorMessage } from '../helpers/backendError';
 import Button from '../../shared/components/Button';
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
@@ -32,14 +31,15 @@ function AdminLoginPage() {
     isSubmittingRef.current = true;
     setErrorMessage('');
 
-    try {
-      await signInAdmin(email, password);
+    const { error } = await signInAdmin(email, password);
+
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
       navigate(ROUTES.adminHome, { replace: true });
-    } catch (error) {
-      setErrorMessage(frontendErrorMessage(error));
-    } finally {
-      isSubmittingRef.current = false;
     }
+
+    isSubmittingRef.current = false;
   };
 
   return (

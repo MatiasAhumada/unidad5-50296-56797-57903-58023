@@ -1,40 +1,37 @@
 import { API_ERROR_MESSAGES } from '../constants/apiErrorMessages';
 
 function normalizeApiError(error) {
-  const status = error.response?.status ?? null;
-  const category = status ?? 'network';
-  const responseData = error.response?.data ?? {};
+  if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
+    return null;
+  }
+
+  const response = error?.response;
+  const status = response?.status ?? null;
+  const body =
+    response?.data && typeof response.data === 'object' ? response.data : {};
+  const details = Array.isArray(body.details) ? body.details : [];
+  const detailMessage = details
+    .map((detail) => {
+      if (typeof detail === 'string') return detail;
+
+      if (!detail || typeof detail !== 'object') return '';
+
+      return detail.issue || detail.message || '';
+    })
+    .filter((issue) => issue && /\s|[.!?]/.test(issue))
+    .map((issue) => issue.replace(/[.?!\s]+$/, ''))
+    .join('. ');
 
   return {
     status,
-    errorCode: responseData.errorCode ?? null,
-    details: responseData.details ?? [],
+    errorCode: body.errorCode ?? null,
     message:
-      responseData.message ||
-      API_ERROR_MESSAGES[category] ||
+      detailMessage ||
+      body.message ||
+      API_ERROR_MESSAGES[status ?? 'network'] ||
       API_ERROR_MESSAGES.unexpected,
-    originalError: error,
+    details,
   };
 }
 
-function getApiErrorMessage(error) {
-  const normalizedError =
-    error?.status !== undefined ? error : normalizeApiError(error ?? {});
-
-  if (Array.isArray(normalizedError.details) && normalizedError.details.length > 0) {
-    const detailMsgs = normalizedError.details
-      .map((d) => d.issue || d.message || (typeof d === 'string' ? d : null))
-      .filter(Boolean);
-    if (detailMsgs.length > 0) {
-      return detailMsgs.join('. ');
-    }
-  }
-
-  if (error?.message && !error?.response && error?.status === undefined) {
-    return error.message;
-  }
-
-  return normalizedError.message;
-}
-
-export { getApiErrorMessage, normalizeApiError };
+export { normalizeApiError };

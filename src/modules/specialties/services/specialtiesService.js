@@ -1,3 +1,4 @@
+import { normalizeApiError } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { SPECIALTIES_API_ROUTES } from '../constants/apiRoutes';
 
@@ -5,66 +6,92 @@ async function getSpecialtiesPage(
   { pageSize = 50, pageIndex = 1, name, includeInactive } = {},
   signal
 ) {
-  const response = await instance.get(SPECIALTIES_API_ROUTES.list, {
-    params: { pageSize, pageIndex, name, includeInactive },
-    signal,
-  });
+  try {
+    const response = await instance.get(SPECIALTIES_API_ROUTES.list, {
+      params: { pageSize, pageIndex, name, includeInactive },
+      signal,
+    });
 
-  return response.data;
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
 }
 
 async function getSpecialties(signal, includeInactive = false) {
-  const pageSize = 100;
-  const specialties = [];
-  let pageIndex = 1;
-  let total = Number.POSITIVE_INFINITY;
+  try {
+    const pageSize = 100;
+    const specialties = [];
+    let pageIndex = 1;
+    let total = Infinity;
 
-  while (specialties.length < total) {
-    const page = await getSpecialtiesPage({ pageSize, pageIndex, includeInactive }, signal);
+    while (specialties.length < total) {
+      const response = await instance.get(SPECIALTIES_API_ROUTES.list, {
+        params: { pageSize, pageIndex, includeInactive },
+        signal,
+      });
+      const page = response.data;
 
-    specialties.push(...page.data);
-    total = page.total;
+      specialties.push(...page.data);
+      total = page.total;
 
-    if (page.data.length === 0) {
-      break;
+      if (page.data.length === 0) break;
+
+      pageIndex += 1;
     }
 
-    pageIndex += 1;
+    return { data: specialties, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
   }
-
-  return specialties;
 }
 
 async function createSpecialty({ name, description }) {
-  const response = await instance.post(SPECIALTIES_API_ROUTES.create, {
-    name,
-    description,
-  });
+  try {
+    const response = await instance.post(SPECIALTIES_API_ROUTES.create, {
+      name,
+      description,
+    });
 
-  return response.data;
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
 }
 
 async function updateSpecialty(id, { name, description }) {
-  const response = await instance.put(SPECIALTIES_API_ROUTES.update(id), {
-    name,
-    description,
-  });
+  try {
+    const response = await instance.put(SPECIALTIES_API_ROUTES.update(id), {
+      name,
+      description,
+    });
 
-  return response.data;
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
 }
 
 async function deleteSpecialty(id) {
-  const response = await instance.delete(SPECIALTIES_API_ROUTES.delete(id));
+  try {
+    const response = await instance.delete(SPECIALTIES_API_ROUTES.delete(id));
 
-  return response.data;
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
 }
 
 async function toggleSpecialtyStatus(id, isActive) {
-  const response = await instance.put(SPECIALTIES_API_ROUTES.status(id), {
-    isActive,
-  });
+  try {
+    const response = await instance.put(SPECIALTIES_API_ROUTES.status(id), {
+      isActive,
+    });
 
-  return response.data;
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
 }
 
 export {

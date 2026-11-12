@@ -7,7 +7,6 @@ import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
@@ -113,14 +112,19 @@ function AppointmentsSearchPage() {
       getSpecialties(controller.signal),
       getDoctors(controller.signal),
     ])
-      .then(([specialtiesData, doctorsData]) => {
-        setSpecialties(specialtiesData);
-        setDoctors(doctorsData);
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setCatalogError(getApiErrorMessage(error));
+      .then(([specialtiesResult, doctorsResult]) => {
+        if (controller.signal.aborted) return;
+
+        const error = specialtiesResult.error || doctorsResult.error;
+
+        if (error) {
+          setCatalogError(error.message);
+
+          return;
         }
+
+        setSpecialties(specialtiesResult.data);
+        setDoctors(doctorsResult.data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -153,11 +157,16 @@ function AppointmentsSearchPage() {
       },
       controller.signal
     )
-      .then(setAppointmentsPage)
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setAppointmentsError(getApiErrorMessage(error));
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setAppointmentsError(error.message);
+
+          return;
         }
+
+        setAppointmentsPage(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -205,6 +214,7 @@ function AppointmentsSearchPage() {
       setValidationError(
         'La fecha de inicio no puede ser posterior a la fecha de fin.'
       );
+
       return;
     }
 
@@ -227,17 +237,18 @@ function AppointmentsSearchPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      await markAppointmentAttendance(appointmentId, attended);
+    const { error } = await markAppointmentAttendance(appointmentId, attended);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Turno marcado como ${attended ? 'asistido' : 'ausente'} correctamente.`
       );
       setAppointmentsRequestKey((k) => k + 1);
-    } catch (error) {
-      setActionError(getApiErrorMessage(error));
-    } finally {
-      setUpdatingAppointmentId(null);
     }
+
+    setUpdatingAppointmentId(null);
   };
 
   return (
@@ -590,7 +601,8 @@ function AppointmentsSearchPage() {
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
               totalPages={
-                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) || 1
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) ||
+                1
               }
               onPageChange={setPageIndex}
             />

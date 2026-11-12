@@ -7,7 +7,6 @@ import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import {
   createSpecialty,
@@ -51,11 +50,16 @@ function SpecialtiesPage() {
       { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
       controller.signal
     )
-      .then(setPage)
-      .catch((requestError) => {
-        if (!controller.signal.aborted) {
-          setError(getApiErrorMessage(requestError));
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setError(error.message);
+
+          return;
         }
+
+        setPage(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -116,15 +120,18 @@ function SpecialtiesPage() {
     if (!trimmedDesc) {
       errors.description = 'La descripción es obligatoria.';
     } else if (trimmedDesc.length < 10 || trimmedDesc.length > 100) {
-      errors.description = 'La descripción debe tener entre 10 y 100 caracteres.';
+      errors.description =
+        'La descripción debe tener entre 10 y 100 caracteres.';
     }
 
     setFormErrors(errors);
+
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -132,38 +139,43 @@ function SpecialtiesPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      if (editingSpecialty) {
-        await updateSpecialty(editingSpecialty.id, {
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-        });
-        setActionSuccess('Especialidad actualizada exitosamente.');
-      } else {
-        await createSpecialty({
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-        });
-        setActionSuccess('Especialidad creada exitosamente.');
-      }
-      setShowFormModal(false);
-      setRequestKey((k) => k + 1);
-    } catch (submitError) {
-      const msg = getApiErrorMessage(submitError);
+    let result;
+
+    if (editingSpecialty) {
+      result = await updateSpecialty(editingSpecialty.id, {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      });
+    } else {
+      result = await createSpecialty({
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      });
+    }
+
+    if (result.error) {
+      const msg = result.error.message;
+
       setModalError(msg);
+
       if (
         msg.toLowerCase().includes('nombre') ||
         msg.toLowerCase().includes('duplicate') ||
-        submitError.status === 409
+        result.error.status === 409
       ) {
-        setFormErrors((prev) => ({
-          ...prev,
-          name: msg,
-        }));
+        setFormErrors((prev) => ({ ...prev, name: msg }));
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setActionSuccess(
+        editingSpecialty
+          ? 'Especialidad actualizada exitosamente.'
+          : 'Especialidad creada exitosamente.'
+      );
+      setShowFormModal(false);
+      setRequestKey((k) => k + 1);
     }
+
+    setIsSubmitting(false);
   };
 
   const handleDelete = async () => {
@@ -174,38 +186,39 @@ function SpecialtiesPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      await deleteSpecialty(specialtyToDelete.id);
+    const { error } = await deleteSpecialty(specialtyToDelete.id);
+
+    if (error) {
+      setDeleteModalError(error.message);
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Especialidad "${specialtyToDelete.name}" eliminada físicamente de la base de datos.`
       );
       setSpecialtyToDelete(null);
       setRequestKey((k) => k + 1);
-    } catch (delError) {
-      const msg = getApiErrorMessage(delError);
-      setDeleteModalError(msg);
-      setActionError(msg);
-    } finally {
-      setIsDeleting(false);
     }
+
+    setIsDeleting(false);
   };
 
   const handleToggleStatus = async (specialty) => {
     setTogglingId(specialty.id);
     setActionSuccess('');
     setActionError('');
-    try {
-      const newStatus = specialty.isActive === false;
-      await toggleSpecialtyStatus(specialty.id, newStatus);
+    const newStatus = specialty.isActive === false;
+    const { error } = await toggleSpecialtyStatus(specialty.id, newStatus);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Especialidad "${specialty.name}" ${newStatus ? 'activada' : 'desactivada'} correctamente.`
       );
       setRequestKey((k) => k + 1);
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setTogglingId(null);
     }
+
+    setTogglingId(null);
   };
 
   return (
@@ -247,7 +260,10 @@ function SpecialtiesPage() {
             </FormField>
           </div>
 
-          <Button onClick={openCreateModal} className="flex items-center gap-1.5 whitespace-nowrap">
+          <Button
+            onClick={openCreateModal}
+            className="flex items-center gap-1.5 whitespace-nowrap"
+          >
             <span>+ Nueva Especialidad</span>
           </Button>
         </div>
@@ -303,7 +319,10 @@ function SpecialtiesPage() {
                 </thead>
                 <tbody className="divide-y divide-med-border-subtle">
                   {page.data.map((specialty) => (
-                    <tr key={specialty.id} className="hover:bg-gray-50/70 transition">
+                    <tr
+                      key={specialty.id}
+                      className="hover:bg-gray-50/70 transition"
+                    >
                       <td className="px-6 py-4 font-semibold text-med-primary-900">
                         <div className="flex items-center gap-3">
                           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
@@ -335,10 +354,16 @@ function SpecialtiesPage() {
                         >
                           <span
                             className={`h-2 w-2 rounded-full ${
-                              specialty.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'
+                              specialty.isActive !== false
+                                ? 'bg-emerald-500'
+                                : 'bg-gray-400'
                             }`}
                           />
-                          <span>{specialty.isActive !== false ? 'Activo' : 'Inactivo'}</span>
+                          <span>
+                            {specialty.isActive !== false
+                              ? 'Activo'
+                              : 'Inactivo'}
+                          </span>
                         </button>
                       </td>
 
@@ -383,7 +408,9 @@ function SpecialtiesPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-med-border">
             <div className="mb-4 border-b border-med-border-subtle pb-3">
               <h3 className="text-lg font-bold text-med-primary-900">
-                {editingSpecialty ? 'Editar Especialidad' : 'Registrar Nueva Especialidad'}
+                {editingSpecialty
+                  ? 'Editar Especialidad'
+                  : 'Registrar Nueva Especialidad'}
               </h3>
               <p className="text-xs text-med-text-sub mt-1">
                 Complete la información técnica requerida por el sistema.
@@ -455,8 +482,8 @@ function SpecialtiesPage() {
                   {isSubmitting
                     ? 'Guardando…'
                     : editingSpecialty
-                    ? 'Actualizar Especialidad'
-                    : 'Guardar Especialidad'}
+                      ? 'Actualizar Especialidad'
+                      : 'Guardar Especialidad'}
                 </Button>
               </div>
             </form>
@@ -473,14 +500,19 @@ function SpecialtiesPage() {
             </h3>
             <p className="mt-2 text-xs text-med-text-sub">
               ¿Está seguro de eliminar físicamente la especialidad{' '}
-              <strong className="text-med-text-main">{specialtyToDelete.name}</strong>?
-              Esta acción borrará de forma permanente el registro de la base de datos (baja física).
-              Si solo desea suspenderla, use el botón de Estado.
+              <strong className="text-med-text-main">
+                {specialtyToDelete.name}
+              </strong>
+              ? Esta acción borrará de forma permanente el registro de la base
+              de datos (baja física). Si solo desea suspenderla, use el botón de
+              Estado.
             </p>
 
             {deleteModalError && (
               <div className="mt-3">
-                <StatusMessage variant="error">{deleteModalError}</StatusMessage>
+                <StatusMessage variant="error">
+                  {deleteModalError}
+                </StatusMessage>
               </div>
             )}
 

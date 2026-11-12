@@ -8,7 +8,6 @@ import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import {
   createDoctor,
@@ -22,12 +21,12 @@ import {
 import { getSpecialties } from '../../specialties/services/specialtiesService';
 
 const WEEK_DAYS = [
-  { key: 'LUNES',     label: 'Lunes' },
-  { key: 'MARTES',    label: 'Martes' },
+  { key: 'LUNES', label: 'Lunes' },
+  { key: 'MARTES', label: 'Martes' },
   { key: 'MIERCOLES', label: 'Miércoles' },
-  { key: 'JUEVES',    label: 'Jueves' },
-  { key: 'VIERNES',   label: 'Viernes' },
-  { key: 'SABADO',    label: 'Sábado' },
+  { key: 'JUEVES', label: 'Jueves' },
+  { key: 'VIERNES', label: 'Viernes' },
+  { key: 'SABADO', label: 'Sábado' },
 ];
 
 function DoctorsPage() {
@@ -79,14 +78,19 @@ function DoctorsPage() {
       ),
       getSpecialties(controller.signal),
     ])
-      .then(([doctorsData, specialtiesData]) => {
-        setPage(doctorsData);
-        setSpecialties(specialtiesData);
-      })
-      .catch((requestError) => {
-        if (!controller.signal.aborted) {
-          setError(getApiErrorMessage(requestError));
+      .then(([doctorsResult, specialtiesResult]) => {
+        if (controller.signal.aborted) return;
+
+        const requestError = doctorsResult.error || specialtiesResult.error;
+
+        if (requestError) {
+          setError(requestError.message);
+
+          return;
         }
+
+        setPage(doctorsResult.data);
+        setSpecialties(specialtiesResult.data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -150,7 +154,8 @@ function DoctorsPage() {
           d.licenseNumber?.trim().toLowerCase() === trimmedLicense.toLowerCase()
       )
     ) {
-      errors.licenseNumber = 'Ya existe un médico registrado con esa matrícula.';
+      errors.licenseNumber =
+        'Ya existe un médico registrado con esa matrícula.';
     }
 
     if (!doctorForm.specialtyId) {
@@ -158,49 +163,59 @@ function DoctorsPage() {
     }
 
     setFormErrors(errors);
+
     return Object.keys(errors).length === 0;
   };
 
   const handleDoctorSubmit = async (event) => {
     event.preventDefault();
+
     if (!validateDoctorForm()) return;
 
     setIsSubmittingDoctor(true);
     setActionSuccess('');
     setActionError('');
 
-    try {
-      if (editingDoctor) {
-        await updateDoctor(editingDoctor.id, {
-          name: doctorForm.name.trim(),
-          licenseNumber: doctorForm.licenseNumber.trim(),
-          specialtyId: doctorForm.specialtyId,
-        });
-        setActionSuccess('Datos del doctor actualizados con éxito.');
+    let result;
+
+    if (editingDoctor) {
+      result = await updateDoctor(editingDoctor.id, {
+        name: doctorForm.name.trim(),
+        licenseNumber: doctorForm.licenseNumber.trim(),
+        specialtyId: doctorForm.specialtyId,
+      });
+    } else {
+      result = await createDoctor({
+        name: doctorForm.name.trim(),
+        licenseNumber: doctorForm.licenseNumber.trim(),
+        specialtyId: doctorForm.specialtyId,
+      });
+    }
+
+    if (result.error) {
+      const { error } = result;
+      const message = error.message;
+
+      if (
+        error.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
+        error.status === 409 ||
+        message.toLowerCase().includes('matrícula')
+      ) {
+        setFormErrors((prev) => ({ ...prev, licenseNumber: message }));
       } else {
-        await createDoctor({
-          name: doctorForm.name.trim(),
-          licenseNumber: doctorForm.licenseNumber.trim(),
-          specialtyId: doctorForm.specialtyId,
-        });
-        setActionSuccess('Doctor registrado exitosamente.');
+        setActionError(message);
       }
+    } else {
+      setActionSuccess(
+        editingDoctor
+          ? 'Datos del doctor actualizados con éxito.'
+          : 'Doctor registrado exitosamente.'
+      );
       setShowDoctorModal(false);
       setRequestKey((k) => k + 1);
-    } catch (submitErr) {
-      const msg = getApiErrorMessage(submitErr);
-      if (
-        submitErr?.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
-        submitErr?.status === 409 ||
-        msg.toLowerCase().includes('matrícula')
-      ) {
-        setFormErrors((prev) => ({ ...prev, licenseNumber: msg }));
-      } else {
-        setActionError(msg);
-      }
-    } finally {
-      setIsSubmittingDoctor(false);
     }
+
+    setIsSubmittingDoctor(false);
   };
 
   const handleDeleteDoctor = async () => {
@@ -210,36 +225,38 @@ function DoctorsPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      await deleteDoctor(doctorToDelete.id);
+    const { error } = await deleteDoctor(doctorToDelete.id);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Doctor "${doctorToDelete.name}" eliminado físicamente de la base de datos.`
       );
       setDoctorToDelete(null);
       setRequestKey((k) => k + 1);
-    } catch (delError) {
-      setActionError(getApiErrorMessage(delError));
-    } finally {
-      setIsDeleting(false);
     }
+
+    setIsDeleting(false);
   };
 
   const handleToggleDoctorStatus = async (doctor) => {
     setTogglingDoctorId(doctor.id);
     setActionSuccess('');
     setActionError('');
-    try {
-      const newStatus = doctor.isActive === false;
-      await toggleDoctorStatus(doctor.id, newStatus);
+    const newStatus = doctor.isActive === false;
+    const { error } = await toggleDoctorStatus(doctor.id, newStatus);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Doctor "${doctor.name}" ${newStatus ? 'activado' : 'desactivado'} correctamente.`
       );
       setRequestKey((k) => k + 1);
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setTogglingDoctorId(null);
     }
+
+    setTogglingDoctorId(null);
   };
 
   // Open availability configuration modal
@@ -248,44 +265,55 @@ function DoctorsPage() {
     setAvailabilityError('');
     setIsLoadingAvailability(true);
 
-    try {
-      const availabilities = await getDoctorAvailabilities(doctor.id);
-      const hasExisting = Array.isArray(availabilities) && availabilities.length > 0;
-      setHasExistingAvailability(hasExisting);
+    const { data: availabilities, error } = await getDoctorAvailabilities(
+      doctor.id
+    );
 
-      // Mapear cada día de la semana con su horario si ya estaba configurado
-      const scheduleMap = new Map();
-      if (hasExisting) {
-        availabilities.forEach((item) => {
-          // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
-          const normalizedDay = (item.day || '')
-            .toUpperCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-          scheduleMap.set(normalizedDay, {
-            startTime: item.startTime?.slice(0, 5) || '08:00',
-            endTime: item.endTime?.slice(0, 5) || '16:00',
-          });
-        });
-      }
-
-      const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
-        const existing = scheduleMap.get(key);
-        return {
-          day: key,
-          label,
-          active: Boolean(existing),
-          startTime: existing?.startTime || '08:00',
-          endTime: existing?.endTime || '16:00',
-        };
-      });
-
-      setDoctorSchedule(initialSchedule);
-    } catch (err) {
-      setAvailabilityError(getApiErrorMessage(err));
-    } finally {
+    if (error) {
+      setAvailabilityError(error.message);
       setIsLoadingAvailability(false);
+
+      return;
     }
+
+    const hasExisting =
+      Array.isArray(availabilities) && availabilities.length > 0;
+
+    setHasExistingAvailability(hasExisting);
+
+    // Mapear cada día de la semana con su horario si ya estaba configurado
+    const scheduleMap = new Map();
+
+    if (hasExisting) {
+      availabilities.forEach((item) => {
+        // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
+        const normalizedDay = (item.day || '')
+          .toUpperCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        scheduleMap.set(normalizedDay, {
+          startTime: item.startTime?.slice(0, 5) || '08:00',
+          endTime: item.endTime?.slice(0, 5) || '16:00',
+        });
+      });
+    }
+
+    const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
+      const existing = scheduleMap.get(key);
+
+      return {
+        day: key,
+        label,
+        active: Boolean(existing),
+        startTime: existing?.startTime || '08:00',
+        endTime: existing?.endTime || '16:00',
+      };
+    });
+
+    setDoctorSchedule(initialSchedule);
+
+    setIsLoadingAvailability(false);
   };
 
   const handleScheduleDayToggle = (dayIndex) => {
@@ -308,8 +336,10 @@ function DoctorsPage() {
     setAvailabilityError('');
 
     const activeDays = doctorSchedule.filter((d) => d.active);
+
     if (activeDays.length === 0) {
       setAvailabilityError('Debe activar al menos un día de atención.');
+
       return;
     }
 
@@ -319,35 +349,39 @@ function DoctorsPage() {
         setAvailabilityError(
           `En ${d.day}, la hora de inicio (${d.startTime}) debe ser anterior a la hora de fin (${d.endTime}).`
         );
+
         return;
       }
     }
 
     setIsSavingAvailability(true);
-    try {
-      // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
-      const toTimeSpan = (hhmm) =>
-        hhmm.length === 5 ? `${hhmm}:00` : hhmm;
+    // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
+    const toTimeSpan = (hhmm) => (hhmm.length === 5 ? `${hhmm}:00` : hhmm);
 
-      const payload = {
-        doctorId: availabilityDoctor.id,
-        days: activeDays.map((d) => ({
-          day: d.day,
-          startTime: toTimeSpan(d.startTime),
-          endTime: toTimeSpan(d.endTime),
-        })),
-      };
+    const payload = {
+      doctorId: availabilityDoctor.id,
+      days: activeDays.map((d) => ({
+        day: d.day,
+        startTime: toTimeSpan(d.startTime),
+        endTime: toTimeSpan(d.endTime),
+      })),
+    };
 
-      await saveDoctorAvailabilities(payload, hasExistingAvailability);
+    const { error } = await saveDoctorAvailabilities(
+      payload,
+      hasExistingAvailability
+    );
+
+    if (error) {
+      setAvailabilityError(error.message);
+    } else {
       setActionSuccess(
         `Disponibilidad horaria configurada con éxito para ${availabilityDoctor.name}.`
       );
       setAvailabilityDoctor(null);
-    } catch (err) {
-      setAvailabilityError(getApiErrorMessage(err));
-    } finally {
-      setIsSavingAvailability(false);
     }
+
+    setIsSavingAvailability(false);
   };
 
   const specialtyOptions = [
@@ -394,7 +428,10 @@ function DoctorsPage() {
             </FormField>
           </div>
 
-          <Button onClick={openCreateDoctorModal} className="flex items-center gap-1.5 whitespace-nowrap">
+          <Button
+            onClick={openCreateDoctorModal}
+            className="flex items-center gap-1.5 whitespace-nowrap"
+          >
             <span>+ Nuevo Doctor</span>
           </Button>
         </div>
@@ -451,7 +488,10 @@ function DoctorsPage() {
                 </thead>
                 <tbody className="divide-y divide-med-border-subtle">
                   {page.data.map((doctor) => (
-                    <tr key={doctor.id} className="hover:bg-gray-50/70 transition">
+                    <tr
+                      key={doctor.id}
+                      className="hover:bg-gray-50/70 transition"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
@@ -489,10 +529,14 @@ function DoctorsPage() {
                         >
                           <span
                             className={`h-2 w-2 rounded-full ${
-                              doctor.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'
+                              doctor.isActive !== false
+                                ? 'bg-emerald-500'
+                                : 'bg-gray-400'
                             }`}
                           />
-                          <span>{doctor.isActive !== false ? 'Activo' : 'Inactivo'}</span>
+                          <span>
+                            {doctor.isActive !== false ? 'Activo' : 'Inactivo'}
+                          </span>
                         </button>
                       </td>
 
@@ -564,7 +608,10 @@ function DoctorsPage() {
                     {...fieldProps}
                     value={doctorForm.name}
                     onChange={(e) =>
-                      setDoctorForm((prev) => ({ ...prev, name: e.target.value }))
+                      setDoctorForm((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
                     }
                     placeholder="Ej: Dr. Alejandro Martínez"
                     className="px-3 py-2 text-xs"
@@ -596,7 +643,9 @@ function DoctorsPage() {
                 )}
               </FormField>
               {formErrors.licenseNumber && (
-                <p className="text-xs text-red-600">{formErrors.licenseNumber}</p>
+                <p className="text-xs text-red-600">
+                  {formErrors.licenseNumber}
+                </p>
               )}
 
               <FormField
@@ -636,8 +685,8 @@ function DoctorsPage() {
                   {isSubmittingDoctor
                     ? 'Guardando…'
                     : editingDoctor
-                    ? 'Actualizar Doctor'
-                    : 'Guardar Doctor'}
+                      ? 'Actualizar Doctor'
+                      : 'Guardar Doctor'}
                 </Button>
               </div>
             </form>
@@ -654,13 +703,19 @@ function DoctorsPage() {
                 Gestionar Disponibilidad Horaria
               </h3>
               <p className="text-xs text-med-text-sub mt-1">
-                Profesional: <strong className="text-med-text-main">{availabilityDoctor.name}</strong> ({availabilityDoctor.specialty?.name})
+                Profesional:{' '}
+                <strong className="text-med-text-main">
+                  {availabilityDoctor.name}
+                </strong>{' '}
+                ({availabilityDoctor.specialty?.name})
               </p>
             </div>
 
             {availabilityError && (
               <div className="mb-4">
-                <StatusMessage variant="error">{availabilityError}</StatusMessage>
+                <StatusMessage variant="error">
+                  {availabilityError}
+                </StatusMessage>
               </div>
             )}
 
@@ -671,7 +726,9 @@ function DoctorsPage() {
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-med-text-muted">
-                  Active los días que el médico atiende y especifique los horarios de entrada y salida. Se generarán turnos de 30 minutos para el mes en curso.
+                  Active los días que el médico atiende y especifique los
+                  horarios de entrada y salida. Se generarán turnos de 30
+                  minutos para el mes en curso.
                 </p>
 
                 <div className="divide-y divide-med-border-subtle">
@@ -697,7 +754,11 @@ function DoctorsPage() {
                             type="time"
                             value={sched.startTime}
                             onChange={(e) =>
-                              handleScheduleTimeChange(idx, 'startTime', e.target.value)
+                              handleScheduleTimeChange(
+                                idx,
+                                'startTime',
+                                e.target.value
+                              )
                             }
                             className="rounded border border-med-border px-2 py-1 text-xs"
                           />
@@ -706,7 +767,11 @@ function DoctorsPage() {
                             type="time"
                             value={sched.endTime}
                             onChange={(e) =>
-                              handleScheduleTimeChange(idx, 'endTime', e.target.value)
+                              handleScheduleTimeChange(
+                                idx,
+                                'endTime',
+                                e.target.value
+                              )
                             }
                             className="rounded border border-med-border px-2 py-1 text-xs"
                           />
@@ -734,7 +799,9 @@ function DoctorsPage() {
                     onClick={handleSaveAvailability}
                     disabled={isSavingAvailability}
                   >
-                    {isSavingAvailability ? 'Guardando…' : 'Guardar Disponibilidad'}
+                    {isSavingAvailability
+                      ? 'Guardando…'
+                      : 'Guardar Disponibilidad'}
                   </Button>
                 </div>
               </div>
@@ -752,9 +819,12 @@ function DoctorsPage() {
             </h3>
             <p className="mt-2 text-xs text-med-text-sub">
               ¿Está seguro de eliminar físicamente al doctor{' '}
-              <strong className="text-med-text-main">{doctorToDelete.name}</strong>?
-              Esta acción borrará de forma permanente al profesional de la base de datos (baja física).
-              Si solo desea suspenderlo, use el botón de Estado.
+              <strong className="text-med-text-main">
+                {doctorToDelete.name}
+              </strong>
+              ? Esta acción borrará de forma permanente al profesional de la
+              base de datos (baja física). Si solo desea suspenderlo, use el
+              botón de Estado.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
