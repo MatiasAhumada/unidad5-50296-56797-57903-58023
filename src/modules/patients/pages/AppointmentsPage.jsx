@@ -1,3 +1,4 @@
+import { unwrapApiResult } from '../../shared/api/apiError';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePatientAppointments from '../../appointments/hook/usePatientAppointments';
@@ -28,7 +29,7 @@ function AppointmentsPage() {
   } = usePatientAppointments();
 
   const handleCancel = async (appointmentId) => {
-    await cancelAppointment(appointmentId);
+    unwrapApiResult(await cancelAppointment(appointmentId));
     setAppointmentToCancel(null);
   };
 

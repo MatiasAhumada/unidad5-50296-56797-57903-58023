@@ -7,7 +7,7 @@ import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
+import { unwrapApiResult } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
@@ -113,13 +113,14 @@ function AppointmentsSearchPage() {
       getSpecialties(controller.signal),
       getDoctors(controller.signal),
     ])
+      .then((results) => results.map(unwrapApiResult))
       .then(([specialtiesData, doctorsData]) => {
         setSpecialties(specialtiesData);
         setDoctors(doctorsData);
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setCatalogError(getApiErrorMessage(error));
+          setCatalogError(error.message);
         }
       })
       .finally(() => {
@@ -153,10 +154,11 @@ function AppointmentsSearchPage() {
       },
       controller.signal
     )
+      .then(unwrapApiResult)
       .then(setAppointmentsPage)
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setAppointmentsError(getApiErrorMessage(error));
+          setAppointmentsError(error.message);
         }
       })
       .finally(() => {
@@ -205,6 +207,7 @@ function AppointmentsSearchPage() {
       setValidationError(
         'La fecha de inicio no puede ser posterior a la fecha de fin.'
       );
+
       return;
     }
 
@@ -228,13 +231,13 @@ function AppointmentsSearchPage() {
     setActionError('');
 
     try {
-      await markAppointmentAttendance(appointmentId, attended);
+      unwrapApiResult(await markAppointmentAttendance(appointmentId, attended));
       setActionSuccess(
         `Turno marcado como ${attended ? 'asistido' : 'ausente'} correctamente.`
       );
       setAppointmentsRequestKey((k) => k + 1);
     } catch (error) {
-      setActionError(getApiErrorMessage(error));
+      setActionError(error.message);
     } finally {
       setUpdatingAppointmentId(null);
     }
@@ -590,7 +593,8 @@ function AppointmentsSearchPage() {
               pageSize={appointmentsPage.pageSize}
               totalItems={appointmentsPage.total}
               totalPages={
-                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) || 1
+                Math.ceil(appointmentsPage.total / appointmentsPage.pageSize) ||
+                1
               }
               onPageChange={setPageIndex}
             />

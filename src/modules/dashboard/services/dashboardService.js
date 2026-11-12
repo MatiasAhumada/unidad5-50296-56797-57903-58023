@@ -1,3 +1,4 @@
+import { createApiResultService } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { DASHBOARD_API_ROUTES } from '../constants/apiRoutes';
 import { DOCTORS_API_ROUTES } from '../../doctors/constants/apiRoutes';
@@ -41,4 +42,7 @@ async function getDashboardSummary(date, signal) {
   }
 }
 
-export { getDashboardSummary };
+const getDashboardSummaryWithResult =
+  createApiResultService(getDashboardSummary);
+
+export { getDashboardSummaryWithResult as getDashboardSummary };

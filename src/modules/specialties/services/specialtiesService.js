@@ -1,3 +1,4 @@
+import { createApiResultService } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { SPECIALTIES_API_ROUTES } from '../constants/apiRoutes';
 
@@ -20,7 +21,10 @@ async function getSpecialties(signal, includeInactive = false) {
   let total = Number.POSITIVE_INFINITY;
 
   while (specialties.length < total) {
-    const page = await getSpecialtiesPage({ pageSize, pageIndex, includeInactive }, signal);
+    const page = await getSpecialtiesPage(
+      { pageSize, pageIndex, includeInactive },
+      signal
+    );
 
     specialties.push(...page.data);
     total = page.total;
@@ -67,11 +71,20 @@ async function toggleSpecialtyStatus(id, isActive) {
   return response.data;
 }
 
+const createSpecialtyWithResult = createApiResultService(createSpecialty);
+const deleteSpecialtyWithResult = createApiResultService(deleteSpecialty);
+const getSpecialtiesWithResult = createApiResultService(getSpecialties);
+const getSpecialtiesPageWithResult = createApiResultService(getSpecialtiesPage);
+const toggleSpecialtyStatusWithResult = createApiResultService(
+  toggleSpecialtyStatus
+);
+const updateSpecialtyWithResult = createApiResultService(updateSpecialty);
+
 export {
-  createSpecialty,
-  deleteSpecialty,
-  getSpecialties,
-  getSpecialtiesPage,
-  toggleSpecialtyStatus,
-  updateSpecialty,
+  createSpecialtyWithResult as createSpecialty,
+  deleteSpecialtyWithResult as deleteSpecialty,
+  getSpecialtiesWithResult as getSpecialties,
+  getSpecialtiesPageWithResult as getSpecialtiesPage,
+  toggleSpecialtyStatusWithResult as toggleSpecialtyStatus,
+  updateSpecialtyWithResult as updateSpecialty,
 };

@@ -7,7 +7,7 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
-import { getApiErrorMessage } from '../../shared/api/apiError';
+import { unwrapApiResult } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
@@ -40,10 +40,11 @@ function OverviewPage() {
     setSummaryError('');
 
     getDashboardSummary(getTodayDate(), controller.signal)
+      .then(unwrapApiResult)
       .then(setSummary)
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setSummaryError(getApiErrorMessage(error));
+          setSummaryError(error.message);
         }
       })
       .finally(() => {
@@ -69,10 +70,11 @@ function OverviewPage() {
       },
       controller.signal
     )
+      .then(unwrapApiResult)
       .then(setDoctorsPage)
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setDoctorsError(getApiErrorMessage(error));
+          setDoctorsError(error.message);
         }
       })
       .finally(() => {

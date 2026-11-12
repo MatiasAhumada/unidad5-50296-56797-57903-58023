@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
-import { getApiErrorMessage } from '../../shared/api/apiError';
+import { unwrapApiResult } from '../../shared/api/apiError';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
@@ -36,7 +36,7 @@ function getBookingErrorMessage(error) {
     return 'El médico o el horario ya no está disponible. Actualizamos las opciones.';
   }
 
-  return getApiErrorMessage(error);
+  return error.message;
 }
 
 function PatientHome() {
@@ -70,10 +70,11 @@ function PatientHome() {
     setSpecialtyError('');
 
     getSpecialties(controller.signal)
+      .then(unwrapApiResult)
       .then((data) => setSpecialties(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setSpecialtyError(getApiErrorMessage(error));
+          setSpecialtyError(error.message);
         }
       })
       .finally(() => {
@@ -99,10 +100,11 @@ function PatientHome() {
     setDoctorError('');
 
     getDoctorOptions(specialtyId, controller.signal)
+      .then(unwrapApiResult)
       .then((data) => setDoctors(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setDoctorError(getApiErrorMessage(error));
+          setDoctorError(error.message);
         }
       })
       .finally(() => {
@@ -136,10 +138,11 @@ function PatientHome() {
       getSlotDateKey(endDate),
       controller.signal
     )
+      .then(unwrapApiResult)
       .then((data) => setSlots(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setAvailabilityError(getApiErrorMessage(error));
+          setAvailabilityError(error.message);
         }
       })
       .finally(() => {
@@ -224,12 +227,14 @@ function PatientHome() {
     setBookingSuccess(null);
 
     try {
-      const appointment = await bookAppointment({
-        doctorId,
-        availabilitySlotId: selectedSlot.id,
-        dni: patientDni,
-        reason: reason.trim(),
-      });
+      const appointment = unwrapApiResult(
+        await bookAppointment({
+          doctorId,
+          availabilitySlotId: selectedSlot.id,
+          dni: patientDni,
+          reason: reason.trim(),
+        })
+      );
 
       setBookingSuccess({
         doctorName: selectedDoctor?.name,

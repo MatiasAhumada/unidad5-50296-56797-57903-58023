@@ -6,7 +6,9 @@ function getErrorDetailsMessage(details) {
   return details
     .map((detail) => {
       if (typeof detail === 'string') return detail;
+
       if (!detail || typeof detail !== 'object') return '';
+
       return detail.issue || detail.message || '';
     })
     .filter(Boolean)
@@ -16,12 +18,14 @@ function getErrorDetailsMessage(details) {
 function normalizeApiError(error) {
   const response = error?.response;
   const status = response?.status ?? null;
-  const body = response?.data && typeof response.data === 'object'
-    ? response.data
-    : {};
+  const body =
+    response?.data && typeof response.data === 'object' ? response.data : {};
   const details = Array.isArray(body.details) ? body.details : [];
-  const message = getErrorDetailsMessage(details) || body.message ||
-    API_ERROR_MESSAGES[status ?? 'network'] || API_ERROR_MESSAGES.unexpected;
+  const message =
+    getErrorDetailsMessage(details) ||
+    body.message ||
+    API_ERROR_MESSAGES[status ?? 'network'] ||
+    API_ERROR_MESSAGES.unexpected;
 
   return {
     status,
@@ -31,20 +35,38 @@ function normalizeApiError(error) {
   };
 }
 
-function getApiErrorMessage(error) {
-  return error?.message || normalizeApiError(error).message;
-}
-
 async function withApiResult(request) {
   try {
     return { data: await request(), error: null };
   } catch (error) {
     if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
-      return { data: null, error: null };
+      return { data: null, error: null, cancelled: true };
     }
 
     return { data: null, error: normalizeApiError(error) };
   }
 }
 
-export { getApiErrorMessage, normalizeApiError, withApiResult };
+function unwrapApiResult(result) {
+  if (result.cancelled) {
+    const cancellation = new Error('La solicitud fue cancelada.');
+
+    cancellation.name = 'CanceledError';
+    throw cancellation;
+  }
+
+  if (result.error) throw result.error;
+
+  return result.data;
+}
+
+function createApiResultService(service) {
+  return (...args) => withApiResult(() => service(...args));
+}
+
+export {
+  createApiResultService,
+  normalizeApiError,
+  unwrapApiResult,
+  withApiResult,
+};

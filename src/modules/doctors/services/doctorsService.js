@@ -1,3 +1,4 @@
+import { createApiResultService } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { DOCTORS_API_ROUTES } from '../constants/apiRoutes';
 
@@ -20,7 +21,10 @@ async function getDoctors(signal, includeInactive = false) {
   let total = Infinity;
 
   while (doctors.length < total) {
-    const page = await getDoctorsPage({ pageSize, pageIndex, includeInactive }, signal);
+    const page = await getDoctorsPage(
+      { pageSize, pageIndex, includeInactive },
+      signal
+    );
 
     doctors.push(...page.data);
     total = page.total;
@@ -101,31 +105,42 @@ async function getDoctorAvailabilities(doctorId, signal) {
   return response.data;
 }
 
-async function saveDoctorAvailabilities(
-  { doctorId, days },
-  isUpdate = false
-) {
+async function saveDoctorAvailabilities({ doctorId, days }, isUpdate = false) {
   const method = isUpdate ? 'put' : 'post';
-  const response = await instance[method](
-    DOCTORS_API_ROUTES.saveAvailability,
-    {
-      doctorId,
-      days,
-    }
-  );
+  const response = await instance[method](DOCTORS_API_ROUTES.saveAvailability, {
+    doctorId,
+    days,
+  });
 
   return response.data;
 }
 
+const createDoctorWithResult = createApiResultService(createDoctor);
+const deleteDoctorWithResult = createApiResultService(deleteDoctor);
+const getDoctorAvailableSlotsWithResult = createApiResultService(
+  getDoctorAvailableSlots
+);
+const getDoctorAvailabilitiesWithResult = createApiResultService(
+  getDoctorAvailabilities
+);
+const getDoctorOptionsWithResult = createApiResultService(getDoctorOptions);
+const getDoctorsWithResult = createApiResultService(getDoctors);
+const getDoctorsPageWithResult = createApiResultService(getDoctorsPage);
+const saveDoctorAvailabilitiesWithResult = createApiResultService(
+  saveDoctorAvailabilities
+);
+const toggleDoctorStatusWithResult = createApiResultService(toggleDoctorStatus);
+const updateDoctorWithResult = createApiResultService(updateDoctor);
+
 export {
-  createDoctor,
-  deleteDoctor,
-  getDoctorAvailableSlots,
-  getDoctorAvailabilities,
-  getDoctorOptions,
-  getDoctors,
-  getDoctorsPage,
-  saveDoctorAvailabilities,
-  toggleDoctorStatus,
-  updateDoctor,
+  createDoctorWithResult as createDoctor,
+  deleteDoctorWithResult as deleteDoctor,
+  getDoctorAvailableSlotsWithResult as getDoctorAvailableSlots,
+  getDoctorAvailabilitiesWithResult as getDoctorAvailabilities,
+  getDoctorOptionsWithResult as getDoctorOptions,
+  getDoctorsWithResult as getDoctors,
+  getDoctorsPageWithResult as getDoctorsPage,
+  saveDoctorAvailabilitiesWithResult as saveDoctorAvailabilities,
+  toggleDoctorStatusWithResult as toggleDoctorStatus,
+  updateDoctorWithResult as updateDoctor,
 };

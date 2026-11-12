@@ -1,3 +1,4 @@
+import { createApiResultService } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { APPOINTMENTS_API_ROUTES } from '../constants/apiRoutes';
 
@@ -77,10 +78,20 @@ async function markAppointmentAttendance(appointmentId, attended) {
   return response.data;
 }
 
+const bookAppointmentWithResult = createApiResultService(bookAppointment);
+const cancelAppointmentWithResult = createApiResultService(cancelAppointment);
+const getPatientAppointmentsWithResult = createApiResultService(
+  getPatientAppointments
+);
+const markAppointmentAttendanceWithResult = createApiResultService(
+  markAppointmentAttendance
+);
+const searchAppointmentsWithResult = createApiResultService(searchAppointments);
+
 export {
-  bookAppointment,
-  cancelAppointment,
-  getPatientAppointments,
-  markAppointmentAttendance,
-  searchAppointments,
+  bookAppointmentWithResult as bookAppointment,
+  cancelAppointmentWithResult as cancelAppointment,
+  getPatientAppointmentsWithResult as getPatientAppointments,
+  markAppointmentAttendanceWithResult as markAppointmentAttendance,
+  searchAppointmentsWithResult as searchAppointments,
 };

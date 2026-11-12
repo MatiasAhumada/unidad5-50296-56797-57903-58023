@@ -4,7 +4,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthEmailField from '../../auth/components/AuthEmailField';
 import AuthFormError from '../../auth/components/AuthFormError';
 import useAuth from '../../auth/hook/useAuth';
-import { frontendErrorMessage } from '../../auth/helpers/backendError';
 import { AUTH_VALIDATION } from '../../auth/constants/validation';
 import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
@@ -38,7 +37,7 @@ function PatientLoginPage() {
       await signInPatient(email, dni);
       navigate(ROUTES.home, { replace: true });
     } catch (error) {
-      setErrorMessage(frontendErrorMessage(error));
+      setErrorMessage(error.message);
     } finally {
       isSubmittingRef.current = false;
     }

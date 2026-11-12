@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getApiErrorMessage } from '../../shared/api/apiError';
+import { unwrapApiResult } from '../../shared/api/apiError';
 import useAuth from '../../auth/hook/useAuth';
 import {
   cancelAppointment as cancelAppointmentRequest,
@@ -31,10 +31,11 @@ function usePatientAppointments() {
     setLoadError('');
 
     getPatientAppointments(controller.signal)
+      .then(unwrapApiResult)
       .then((data) => setAppointments(data))
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setLoadError(getApiErrorMessage(error));
+          setLoadError(error.message);
         }
       })
       .finally(() => {
@@ -64,7 +65,7 @@ function usePatientAppointments() {
       setActionError(
         error?.status === 409
           ? 'El turno ya no se puede cancelar. Actualizamos la lista; volvé a revisar su estado.'
-          : getApiErrorMessage(error)
+          : error.message
       );
 
       if (error?.status === 409) {
