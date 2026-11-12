@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import useAuth from '../../auth/hook/useAuth';
 import {
   cancelAppointment as cancelAppointmentRequest,
@@ -31,11 +30,16 @@ function usePatientAppointments() {
     setLoadError('');
 
     getPatientAppointments(controller.signal)
-      .then((data) => setAppointments(data))
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setLoadError(getApiErrorMessage(error));
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setLoadError(error.message);
+
+          return;
         }
+
+        setAppointments(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -51,8 +55,23 @@ function usePatientAppointments() {
     setActionError('');
     setSuccessMessage('');
 
-    try {
-      await cancelAppointmentRequest(appointmentId);
+    const { error } = await cancelAppointmentRequest(appointmentId);
+
+    if (error) {
+      setActionError(
+        error.status === 409
+          ? 'El turno ya no se puede cancelar. Actualizamos la lista; volvé a revisar su estado.'
+          : error.message
+      );
+
+      if (error.status === 409) {
+        setRefreshKey((currentKey) => currentKey + 1);
+      }
+
+      setCancellingId(null);
+
+      return { error };
+    } else {
       setAppointments((currentAppointments) =>
         currentAppointments.filter(
           (appointment) => appointment.appointmentsId !== appointmentId
@@ -60,19 +79,11 @@ function usePatientAppointments() {
       );
       setSuccessMessage('El turno se canceló correctamente.');
       setRefreshKey((currentKey) => currentKey + 1);
-    } catch (error) {
-      setActionError(
-        error?.status === 409
-          ? 'El turno ya no se puede cancelar. Actualizamos la lista; volvé a revisar su estado.'
-          : getApiErrorMessage(error)
-      );
-
-      if (error?.status === 409) {
-        setRefreshKey((currentKey) => currentKey + 1);
-      }
-    } finally {
-      setCancellingId(null);
     }
+
+    setCancellingId(null);
+
+    return { error: null };
   };
 
   const reloadAppointments = () => {

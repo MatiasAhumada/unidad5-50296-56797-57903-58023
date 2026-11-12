@@ -62,7 +62,6 @@ function storeSession(response, patientDni = null) {
       String(nextSession.patientDni)
     );
   } else {
-    
     sessionStorage.removeItem(PATIENT_DNI_SESSION_KEY);
   }
 
@@ -71,9 +70,11 @@ function storeSession(response, patientDni = null) {
 
 function consumeSessionExpired() {
   const expired = sessionStorage.getItem(SESSION_EXPIRED_KEY) === 'true';
+
   if (expired) {
     sessionStorage.removeItem(SESSION_EXPIRED_KEY);
   }
+
   return expired;
 }
 

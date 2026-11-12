@@ -7,7 +7,6 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
@@ -40,11 +39,16 @@ function OverviewPage() {
     setSummaryError('');
 
     getDashboardSummary(getTodayDate(), controller.signal)
-      .then(setSummary)
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setSummaryError(getApiErrorMessage(error));
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setSummaryError(error.message);
+
+          return;
         }
+
+        setSummary(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -69,11 +73,16 @@ function OverviewPage() {
       },
       controller.signal
     )
-      .then(setDoctorsPage)
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setDoctorsError(getApiErrorMessage(error));
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setDoctorsError(error.message);
+
+          return;
         }
+
+        setDoctorsPage(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {

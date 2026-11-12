@@ -28,8 +28,9 @@ function AppointmentsPage() {
   } = usePatientAppointments();
 
   const handleCancel = async (appointmentId) => {
-    await cancelAppointment(appointmentId);
-    setAppointmentToCancel(null);
+    const { error } = await cancelAppointment(appointmentId);
+
+    if (!error) setAppointmentToCancel(null);
   };
 
   return (

@@ -12,8 +12,9 @@ const AuthContext = createContext(null);
 
 function AuthProvider({ children }) {
   const [session, setSession] = useState(getStoredSession);
-  const [sessionExpired, setSessionExpired] = useState(() => consumeSessionExpired());
-  
+  const [sessionExpired, setSessionExpired] = useState(() =>
+    consumeSessionExpired()
+  );
 
   const signOut = () => {
     clearStoredSession();
@@ -31,15 +32,19 @@ function AuthProvider({ children }) {
   };
 
   const signInAdmin = async (email, password) => {
-    const { data } = await loginAdmin(email, password);
+    const { data, error } = await loginAdmin(email, password);
 
-    return saveSession(data);
+    if (error) return { data: null, error };
+
+    return { data: saveSession(data), error: null };
   };
 
   const signInPatient = async (email, dni) => {
-    const { data } = await loginPatient(email, dni);
+    const { data, error } = await loginPatient(email, dni);
 
-    return saveSession(data, String(dni));
+    if (error) return { data: null, error };
+
+    return { data: saveSession(data, String(dni)), error: null };
   };
 
   const value = {

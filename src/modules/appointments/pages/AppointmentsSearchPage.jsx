@@ -55,9 +55,19 @@ function AppointmentsSearchPage() {
       getSpecialties(controller.signal),
       getDoctors(controller.signal),
     ])
-      .then(([specialtiesData, doctorsData]) => {
-        setSpecialties(specialtiesData);
-        setDoctors(doctorsData);
+      .then(([specialtiesResult, doctorsResult]) => {
+        if (controller.signal.aborted) return;
+
+        const requestError = specialtiesResult.error || doctorsResult.error;
+
+        if (requestError) {
+          setCatalogError(requestError.message);
+
+          return;
+        }
+
+        setSpecialties(specialtiesResult.data);
+        setDoctors(doctorsResult.data);
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
@@ -91,7 +101,17 @@ function AppointmentsSearchPage() {
       },
       controller.signal
     )
-      .then(setAppointmentsPage)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+
+        if (result.error) {
+          setAppointmentsError(result.error.message);
+
+          return;
+        }
+
+        setAppointmentsPage(result.data);
+      })
       .catch((error) => {
         if (!controller.signal.aborted) {
           setAppointmentsError(getApiErrorMessage(error));

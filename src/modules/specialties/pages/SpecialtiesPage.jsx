@@ -27,7 +27,17 @@ function SpecialtiesPage() {
       { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
       controller.signal
     )
-      .then(setPage)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+
+        if (result.error) {
+          setError(result.error.message);
+
+          return;
+        }
+
+        setPage(result.data);
+      })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
           setError(getApiErrorMessage(requestError));
