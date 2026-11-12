@@ -1,10 +1,14 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePatientAppointments from '../../appointments/hook/usePatientAppointments';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 import StatusMessage from '../../shared/components/StatusMessage';
 import { ROUTES } from '../../shared/constants/appConstants';
+import {
+  confirmAction,
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 
 const APPOINTMENT_STATUS_LABELS = {
   BOOKED: 'Reservado',
@@ -15,22 +19,40 @@ const APPOINTMENT_STATUS_LABELS = {
 
 function AppointmentsPage() {
   const navigate = useNavigate();
-  const [appointmentToCancel, setAppointmentToCancel] = useState(null);
   const {
-    actionError,
     appointments,
     cancelAppointment,
     cancellingId,
     isLoading,
     loadError,
     reloadAppointments,
-    successMessage,
   } = usePatientAppointments();
 
-  const handleCancel = async (appointmentId) => {
+  const handleCancel = async (appointment) => {
+    const confirmed = await confirmAction(
+      `¿Querés cancelar este turno con ${appointment.doctor.name}?`,
+      {
+        title: 'Cancelar turno',
+        confirmButtonText: 'Sí, cancelar turno',
+      }
+    );
+
+    if (!confirmed) return;
+
+    const appointmentId = appointment.appointmentsId;
     const { error } = await cancelAppointment(appointmentId);
 
-    if (!error) setAppointmentToCancel(null);
+    if (error) {
+      showError(
+        error.status === 409
+          ? 'El turno ya no se puede cancelar. Actualizamos la lista; volvé a revisar su estado.'
+          : error.message
+      );
+
+      return;
+    }
+
+    showSuccess('El turno se canceló correctamente.');
   };
 
   return (
@@ -50,12 +72,6 @@ function AppointmentsPage() {
         </Button>
       </div>
 
-      {successMessage && (
-        <StatusMessage variant="success">{successMessage}</StatusMessage>
-      )}
-      {actionError && (
-        <StatusMessage variant="error">{actionError}</StatusMessage>
-      )}
       {loadError && (
         <div className="flex flex-col items-start gap-3">
           <StatusMessage variant="error">{loadError}</StatusMessage>
@@ -88,8 +104,6 @@ function AppointmentsPage() {
         {appointments.map((appointment) => {
           const status = appointment.appointmentsStatus;
           const canCancel = status === 'BOOKED';
-          const isConfirming =
-            appointmentToCancel === appointment.appointmentsId;
           const isCancelling = cancellingId === appointment.appointmentsId;
 
           return (
@@ -120,43 +134,21 @@ function AppointmentsPage() {
                 </p>
               </div>
 
-              {canCancel && !isConfirming && (
+              {canCancel && (
                 <Button
                   variant="outline"
                   className="w-full text-sm"
-                  onClick={() =>
-                    setAppointmentToCancel(appointment.appointmentsId)
-                  }
+                  onClick={() => handleCancel(appointment)}
                   disabled={Boolean(cancellingId)}
                 >
                   Cancelar turno
                 </Button>
               )}
 
-              {isConfirming && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-semibold text-red-900">
-                    ¿Querés cancelar este turno con {appointment.doctor.name}?
-                  </p>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      variant="danger"
-                      className="w-full text-sm"
-                      onClick={() => handleCancel(appointment.appointmentsId)}
-                      disabled={isCancelling}
-                    >
-                      {isCancelling ? 'Cancelando…' : 'Sí, cancelar turno'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full text-sm"
-                      onClick={() => setAppointmentToCancel(null)}
-                      disabled={isCancelling}
-                    >
-                      Volver
-                    </Button>
-                  </div>
-                </div>
+              {isCancelling && (
+                <p className="text-sm text-med-text-sub" role="status">
+                  Cancelando turno…
+                </p>
               )}
             </Card>
           );

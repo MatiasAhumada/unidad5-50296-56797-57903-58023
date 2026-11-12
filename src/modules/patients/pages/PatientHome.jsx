@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
@@ -8,8 +7,8 @@ import Icon from '../../shared/components/Icon';
 import Select from '../../shared/components/Select';
 import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
-import { ROUTES } from '../../shared/constants/appConstants';
 import { bookAppointment } from '../../appointments/services/appointmentsService';
+import { showSuccess } from '../../shared/notifications/notifications';
 import {
   getDoctorAvailableSlots,
   getDoctorOptions,
@@ -39,7 +38,6 @@ function getBookingErrorMessage(error) {
 }
 
 function PatientHome() {
-  const navigate = useNavigate();
   const { patientDni } = useAuth();
   const bookingRequestRef = useRef(false);
   const [specialties, setSpecialties] = useState([]);
@@ -57,7 +55,6 @@ function PatientHome() {
   const [doctorError, setDoctorError] = useState('');
   const [availabilityError, setAvailabilityError] = useState('');
   const [bookingError, setBookingError] = useState('');
-  const [bookingSuccess, setBookingSuccess] = useState(null);
   const [specialtiesRequestKey, setSpecialtiesRequestKey] = useState(0);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
   const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
@@ -204,7 +201,6 @@ function PatientHome() {
     setDoctors([]);
     setSelectedSlot(null);
     setSlots([]);
-    setBookingSuccess(null);
     setDoctorError('');
     setAvailabilityError('');
     setBookingError('');
@@ -214,7 +210,6 @@ function PatientHome() {
     setDoctorId(event.target.value);
     setSelectedSlot(null);
     setSlots([]);
-    setBookingSuccess(null);
     setAvailabilityError('');
     setBookingError('');
   };
@@ -235,7 +230,6 @@ function PatientHome() {
     bookingRequestRef.current = true;
     setIsBooking(true);
     setBookingError('');
-    setBookingSuccess(null);
 
     const { data: appointment, error } = await bookAppointment({
       doctorId,
@@ -256,13 +250,9 @@ function PatientHome() {
         setSlotsRefreshKey((currentKey) => currentKey + 1);
       }
     } else {
-      setBookingSuccess({
-        doctorName: selectedDoctor?.name,
-        specialtyName: selectedSpecialty?.name,
-        date: selectedSlot.date,
-        startTime: selectedSlot.startTime,
-        appointmentId: appointment.appointmentsId,
-      });
+      showSuccess(
+        `Turno reservado para ${selectedDoctor?.name} · ${selectedSpecialty?.name} · ${formatSlotDate(selectedSlot.date)} a las ${selectedSlot.startTime}. Código: ${appointment.appointmentsId.slice(0, 8).toUpperCase()}.`
+      );
       setSelectedSlot(null);
       setReason('');
       setSlotsRefreshKey((currentKey) => currentKey + 1);
@@ -431,7 +421,6 @@ function PatientHome() {
                           onClick={() => {
                             setSelectedSlot(slot);
                             setBookingError('');
-                            setBookingSuccess(null);
                           }}
                           className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
                             isSelected
@@ -523,28 +512,6 @@ function PatientHome() {
             )}
           </form>
         </Card>
-      )}
-
-      {bookingSuccess && (
-        <StatusMessage variant="success">
-          <span className="font-semibold">Turno reservado.</span>{' '}
-          {bookingSuccess.doctorName} · {bookingSuccess.specialtyName} ·{' '}
-          {formatSlotDate(bookingSuccess.date)} a las {bookingSuccess.startTime}
-          .
-          {bookingSuccess.appointmentId && (
-            <span className="ml-1">
-              Código: {bookingSuccess.appointmentId.slice(0, 8).toUpperCase()}.
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            className="ml-2 px-2 py-1 text-sm underline"
-            onClick={() => navigate(ROUTES.patientAppointments)}
-          >
-            Ver mis turnos
-          </Button>
-        </StatusMessage>
       )}
     </div>
   );

@@ -10,8 +10,6 @@ function usePatientAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -52,18 +50,10 @@ function usePatientAppointments() {
 
   const cancelAppointment = async (appointmentId) => {
     setCancellingId(appointmentId);
-    setActionError('');
-    setSuccessMessage('');
 
     const { error } = await cancelAppointmentRequest(appointmentId);
 
     if (error) {
-      setActionError(
-        error.status === 409
-          ? 'El turno ya no se puede cancelar. Actualizamos la lista; volvé a revisar su estado.'
-          : error.message
-      );
-
       if (error.status === 409) {
         setRefreshKey((currentKey) => currentKey + 1);
       }
@@ -77,7 +67,6 @@ function usePatientAppointments() {
           (appointment) => appointment.appointmentsId !== appointmentId
         )
       );
-      setSuccessMessage('El turno se canceló correctamente.');
       setRefreshKey((currentKey) => currentKey + 1);
     }
 
@@ -91,14 +80,12 @@ function usePatientAppointments() {
   };
 
   return {
-    actionError,
     appointments,
     cancelAppointment,
     cancellingId,
     isLoading,
     loadError,
     reloadAppointments,
-    successMessage,
   };
 }
 
