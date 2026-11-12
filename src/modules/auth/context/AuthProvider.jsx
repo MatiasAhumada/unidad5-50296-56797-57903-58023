@@ -34,17 +34,17 @@ function AuthProvider({ children }) {
   const signInAdmin = async (email, password) => {
     const { data, error } = await loginAdmin(email, password);
 
-    if (error) throw error;
+    if (error) return { data: null, error };
 
-    return saveSession(data);
+    return { data: saveSession(data), error: null };
   };
 
   const signInPatient = async (email, dni) => {
     const { data, error } = await loginPatient(email, dni);
 
-    if (error) throw error;
+    if (error) return { data: null, error };
 
-    return saveSession(data, String(dni));
+    return { data: saveSession(data, String(dni)), error: null };
   };
 
   const value = {

@@ -1,4 +1,4 @@
-import { createApiResultService } from '../../shared/api/apiError';
+import { normalizeApiError } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { DASHBOARD_API_ROUTES } from '../constants/apiRoutes';
 import { DOCTORS_API_ROUTES } from '../../doctors/constants/apiRoutes';
@@ -12,11 +12,14 @@ async function getDashboardSummary(date, signal) {
       signal,
     });
 
-    return response.data;
+    return { data: response.data, error: null };
   } catch (error) {
-    // Si la ruta específica no existe o falla por 404, calculamos los totales agregando las rutas base
-    if (error?.status === 404 || error?.response?.status === 404) {
-      const [doctorsRes, specialtiesRes, appointmentsRes] = await Promise.all([
+    if (error.response?.status !== 404) {
+      return { data: null, error: normalizeApiError(error) };
+    }
+
+    try {
+      const [doctors, specialties, appointments] = await Promise.all([
         instance.get(DOCTORS_API_ROUTES.list, {
           params: { pageSize: 1, pageIndex: 1 },
           signal,
@@ -32,17 +35,17 @@ async function getDashboardSummary(date, signal) {
       ]);
 
       return {
-        activeDoctors: doctorsRes.data?.total ?? 0,
-        activeSpecialities: specialtiesRes.data?.total ?? 0,
-        confirmedAppointments: appointmentsRes.data?.total ?? 0,
+        data: {
+          activeDoctors: doctors.data?.total ?? 0,
+          activeSpecialities: specialties.data?.total ?? 0,
+          confirmedAppointments: appointments.data?.total ?? 0,
+        },
+        error: null,
       };
+    } catch (fallbackError) {
+      return { data: null, error: normalizeApiError(fallbackError) };
     }
-
-    throw error;
   }
 }
 
-const getDashboardSummaryWithResult =
-  createApiResultService(getDashboardSummary);
-
-export { getDashboardSummaryWithResult as getDashboardSummary };
+export { getDashboardSummary };

@@ -33,14 +33,15 @@ function PatientLoginPage() {
     isSubmittingRef.current = true;
     setErrorMessage('');
 
-    try {
-      await signInPatient(email, dni);
-      navigate(ROUTES.home, { replace: true });
-    } catch (error) {
+    const { error } = await signInPatient(email, dni);
+
+    if (error) {
       setErrorMessage(error.message);
-    } finally {
-      isSubmittingRef.current = false;
+    } else {
+      navigate(ROUTES.home, { replace: true });
     }
+
+    isSubmittingRef.current = false;
   };
 
   return (

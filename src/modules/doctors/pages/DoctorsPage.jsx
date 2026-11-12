@@ -8,7 +8,6 @@ import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { unwrapApiResult } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import {
   createDoctor,
@@ -79,15 +78,19 @@ function DoctorsPage() {
       ),
       getSpecialties(controller.signal),
     ])
-      .then((results) => results.map(unwrapApiResult))
-      .then(([doctorsData, specialtiesData]) => {
-        setPage(doctorsData);
-        setSpecialties(specialtiesData);
-      })
-      .catch((requestError) => {
-        if (!controller.signal.aborted) {
+      .then(([doctorsResult, specialtiesResult]) => {
+        if (controller.signal.aborted) return;
+
+        const requestError = doctorsResult.error || specialtiesResult.error;
+
+        if (requestError) {
           setError(requestError.message);
+
+          return;
         }
+
+        setPage(doctorsResult.data);
+        setSpecialties(specialtiesResult.data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -173,44 +176,46 @@ function DoctorsPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      if (editingDoctor) {
-        unwrapApiResult(
-          await updateDoctor(editingDoctor.id, {
-            name: doctorForm.name.trim(),
-            licenseNumber: doctorForm.licenseNumber.trim(),
-            specialtyId: doctorForm.specialtyId,
-          })
-        );
-        setActionSuccess('Datos del doctor actualizados con éxito.');
-      } else {
-        unwrapApiResult(
-          await createDoctor({
-            name: doctorForm.name.trim(),
-            licenseNumber: doctorForm.licenseNumber.trim(),
-            specialtyId: doctorForm.specialtyId,
-          })
-        );
-        setActionSuccess('Doctor registrado exitosamente.');
-      }
+    let result;
 
-      setShowDoctorModal(false);
-      setRequestKey((k) => k + 1);
-    } catch (submitErr) {
-      const msg = submitErr.message;
+    if (editingDoctor) {
+      result = await updateDoctor(editingDoctor.id, {
+        name: doctorForm.name.trim(),
+        licenseNumber: doctorForm.licenseNumber.trim(),
+        specialtyId: doctorForm.specialtyId,
+      });
+    } else {
+      result = await createDoctor({
+        name: doctorForm.name.trim(),
+        licenseNumber: doctorForm.licenseNumber.trim(),
+        specialtyId: doctorForm.specialtyId,
+      });
+    }
+
+    if (result.error) {
+      const { error } = result;
+      const message = error.message;
 
       if (
-        submitErr?.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
-        submitErr?.status === 409 ||
-        msg.toLowerCase().includes('matrícula')
+        error.errorCode === 'DUPLICATE_LICENSE_NUMBER' ||
+        error.status === 409 ||
+        message.toLowerCase().includes('matrícula')
       ) {
-        setFormErrors((prev) => ({ ...prev, licenseNumber: msg }));
+        setFormErrors((prev) => ({ ...prev, licenseNumber: message }));
       } else {
-        setActionError(msg);
+        setActionError(message);
       }
-    } finally {
-      setIsSubmittingDoctor(false);
+    } else {
+      setActionSuccess(
+        editingDoctor
+          ? 'Datos del doctor actualizados con éxito.'
+          : 'Doctor registrado exitosamente.'
+      );
+      setShowDoctorModal(false);
+      setRequestKey((k) => k + 1);
     }
+
+    setIsSubmittingDoctor(false);
   };
 
   const handleDeleteDoctor = async () => {
@@ -220,37 +225,38 @@ function DoctorsPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      unwrapApiResult(await deleteDoctor(doctorToDelete.id));
+    const { error } = await deleteDoctor(doctorToDelete.id);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Doctor "${doctorToDelete.name}" eliminado físicamente de la base de datos.`
       );
       setDoctorToDelete(null);
       setRequestKey((k) => k + 1);
-    } catch (delError) {
-      setActionError(delError.message);
-    } finally {
-      setIsDeleting(false);
     }
+
+    setIsDeleting(false);
   };
 
   const handleToggleDoctorStatus = async (doctor) => {
     setTogglingDoctorId(doctor.id);
     setActionSuccess('');
     setActionError('');
-    try {
-      const newStatus = doctor.isActive === false;
+    const newStatus = doctor.isActive === false;
+    const { error } = await toggleDoctorStatus(doctor.id, newStatus);
 
-      unwrapApiResult(await toggleDoctorStatus(doctor.id, newStatus));
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Doctor "${doctor.name}" ${newStatus ? 'activado' : 'desactivado'} correctamente.`
       );
       setRequestKey((k) => k + 1);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setTogglingDoctorId(null);
     }
+
+    setTogglingDoctorId(null);
   };
 
   // Open availability configuration modal
@@ -259,51 +265,55 @@ function DoctorsPage() {
     setAvailabilityError('');
     setIsLoadingAvailability(true);
 
-    try {
-      const availabilities = unwrapApiResult(
-        await getDoctorAvailabilities(doctor.id)
-      );
-      const hasExisting =
-        Array.isArray(availabilities) && availabilities.length > 0;
+    const { data: availabilities, error } = await getDoctorAvailabilities(
+      doctor.id
+    );
 
-      setHasExistingAvailability(hasExisting);
-
-      // Mapear cada día de la semana con su horario si ya estaba configurado
-      const scheduleMap = new Map();
-
-      if (hasExisting) {
-        availabilities.forEach((item) => {
-          // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
-          const normalizedDay = (item.day || '')
-            .toUpperCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-
-          scheduleMap.set(normalizedDay, {
-            startTime: item.startTime?.slice(0, 5) || '08:00',
-            endTime: item.endTime?.slice(0, 5) || '16:00',
-          });
-        });
-      }
-
-      const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
-        const existing = scheduleMap.get(key);
-
-        return {
-          day: key,
-          label,
-          active: Boolean(existing),
-          startTime: existing?.startTime || '08:00',
-          endTime: existing?.endTime || '16:00',
-        };
-      });
-
-      setDoctorSchedule(initialSchedule);
-    } catch (err) {
-      setAvailabilityError(err.message);
-    } finally {
+    if (error) {
+      setAvailabilityError(error.message);
       setIsLoadingAvailability(false);
+
+      return;
     }
+
+    const hasExisting =
+      Array.isArray(availabilities) && availabilities.length > 0;
+
+    setHasExistingAvailability(hasExisting);
+
+    // Mapear cada día de la semana con su horario si ya estaba configurado
+    const scheduleMap = new Map();
+
+    if (hasExisting) {
+      availabilities.forEach((item) => {
+        // Normalizar mayúsculas y quitar acentos para matchear consistentemente con 'MIERCOLES', 'SABADO', etc.
+        const normalizedDay = (item.day || '')
+          .toUpperCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        scheduleMap.set(normalizedDay, {
+          startTime: item.startTime?.slice(0, 5) || '08:00',
+          endTime: item.endTime?.slice(0, 5) || '16:00',
+        });
+      });
+    }
+
+    const initialSchedule = WEEK_DAYS.map(({ key, label }) => {
+      const existing = scheduleMap.get(key);
+
+      return {
+        day: key,
+        label,
+        active: Boolean(existing),
+        startTime: existing?.startTime || '08:00',
+        endTime: existing?.endTime || '16:00',
+      };
+    });
+
+    setDoctorSchedule(initialSchedule);
+
+    setIsLoadingAvailability(false);
   };
 
   const handleScheduleDayToggle = (dayIndex) => {
@@ -345,31 +355,33 @@ function DoctorsPage() {
     }
 
     setIsSavingAvailability(true);
-    try {
-      // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
-      const toTimeSpan = (hhmm) => (hhmm.length === 5 ? `${hhmm}:00` : hhmm);
+    // El backend espera TimeSpan → formato "HH:MM:SS" (con segundos)
+    const toTimeSpan = (hhmm) => (hhmm.length === 5 ? `${hhmm}:00` : hhmm);
 
-      const payload = {
-        doctorId: availabilityDoctor.id,
-        days: activeDays.map((d) => ({
-          day: d.day,
-          startTime: toTimeSpan(d.startTime),
-          endTime: toTimeSpan(d.endTime),
-        })),
-      };
+    const payload = {
+      doctorId: availabilityDoctor.id,
+      days: activeDays.map((d) => ({
+        day: d.day,
+        startTime: toTimeSpan(d.startTime),
+        endTime: toTimeSpan(d.endTime),
+      })),
+    };
 
-      unwrapApiResult(
-        await saveDoctorAvailabilities(payload, hasExistingAvailability)
-      );
+    const { error } = await saveDoctorAvailabilities(
+      payload,
+      hasExistingAvailability
+    );
+
+    if (error) {
+      setAvailabilityError(error.message);
+    } else {
       setActionSuccess(
         `Disponibilidad horaria configurada con éxito para ${availabilityDoctor.name}.`
       );
       setAvailabilityDoctor(null);
-    } catch (err) {
-      setAvailabilityError(err.message);
-    } finally {
-      setIsSavingAvailability(false);
     }
+
+    setIsSavingAvailability(false);
   };
 
   const specialtyOptions = [

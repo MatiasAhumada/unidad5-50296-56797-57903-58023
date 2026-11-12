@@ -7,7 +7,6 @@ import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { unwrapApiResult } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
@@ -113,15 +112,19 @@ function AppointmentsSearchPage() {
       getSpecialties(controller.signal),
       getDoctors(controller.signal),
     ])
-      .then((results) => results.map(unwrapApiResult))
-      .then(([specialtiesData, doctorsData]) => {
-        setSpecialties(specialtiesData);
-        setDoctors(doctorsData);
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
+      .then(([specialtiesResult, doctorsResult]) => {
+        if (controller.signal.aborted) return;
+
+        const error = specialtiesResult.error || doctorsResult.error;
+
+        if (error) {
           setCatalogError(error.message);
+
+          return;
         }
+
+        setSpecialties(specialtiesResult.data);
+        setDoctors(doctorsResult.data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -154,12 +157,16 @@ function AppointmentsSearchPage() {
       },
       controller.signal
     )
-      .then(unwrapApiResult)
-      .then(setAppointmentsPage)
-      .catch((error) => {
-        if (!controller.signal.aborted) {
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
           setAppointmentsError(error.message);
+
+          return;
         }
+
+        setAppointmentsPage(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -230,17 +237,18 @@ function AppointmentsSearchPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      unwrapApiResult(await markAppointmentAttendance(appointmentId, attended));
+    const { error } = await markAppointmentAttendance(appointmentId, attended);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Turno marcado como ${attended ? 'asistido' : 'ausente'} correctamente.`
       );
       setAppointmentsRequestKey((k) => k + 1);
-    } catch (error) {
-      setActionError(error.message);
-    } finally {
-      setUpdatingAppointmentId(null);
     }
+
+    setUpdatingAppointmentId(null);
   };
 
   return (

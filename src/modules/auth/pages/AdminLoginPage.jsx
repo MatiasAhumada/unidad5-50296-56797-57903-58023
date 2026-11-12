@@ -31,14 +31,15 @@ function AdminLoginPage() {
     isSubmittingRef.current = true;
     setErrorMessage('');
 
-    try {
-      await signInAdmin(email, password);
-      navigate(ROUTES.adminHome, { replace: true });
-    } catch (error) {
+    const { error } = await signInAdmin(email, password);
+
+    if (error) {
       setErrorMessage(error.message);
-    } finally {
-      isSubmittingRef.current = false;
+    } else {
+      navigate(ROUTES.adminHome, { replace: true });
     }
+
+    isSubmittingRef.current = false;
   };
 
   return (

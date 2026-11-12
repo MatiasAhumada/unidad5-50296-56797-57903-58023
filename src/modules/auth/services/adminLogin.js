@@ -1,17 +1,19 @@
-import { withApiResult } from '../../shared/api/apiError';
+import { normalizeApiError } from '../../shared/api/apiError';
 import { instance } from '../../shared/api/axiosInstance';
 import { AUTH_API_ROUTES } from '../constants/apiRoutes';
 
-export const loginAdmin = async (email, password) =>
-  withApiResult(async () => {
+async function loginAdmin(email, password) {
+  try {
     const response = await instance.post(
       AUTH_API_ROUTES.adminLogin,
-      {
-        email,
-        password,
-      },
+      { email, password },
       { skipAuthRedirect: true }
     );
 
-    return response.data;
-  });
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+export { loginAdmin };

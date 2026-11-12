@@ -7,7 +7,6 @@ import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
-import { unwrapApiResult } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import {
   createSpecialty,
@@ -51,12 +50,16 @@ function SpecialtiesPage() {
       { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
       controller.signal
     )
-      .then(unwrapApiResult)
-      .then(setPage)
-      .catch((requestError) => {
-        if (!controller.signal.aborted) {
-          setError(requestError.message);
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setError(error.message);
+
+          return;
         }
+
+        setPage(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -136,45 +139,43 @@ function SpecialtiesPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      if (editingSpecialty) {
-        unwrapApiResult(
-          await updateSpecialty(editingSpecialty.id, {
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-          })
-        );
-        setActionSuccess('Especialidad actualizada exitosamente.');
-      } else {
-        unwrapApiResult(
-          await createSpecialty({
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-          })
-        );
-        setActionSuccess('Especialidad creada exitosamente.');
-      }
+    let result;
 
-      setShowFormModal(false);
-      setRequestKey((k) => k + 1);
-    } catch (submitError) {
-      const msg = submitError.message;
+    if (editingSpecialty) {
+      result = await updateSpecialty(editingSpecialty.id, {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      });
+    } else {
+      result = await createSpecialty({
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      });
+    }
+
+    if (result.error) {
+      const msg = result.error.message;
 
       setModalError(msg);
 
       if (
         msg.toLowerCase().includes('nombre') ||
         msg.toLowerCase().includes('duplicate') ||
-        submitError.status === 409
+        result.error.status === 409
       ) {
-        setFormErrors((prev) => ({
-          ...prev,
-          name: msg,
-        }));
+        setFormErrors((prev) => ({ ...prev, name: msg }));
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setActionSuccess(
+        editingSpecialty
+          ? 'Especialidad actualizada exitosamente.'
+          : 'Especialidad creada exitosamente.'
+      );
+      setShowFormModal(false);
+      setRequestKey((k) => k + 1);
     }
+
+    setIsSubmitting(false);
   };
 
   const handleDelete = async () => {
@@ -185,40 +186,39 @@ function SpecialtiesPage() {
     setActionSuccess('');
     setActionError('');
 
-    try {
-      unwrapApiResult(await deleteSpecialty(specialtyToDelete.id));
+    const { error } = await deleteSpecialty(specialtyToDelete.id);
+
+    if (error) {
+      setDeleteModalError(error.message);
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Especialidad "${specialtyToDelete.name}" eliminada físicamente de la base de datos.`
       );
       setSpecialtyToDelete(null);
       setRequestKey((k) => k + 1);
-    } catch (delError) {
-      const msg = delError.message;
-
-      setDeleteModalError(msg);
-      setActionError(msg);
-    } finally {
-      setIsDeleting(false);
     }
+
+    setIsDeleting(false);
   };
 
   const handleToggleStatus = async (specialty) => {
     setTogglingId(specialty.id);
     setActionSuccess('');
     setActionError('');
-    try {
-      const newStatus = specialty.isActive === false;
+    const newStatus = specialty.isActive === false;
+    const { error } = await toggleSpecialtyStatus(specialty.id, newStatus);
 
-      unwrapApiResult(await toggleSpecialtyStatus(specialty.id, newStatus));
+    if (error) {
+      setActionError(error.message);
+    } else {
       setActionSuccess(
         `Especialidad "${specialty.name}" ${newStatus ? 'activada' : 'desactivada'} correctamente.`
       );
       setRequestKey((k) => k + 1);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setTogglingId(null);
     }
+
+    setTogglingId(null);
   };
 
   return (

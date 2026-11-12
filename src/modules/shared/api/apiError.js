@@ -1,9 +1,16 @@
 import { API_ERROR_MESSAGES } from '../constants/apiErrorMessages';
 
-function getErrorDetailsMessage(details) {
-  if (!Array.isArray(details)) return '';
+function normalizeApiError(error) {
+  if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
+    return null;
+  }
 
-  return details
+  const response = error?.response;
+  const status = response?.status ?? null;
+  const body =
+    response?.data && typeof response.data === 'object' ? response.data : {};
+  const details = Array.isArray(body.details) ? body.details : [];
+  const detailMessage = details
     .map((detail) => {
       if (typeof detail === 'string') return detail;
 
@@ -11,62 +18,20 @@ function getErrorDetailsMessage(details) {
 
       return detail.issue || detail.message || '';
     })
-    .filter(Boolean)
+    .filter((issue) => issue && /\s|[.!?]/.test(issue))
+    .map((issue) => issue.replace(/[.?!\s]+$/, ''))
     .join('. ');
-}
-
-function normalizeApiError(error) {
-  const response = error?.response;
-  const status = response?.status ?? null;
-  const body =
-    response?.data && typeof response.data === 'object' ? response.data : {};
-  const details = Array.isArray(body.details) ? body.details : [];
-  const message =
-    getErrorDetailsMessage(details) ||
-    body.message ||
-    API_ERROR_MESSAGES[status ?? 'network'] ||
-    API_ERROR_MESSAGES.unexpected;
 
   return {
     status,
-    errorCode: typeof body.errorCode === 'string' ? body.errorCode : null,
+    errorCode: body.errorCode ?? null,
+    message:
+      detailMessage ||
+      body.message ||
+      API_ERROR_MESSAGES[status ?? 'network'] ||
+      API_ERROR_MESSAGES.unexpected,
     details,
-    message,
   };
 }
 
-async function withApiResult(request) {
-  try {
-    return { data: await request(), error: null };
-  } catch (error) {
-    if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
-      return { data: null, error: null, cancelled: true };
-    }
-
-    return { data: null, error: normalizeApiError(error) };
-  }
-}
-
-function unwrapApiResult(result) {
-  if (result.cancelled) {
-    const cancellation = new Error('La solicitud fue cancelada.');
-
-    cancellation.name = 'CanceledError';
-    throw cancellation;
-  }
-
-  if (result.error) throw result.error;
-
-  return result.data;
-}
-
-function createApiResultService(service) {
-  return (...args) => withApiResult(() => service(...args));
-}
-
-export {
-  createApiResultService,
-  normalizeApiError,
-  unwrapApiResult,
-  withApiResult,
-};
+export { normalizeApiError };

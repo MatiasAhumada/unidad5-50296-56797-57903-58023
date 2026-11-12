@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
-import { unwrapApiResult } from '../../shared/api/apiError';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
@@ -70,12 +69,16 @@ function PatientHome() {
     setSpecialtyError('');
 
     getSpecialties(controller.signal)
-      .then(unwrapApiResult)
-      .then((data) => setSpecialties(data))
-      .catch((error) => {
-        if (!controller.signal.aborted) {
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
           setSpecialtyError(error.message);
+
+          return;
         }
+
+        setSpecialties(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -100,12 +103,16 @@ function PatientHome() {
     setDoctorError('');
 
     getDoctorOptions(specialtyId, controller.signal)
-      .then(unwrapApiResult)
-      .then((data) => setDoctors(data))
-      .catch((error) => {
-        if (!controller.signal.aborted) {
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
           setDoctorError(error.message);
+
+          return;
         }
+
+        setDoctors(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -138,12 +145,16 @@ function PatientHome() {
       getSlotDateKey(endDate),
       controller.signal
     )
-      .then(unwrapApiResult)
-      .then((data) => setSlots(data))
-      .catch((error) => {
-        if (!controller.signal.aborted) {
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
           setAvailabilityError(error.message);
+
+          return;
         }
+
+        setSlots(data);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -226,16 +237,25 @@ function PatientHome() {
     setBookingError('');
     setBookingSuccess(null);
 
-    try {
-      const appointment = unwrapApiResult(
-        await bookAppointment({
-          doctorId,
-          availabilitySlotId: selectedSlot.id,
-          dni: patientDni,
-          reason: reason.trim(),
-        })
-      );
+    const { data: appointment, error } = await bookAppointment({
+      doctorId,
+      availabilitySlotId: selectedSlot.id,
+      dni: patientDni,
+      reason: reason.trim(),
+    });
 
+    if (error) {
+      setBookingError(getBookingErrorMessage(error));
+
+      if (
+        error.errorCode === 'APPOINTMENT_CONFLICT' ||
+        error.errorCode === 'PAST_SLOT' ||
+        error.status === 404
+      ) {
+        setSelectedSlot(null);
+        setSlotsRefreshKey((currentKey) => currentKey + 1);
+      }
+    } else {
       setBookingSuccess({
         doctorName: selectedDoctor?.name,
         specialtyName: selectedSpecialty?.name,
@@ -246,21 +266,10 @@ function PatientHome() {
       setSelectedSlot(null);
       setReason('');
       setSlotsRefreshKey((currentKey) => currentKey + 1);
-    } catch (error) {
-      setBookingError(getBookingErrorMessage(error));
-
-      if (
-        error?.errorCode === 'APPOINTMENT_CONFLICT' ||
-        error?.errorCode === 'PAST_SLOT' ||
-        error?.status === 404
-      ) {
-        setSelectedSlot(null);
-        setSlotsRefreshKey((currentKey) => currentKey + 1);
-      }
-    } finally {
-      bookingRequestRef.current = false;
-      setIsBooking(false);
     }
+
+    bookingRequestRef.current = false;
+    setIsBooking(false);
   };
 
   return (
