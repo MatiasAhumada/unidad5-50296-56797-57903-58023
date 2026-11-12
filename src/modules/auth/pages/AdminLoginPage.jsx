@@ -1,8 +1,7 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthEmailField from '../components/AuthEmailField';
-import AuthFormError from '../components/AuthFormError';
 import AuthPasswordField from '../components/AuthPasswordField';
 import useAuth from '../hook/useAuth';
 import Button from '../../shared/components/Button';
@@ -12,11 +11,13 @@ import { ROUTES } from '../../shared/constants/appConstants';
 import {
   showError,
   showSuccess,
+  showWarning,
 } from '../../shared/notifications/notifications';
 
 function AdminLoginPage() {
   const isSubmittingRef = useRef(false);
-  const [searchParams] = useSearchParams();
+  const sessionNotificationShownRef = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
@@ -25,6 +26,28 @@ function AdminLoginPage() {
 
   const navigate = useNavigate();
   const { signInAdmin, sessionExpired } = useAuth();
+  const expiredQuery = searchParams.get('session') === 'expired';
+
+  useEffect(() => {
+    if (
+      (sessionExpired || expiredQuery) &&
+      !sessionNotificationShownRef.current
+    ) {
+      sessionNotificationShownRef.current = true;
+      showWarning('Tu sesión venció. Iniciá sesión nuevamente.');
+    }
+
+    if (expiredQuery) {
+      setSearchParams(
+        (currentParams) => {
+          currentParams.delete('session');
+
+          return currentParams;
+        },
+        { replace: true }
+      );
+    }
+  }, [expiredQuery, sessionExpired, setSearchParams]);
 
   const onValid = async ({ email, password }) => {
     if (isSubmittingRef.current) {
@@ -93,14 +116,6 @@ function AdminLoginPage() {
               {isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
               {!isSubmitting && <span aria-hidden="true">→</span>}
             </Button>
-
-            <AuthFormError
-              message={
-                sessionExpired || searchParams.get('session') === 'expired'
-                  ? 'Tu sesión venció. Iniciá sesión nuevamente.'
-                  : ''
-              }
-            />
           </form>
         </div>
 
