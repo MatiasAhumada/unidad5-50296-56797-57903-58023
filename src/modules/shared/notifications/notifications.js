@@ -1,5 +1,5 @@
+import 'sweetalert2/dist/sweetalert2.min.css';
 import Swal from 'sweetalert2';
-import './notifications.css';
 
 const notification = Swal.mixin({
   toast: true,
@@ -8,9 +8,10 @@ const notification = Swal.mixin({
   timer: 4500,
   timerProgressBar: true,
   customClass: {
-    popup: 'med-notification',
-    title: 'med-notification__title',
-    timerProgressBar: 'med-notification__progress',
+    popup: 'rounded-2xl shadow-xl',
+    title: 'text-base font-bold text-med-primary-900',
+    htmlContainer: 'text-sm text-med-text-sub',
+    timerProgressBar: 'bg-med-primary-600',
   },
   didOpen: (toast) => {
     toast.addEventListener('mouseenter', Swal.stopTimer);
@@ -65,13 +66,15 @@ async function confirmAction(message, options = {}) {
     focusCancel: true,
     buttonsStyling: false,
     customClass: {
-      popup: 'med-confirmation',
-      title: 'med-confirmation__title',
-      htmlContainer: 'med-confirmation__message',
-      actions: 'med-confirmation__actions',
+      popup: 'rounded-2xl',
+      title: 'text-med-primary-900',
+      htmlContainer: 'text-med-text-sub',
+      actions:
+        'flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-center',
       confirmButton:
-        'med-confirmation__button med-confirmation__button--confirm',
-      cancelButton: 'med-confirmation__button med-confirmation__button--cancel',
+        'min-h-11 rounded-lg bg-med-primary-900 px-4 py-2 font-semibold text-white hover:bg-med-primary-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700',
+      cancelButton:
+        'min-h-11 rounded-lg border border-med-border bg-white px-4 py-2 font-semibold text-med-text-main hover:bg-med-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700',
     },
     ...options,
     text: message,
