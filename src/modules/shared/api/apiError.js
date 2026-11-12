@@ -1,40 +1,50 @@
 import { API_ERROR_MESSAGES } from '../constants/apiErrorMessages';
 
+function getErrorDetailsMessage(details) {
+  if (!Array.isArray(details)) return '';
+
+  return details
+    .map((detail) => {
+      if (typeof detail === 'string') return detail;
+      if (!detail || typeof detail !== 'object') return '';
+      return detail.issue || detail.message || '';
+    })
+    .filter(Boolean)
+    .join('. ');
+}
+
 function normalizeApiError(error) {
-  const status = error.response?.status ?? null;
-  const category = status ?? 'network';
-  const responseData = error.response?.data ?? {};
+  const response = error?.response;
+  const status = response?.status ?? null;
+  const body = response?.data && typeof response.data === 'object'
+    ? response.data
+    : {};
+  const details = Array.isArray(body.details) ? body.details : [];
+  const message = getErrorDetailsMessage(details) || body.message ||
+    API_ERROR_MESSAGES[status ?? 'network'] || API_ERROR_MESSAGES.unexpected;
 
   return {
     status,
-    errorCode: responseData.errorCode ?? null,
-    details: responseData.details ?? [],
-    message:
-      responseData.message ||
-      API_ERROR_MESSAGES[category] ||
-      API_ERROR_MESSAGES.unexpected,
-    originalError: error,
+    errorCode: typeof body.errorCode === 'string' ? body.errorCode : null,
+    details,
+    message,
   };
 }
 
 function getApiErrorMessage(error) {
-  const normalizedError =
-    error?.status !== undefined ? error : normalizeApiError(error ?? {});
-
-  if (Array.isArray(normalizedError.details) && normalizedError.details.length > 0) {
-    const detailMsgs = normalizedError.details
-      .map((d) => d.issue || d.message || (typeof d === 'string' ? d : null))
-      .filter(Boolean);
-    if (detailMsgs.length > 0) {
-      return detailMsgs.join('. ');
-    }
-  }
-
-  if (error?.message && !error?.response && error?.status === undefined) {
-    return error.message;
-  }
-
-  return normalizedError.message;
+  return error?.message || normalizeApiError(error).message;
 }
 
-export { getApiErrorMessage, normalizeApiError };
+async function withApiResult(request) {
+  try {
+    return { data: await request(), error: null };
+  } catch (error) {
+    if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
+      return { data: null, error: null };
+    }
+
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+export { getApiErrorMessage, normalizeApiError, withApiResult };

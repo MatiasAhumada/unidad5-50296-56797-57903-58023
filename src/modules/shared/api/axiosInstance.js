@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { normalizeApiError } from './apiError';
 import { API_BASE_URL } from '../config/apiConfig';
 import { ROUTES, STORAGE_KEYS, USER_ROLES } from '../constants/appConstants';
 import { clearStoredSession } from '../../auth/helpers/session';
@@ -45,7 +44,7 @@ instance.interceptors.response.use(
       }
     }
 
-    return Promise.reject(normalizeApiError(error));
+    return Promise.reject(error);
   }
 );
 
