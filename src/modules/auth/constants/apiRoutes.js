@@ -1,6 +1,6 @@
 const AUTH_API_ROUTES = {
-  adminLogin: '/auth/admin/login',
-  patientLogin: '/auth/patient/login',
+  adminLogin: '/api/auth/admin/login',
+  patientLogin: '/api/auth/patient/login',
 };
 
 export { AUTH_API_ROUTES };
