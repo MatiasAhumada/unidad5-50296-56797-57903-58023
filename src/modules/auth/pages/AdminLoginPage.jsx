@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthEmailField from '../components/AuthEmailField';
@@ -9,9 +9,12 @@ import Button from '../../shared/components/Button';
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
+import {
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 
 function AdminLoginPage() {
-  const [errorMessage, setErrorMessage] = useState('');
   const isSubmittingRef = useRef(false);
   const [searchParams] = useSearchParams();
   const {
@@ -29,13 +32,13 @@ function AdminLoginPage() {
     }
 
     isSubmittingRef.current = true;
-    setErrorMessage('');
 
     const { error } = await signInAdmin(email, password);
 
     if (error) {
-      setErrorMessage(error.message);
+      showError(error.message);
     } else {
+      showSuccess('Sesión de administrador iniciada.');
       navigate(ROUTES.adminHome, { replace: true });
     }
 
@@ -93,10 +96,9 @@ function AdminLoginPage() {
 
             <AuthFormError
               message={
-                errorMessage ||
-                (sessionExpired || searchParams.get('session') === 'expired'
+                sessionExpired || searchParams.get('session') === 'expired'
                   ? 'Tu sesión venció. Iniciá sesión nuevamente.'
-                  : '')
+                  : ''
               }
             />
           </form>

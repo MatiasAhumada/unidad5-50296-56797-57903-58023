@@ -8,7 +8,10 @@ import Select from '../../shared/components/Select';
 import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
 import { bookAppointment } from '../../appointments/services/appointmentsService';
-import { showSuccess } from '../../shared/notifications/notifications';
+import {
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 import {
   getDoctorAvailableSlots,
   getDoctorOptions,
@@ -54,7 +57,6 @@ function PatientHome() {
   const [specialtyError, setSpecialtyError] = useState('');
   const [doctorError, setDoctorError] = useState('');
   const [availabilityError, setAvailabilityError] = useState('');
-  const [bookingError, setBookingError] = useState('');
   const [specialtiesRequestKey, setSpecialtiesRequestKey] = useState(0);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
   const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
@@ -203,7 +205,6 @@ function PatientHome() {
     setSlots([]);
     setDoctorError('');
     setAvailabilityError('');
-    setBookingError('');
   };
 
   const handleDoctorChange = (event) => {
@@ -211,7 +212,6 @@ function PatientHome() {
     setSelectedSlot(null);
     setSlots([]);
     setAvailabilityError('');
-    setBookingError('');
   };
 
   const handleBookAppointment = async (event) => {
@@ -229,7 +229,6 @@ function PatientHome() {
 
     bookingRequestRef.current = true;
     setIsBooking(true);
-    setBookingError('');
 
     const { data: appointment, error } = await bookAppointment({
       doctorId,
@@ -239,7 +238,7 @@ function PatientHome() {
     });
 
     if (error) {
-      setBookingError(getBookingErrorMessage(error));
+      showError(getBookingErrorMessage(error));
 
       if (
         error.errorCode === 'APPOINTMENT_CONFLICT' ||
@@ -420,7 +419,6 @@ function PatientHome() {
                           aria-pressed={isSelected}
                           onClick={() => {
                             setSelectedSlot(slot);
-                            setBookingError('');
                           }}
                           className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
                             isSelected
@@ -438,12 +436,6 @@ function PatientHome() {
             </div>
           )}
         </Card>
-      )}
-
-      {bookingError && !selectedSlot && (
-        <StatusMessage variant="error">
-          {bookingError} Elegí otro horario para continuar.
-        </StatusMessage>
       )}
 
       {selectedSlot && (
@@ -481,10 +473,6 @@ function PatientHome() {
                 />
               )}
             </FormField>
-
-            {bookingError && (
-              <StatusMessage variant="error">{bookingError}</StatusMessage>
-            )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-med-text-sub">
