@@ -65,6 +65,11 @@ function PatientHome() {
   useNotificationError(specialtyError);
   useNotificationError(doctorError);
   useNotificationError(availabilityError);
+  useNotificationError(
+    patientDni
+      ? ''
+      : 'No encontramos el DNI de esta sesión. Cerrá la sesión e ingresá nuevamente para reservar.'
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -334,7 +339,6 @@ function PatientHome() {
         )}
         {specialtyError && (
           <div className="mt-4 flex flex-col items-start gap-3">
-            <StatusMessage variant="error">{specialtyError}</StatusMessage>
             <Button
               variant="outline"
               onClick={() => setSpecialtiesRequestKey((key) => key + 1)}
@@ -352,7 +356,6 @@ function PatientHome() {
         )}
         {doctorError && (
           <div className="mt-4 flex flex-col items-start gap-3">
-            <StatusMessage variant="error">{doctorError}</StatusMessage>
             <Button
               variant="outline"
               onClick={() => setDoctorsRequestKey((key) => key + 1)}
@@ -387,7 +390,6 @@ function PatientHome() {
           )}
           {availabilityError && (
             <div className="flex flex-col items-start gap-3">
-              <StatusMessage variant="error">{availabilityError}</StatusMessage>
               <Button
                 variant="outline"
                 onClick={() => setSlotsRefreshKey((key) => key + 1)}
@@ -497,12 +499,6 @@ function PatientHome() {
                 {!isBooking && <Icon icon={ICONS.checkCircle} size={18} />}
               </Button>
             </div>
-            {!patientDni && (
-              <StatusMessage variant="error">
-                No encontramos el DNI de esta sesión. Cerrá la sesión e ingresá
-                nuevamente para reservar.
-              </StatusMessage>
-            )}
           </form>
         </Card>
       )}

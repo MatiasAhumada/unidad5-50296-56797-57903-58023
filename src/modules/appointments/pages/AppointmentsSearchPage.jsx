@@ -5,7 +5,6 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
-import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -186,7 +185,6 @@ function AppointmentsSearchPage() {
         </div>
         {catalogError && (
           <div className="mb-4 flex flex-col items-start gap-3">
-            <StatusMessage variant="error">{catalogError}</StatusMessage>
             <button
               type="button"
               className="text-sm font-semibold text-med-primary-700 underline"
@@ -316,7 +314,6 @@ function AppointmentsSearchPage() {
 
       {appointmentsError && (
         <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{appointmentsError}</StatusMessage>
           <button
             type="button"
             className="text-sm font-semibold text-med-primary-700 underline"

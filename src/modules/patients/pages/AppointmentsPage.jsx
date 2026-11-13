@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import usePatientAppointments from '../../appointments/hook/usePatientAppointments';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
-import StatusMessage from '../../shared/components/StatusMessage';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
   confirmAction,
@@ -74,7 +73,6 @@ function AppointmentsPage() {
 
       {loadError && (
         <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{loadError}</StatusMessage>
           <Button variant="outline" onClick={reloadAppointments}>
             Reintentar
           </Button>

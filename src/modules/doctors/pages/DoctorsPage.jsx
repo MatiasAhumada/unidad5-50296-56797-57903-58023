@@ -3,7 +3,6 @@ import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
-import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
@@ -100,7 +99,6 @@ function DoctorsPage() {
 
       {error && (
         <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{error}</StatusMessage>
           <button
             type="button"
             className="text-sm font-semibold text-med-primary-700 underline"
