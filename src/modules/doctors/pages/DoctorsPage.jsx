@@ -8,6 +8,7 @@ import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getDoctorsPage } from '../services/doctorsService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 function DoctorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +17,8 @@ function DoctorsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
+
+  useNotificationError(error);
 
   useEffect(() => {
     const controller = new AbortController();

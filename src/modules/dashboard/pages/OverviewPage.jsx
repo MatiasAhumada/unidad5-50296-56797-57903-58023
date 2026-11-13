@@ -10,6 +10,7 @@ import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 function getTodayDate() {
   const today = new Date();
@@ -31,6 +32,9 @@ function OverviewPage() {
   const [doctorsError, setDoctorsError] = useState('');
   const [doctorsLoading, setDoctorsLoading] = useState(true);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
+
+  useNotificationError(summaryError);
+  useNotificationError(doctorsError);
 
   useEffect(() => {
     const controller = new AbortController();

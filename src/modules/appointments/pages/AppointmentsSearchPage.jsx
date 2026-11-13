@@ -12,6 +12,7 @@ import { ICONS } from '../../shared/constants/icons';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
 import { searchAppointments } from '../services/appointmentsService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 const APPOINTMENT_STATUS_LABELS = {
   BOOKED: 'Reservado',
@@ -44,6 +45,9 @@ function AppointmentsSearchPage() {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [appointmentsError, setAppointmentsError] = useState('');
   const [appointmentsRequestKey, setAppointmentsRequestKey] = useState(0);
+
+  useNotificationError(catalogError);
+  useNotificationError(appointmentsError);
 
   useEffect(() => {
     const controller = new AbortController();

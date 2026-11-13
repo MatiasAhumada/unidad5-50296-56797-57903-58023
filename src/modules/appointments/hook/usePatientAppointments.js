@@ -4,6 +4,7 @@ import {
   cancelAppointment as cancelAppointmentRequest,
   getPatientAppointments,
 } from '../services/appointmentsService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 function usePatientAppointments() {
   const { isAuthenticated } = useAuth();
@@ -12,6 +13,8 @@ function usePatientAppointments() {
   const [loadError, setLoadError] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useNotificationError(loadError);
 
   useEffect(() => {
     const controller = new AbortController();

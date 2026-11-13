@@ -17,6 +17,7 @@ import {
   getDoctorOptions,
 } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
   formatSlotDate,
   getSlotDate,
@@ -60,6 +61,10 @@ function PatientHome() {
   const [specialtiesRequestKey, setSpecialtiesRequestKey] = useState(0);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
   const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
+
+  useNotificationError(specialtyError);
+  useNotificationError(doctorError);
+  useNotificationError(availabilityError);
 
   useEffect(() => {
     const controller = new AbortController();
