@@ -10,15 +10,15 @@ import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
   confirmAction,
-  showError,
   showSuccess,
 } from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
-import {
-  deleteSpecialty,
-  getSpecialtiesPage,
-} from '../services/specialtiesService';
+import { getSpecialtiesPage } from '../services/specialtiesService';
 import { getSpecialtyIcon } from '../constants/specialtyIcons';
+import {
+  isSpecialtyActive,
+  setSpecialtyActive,
+} from '../constants/specialtyStatus';
 
 function SpecialtiesPage() {
   const navigate = useNavigate();
@@ -71,22 +71,21 @@ function SpecialtiesPage() {
     setPageIndex(1);
   };
 
-  const handleDelete = async (specialty) => {
+  const handleToggleStatus = async (specialty) => {
+    const currentlyActive = isSpecialtyActive(specialty);
+    const actionVerb = currentlyActive ? 'desactivar' : 'activar';
     const confirmed = await confirmAction(
-      `¿Está seguro de que desea eliminar la especialidad "${specialty.name}"?`
+      `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`
     );
 
     if (!confirmed) return;
 
-    const { error: deleteError } = await deleteSpecialty(specialty.id);
-
-    if (deleteError) {
-      showError(deleteError.message);
-
-      return;
-    }
-
-    showSuccess(`Especialidad "${specialty.name}" eliminada correctamente.`);
+    setSpecialtyActive(specialty, !currentlyActive);
+    showSuccess(
+      currentlyActive
+        ? `Especialidad "${specialty.name}" desactivada correctamente.`
+        : `Especialidad "${specialty.name}" activada exitosamente.`
+    );
     setRequestKey((key) => key + 1);
   };
 
@@ -134,11 +133,19 @@ function SpecialtiesPage() {
       header: 'Estado',
       headerClassName: 'text-center',
       cellClassName: 'text-center',
-      render: () => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Activo
-        </span>
-      ),
+      render: (specialty) => {
+        const active = isSpecialtyActive(specialty);
+
+        return active ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Activo
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+            Inactivo
+          </span>
+        );
+      },
     },
   ];
 
@@ -153,10 +160,14 @@ function SpecialtiesPage() {
         }),
     },
     {
-      id: 'delete',
-      label: 'Eliminar',
-      icon: ICONS.delete,
-      onClick: handleDelete,
+      id: 'toggleStatus',
+      label: (row) => (isSpecialtyActive(row) ? 'Desactivar' : 'Activar'),
+      icon: ICONS.checkCircle,
+      className: (row) =>
+        isSpecialtyActive(row)
+          ? '!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border !border-emerald-300'
+          : '!text-gray-400 !bg-gray-100 hover:!bg-gray-200 !border !border-gray-300',
+      onClick: handleToggleStatus,
     },
   ];
 
@@ -222,7 +233,11 @@ function SpecialtiesPage() {
               Catálogo Clínico
             </p>
             <p className="text-lg font-bold text-med-primary-900">
-              100% Activo
+              {isLoading
+                ? '…'
+                : page.data.length > 0
+                  ? `${page.data.filter(isSpecialtyActive).length} / ${page.data.length} Activas`
+                  : 'Catálogo al día'}
             </p>
           </div>
         </Card>

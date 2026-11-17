@@ -140,14 +140,27 @@ function DataTable({
                                 typeof action.label === 'function'
                                   ? action.label(row)
                                   : action.label;
+                              const actionIcon =
+                                typeof action.icon === 'function'
+                                  ? action.icon(row)
+                                  : action.icon;
+                              const actionVariant =
+                                typeof action.variant === 'function'
+                                  ? action.variant(row)
+                                  : action.variant;
+                              const actionClassName =
+                                typeof action.className === 'function'
+                                  ? action.className(row)
+                                  : (action.className ?? '');
 
-                              return action.icon ? (
+                              return actionIcon ? (
                                 <IconButton
                                   key={action.id}
                                   type="button"
-                                  icon={action.icon}
+                                  icon={actionIcon}
                                   label={label}
-                                  variant={action.variant ?? 'ghost'}
+                                  variant={actionVariant ?? 'ghost'}
+                                  className={actionClassName}
                                   disabled={disabled}
                                   onClick={() => action.onClick(row)}
                                 />
@@ -155,7 +168,8 @@ function DataTable({
                                 <Button
                                   key={action.id}
                                   type="button"
-                                  variant={action.variant ?? 'outline'}
+                                  variant={actionVariant ?? 'outline'}
+                                  className={actionClassName}
                                   disabled={disabled}
                                   aria-label={label}
                                   onClick={() => action.onClick(row)}
