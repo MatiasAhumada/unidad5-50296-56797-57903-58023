@@ -24,7 +24,7 @@ import {
 import {
   buildAvailabilityPayload,
   buildScheduleFromAvailabilities,
-} from '../../availabilities/helpers/doctorSchedule';
+} from '../../availabilities/helpers/weeklyScheduleMapper';
 import {
   getDoctorAvailabilities,
   getDoctors,
