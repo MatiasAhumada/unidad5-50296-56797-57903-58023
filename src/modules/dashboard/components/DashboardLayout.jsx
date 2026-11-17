@@ -22,7 +22,7 @@ function DashboardLayout() {
   const navItems = [
     {
       to: ROUTES.adminHome,
-      label: 'Tablero',
+      label: 'Panel',
       icon: <Icon icon={ICONS.grid} size={20} />,
     },
     {
