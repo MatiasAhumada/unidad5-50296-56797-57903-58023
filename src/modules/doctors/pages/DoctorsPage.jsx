@@ -170,6 +170,15 @@ function DoctorsPage() {
 
   const rowActions = [
     {
+      id: 'schedule',
+      label: 'Horarios',
+      icon: ICONS.clock,
+      onClick: (row) =>
+        navigate(`${ROUTES.adminDoctorSchedule}?doctorId=${row.id}`, {
+          state: { doctor: row },
+        }),
+    },
+    {
       id: 'edit',
       label: 'Editar',
       icon: ICONS.edit,

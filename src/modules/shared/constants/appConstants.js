@@ -23,6 +23,7 @@ const ROUTES = {
   adminSpecialtyCreate: '/admin/specialties/new',
   adminDoctors: '/admin/doctors',
   adminDoctorCreate: '/admin/doctors/new',
+  adminDoctorSchedule: '/admin/doctors/schedule',
 };
 
 export { ROUTES, STORAGE_KEYS, USER_ROLES };
