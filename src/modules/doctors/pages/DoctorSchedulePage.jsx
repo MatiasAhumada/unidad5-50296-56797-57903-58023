@@ -229,7 +229,7 @@ function DoctorSchedulePage() {
     const payload = {
       doctorId: selectedDoctorId,
       days: activeDays.map((dayItem) => ({
-        day: dayItem.day,
+        day: normalizeDayKey(dayItem.day),
         startTime: toTimeSpanString(dayItem.startTime),
         endTime: toTimeSpanString(dayItem.endTime),
       })),
