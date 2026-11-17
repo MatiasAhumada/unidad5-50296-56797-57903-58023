@@ -28,6 +28,7 @@ function SpecialtiesPage() {
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
 
@@ -120,24 +121,30 @@ function SpecialtiesPage() {
 
     if (!confirmed) return;
 
-    const { error: statusError } = await setSpecialtyStatus(
-      specialty.id,
-      !currentlyActive
-    );
+    setUpdatingId(specialty.id);
 
-    if (statusError) {
-      showError(statusError.message);
+    try {
+      const { error: statusError } = await setSpecialtyStatus(
+        specialty.id,
+        !currentlyActive
+      );
 
-      return;
+      if (statusError) {
+        showError(statusError.message);
+
+        return;
+      }
+
+      showSuccess(
+        currentlyActive
+          ? `Especialidad "${specialty.name}" desactivada correctamente.`
+          : `Especialidad "${specialty.name}" reactivada exitosamente.`
+      );
+      setRequestKey((key) => key + 1);
+      setMetricsRequestKey((key) => key + 1);
+    } finally {
+      setUpdatingId(null);
     }
-
-    showSuccess(
-      currentlyActive
-        ? `Especialidad "${specialty.name}" desactivada correctamente.`
-        : `Especialidad "${specialty.name}" reactivada exitosamente.`
-    );
-    setRequestKey((key) => key + 1);
-    setMetricsRequestKey((key) => key + 1);
   };
 
   const columns = [
@@ -185,8 +192,9 @@ function SpecialtiesPage() {
   const rowActions = [
     {
       id: 'edit',
-      label: 'Editar',
+      label: (row) => `Editar ${row.name}`,
       icon: ICONS.edit,
+      isDisabled: () => isLoading,
       onClick: (row) =>
         navigate(`${ROUTES.adminSpecialtyCreate}?specialtyId=${row.id}`, {
           state: { specialty: row },
@@ -194,7 +202,11 @@ function SpecialtiesPage() {
     },
     {
       id: 'toggleStatus',
-      label: (row) => (row.isActive !== false ? 'Desactivar' : 'Activar'),
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
+      isDisabled: (row) => isLoading || updatingId === row.id,
       render: (row, { disabled, label }) => (
         <ToggleSwitch
           checked={row.isActive !== false}
@@ -361,7 +373,7 @@ function SpecialtiesPage() {
         error={error}
         onRetry={() => setRequestKey((key) => key + 1)}
         pagination={{
-          pageIndex: page.pageIndex || pageIndex,
+          pageIndex,
           pageSize: page.pageSize || 10,
           total: page.total || 0,
           onPageChange: setPageIndex,

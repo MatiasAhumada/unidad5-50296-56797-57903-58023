@@ -20,11 +20,10 @@ function ToggleSwitch({
       onClick={onChange}
       title={label}
       aria-label={label}
-      className={`relative inline-flex ${trackSize} shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-med-primary-600 focus-visible:ring-offset-2 ${
+      className={`relative inline-flex ${trackSize} shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-med-primary-600 focus-visible:ring-offset-2 ${
         checked ? 'bg-emerald-500' : 'bg-gray-300'
-      } ${disabled ? 'cursor-not-allowed opacity-50' : ''} ${className}`.trim()}
+      } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${className}`.trim()}
     >
-      <span className="sr-only">{label}</span>
       <span
         aria-hidden="true"
         className={`pointer-events-none inline-block ${knobSize} transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
