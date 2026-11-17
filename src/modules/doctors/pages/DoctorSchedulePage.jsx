@@ -22,41 +22,14 @@ import {
   updateDoctorAvailability,
 } from '../../availabilities/services/availabilitiesService';
 import {
+  buildAvailabilityPayload,
+  buildScheduleFromAvailabilities,
+} from '../../availabilities/helpers/doctorSchedule';
+import {
   getDoctorAvailabilities,
   getDoctors,
 } from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
-
-const WEEK_DAYS = [
-  { key: 'LUNES', label: 'Lunes' },
-  { key: 'MARTES', label: 'Martes' },
-  { key: 'MIERCOLES', label: 'Miércoles' },
-  { key: 'JUEVES', label: 'Jueves' },
-  { key: 'VIERNES', label: 'Viernes' },
-  { key: 'SABADO', label: 'Sábado' },
-  { key: 'DOMINGO', label: 'Domingo' },
-];
-
-function normalizeDayKey(value) {
-  return (value || '')
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function buildEmptySchedule() {
-  return WEEK_DAYS.map(({ key, label }) => ({
-    day: key,
-    label,
-    active: false,
-    startTime: '08:00',
-    endTime: '16:00',
-  }));
-}
-
-function toTimeSpanString(timeValue) {
-  return timeValue.length === 5 ? `${timeValue}:00` : timeValue;
-}
 
 function DoctorSchedulePage() {
   const navigate = useNavigate();
@@ -70,7 +43,9 @@ function DoctorSchedulePage() {
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctorIdParam || '');
 
-  const [schedule, setSchedule] = useState(buildEmptySchedule);
+  const [schedule, setSchedule] = useState(() =>
+    buildScheduleFromAvailabilities()
+  );
   const [hasExistingAvailability, setHasExistingAvailability] = useState(false);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,39 +106,16 @@ function DoctorSchedulePage() {
 
         if (error) {
           setApiError(error.message);
-          setSchedule(buildEmptySchedule());
+          setSchedule(buildScheduleFromAvailabilities());
           setHasExistingAvailability(false);
 
           return;
         }
 
         const availabilities = Array.isArray(data) ? data : [];
-        const hasExisting = availabilities.length > 0;
 
-        setHasExistingAvailability(hasExisting);
-
-        const scheduleMap = new Map();
-
-        availabilities.forEach((item) => {
-          scheduleMap.set(normalizeDayKey(item.day), {
-            startTime: item.startTime?.slice(0, 5) || '08:00',
-            endTime: item.endTime?.slice(0, 5) || '16:00',
-          });
-        });
-
-        setSchedule(
-          WEEK_DAYS.map(({ key, label }) => {
-            const existing = scheduleMap.get(key);
-
-            return {
-              day: key,
-              label,
-              active: Boolean(existing),
-              startTime: existing?.startTime || '08:00',
-              endTime: existing?.endTime || '16:00',
-            };
-          })
-        );
+        setHasExistingAvailability(availabilities.length > 0);
+        setSchedule(buildScheduleFromAvailabilities(availabilities));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -226,14 +178,7 @@ function DoctorSchedulePage() {
 
     setIsSubmitting(true);
 
-    const payload = {
-      doctorId: selectedDoctorId,
-      days: activeDays.map((dayItem) => ({
-        day: normalizeDayKey(dayItem.day),
-        startTime: toTimeSpanString(dayItem.startTime),
-        endTime: toTimeSpanString(dayItem.endTime),
-      })),
-    };
+    const payload = buildAvailabilityPayload(selectedDoctorId, activeDays);
 
     const result = hasExistingAvailability
       ? await updateDoctorAvailability(payload)
