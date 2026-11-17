@@ -315,19 +315,25 @@ function DoctorSchedulePage() {
         {/* Columna Derecha: Grilla semanal */}
         <div className="lg:col-span-8">
           <Card className="overflow-hidden p-0">
-            <div className="border-b border-med-border p-5">
-              <h2 className="text-base font-bold text-med-primary-900">
-                Configuración de Horarios Semanales
-              </h2>
-              <p className="mt-0.5 text-xs text-med-text-sub">
-                Active los días laborales y defina el rango horario de entrada y
-                salida.
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-med-border p-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-base font-bold text-med-primary-900">
+                  Configuración de Horarios
+                </h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Horario Regular
+                </span>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-xs text-med-text-sub">
+                <Icon icon={ICONS.clock} size={14} />
+                <span>Intervalos automáticos de 30 minutos</span>
+              </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-med-border bg-med-primary-50/40 text-xs font-bold uppercase text-med-text-sub">
+                <thead className="border-b border-med-border bg-[#e0f2fe]/80 text-xs font-bold uppercase tracking-wider text-med-primary-900/80">
                   <tr>
                     <th className="px-6 py-3.5">Día</th>
                     <th className="px-6 py-3.5">Estado</th>
