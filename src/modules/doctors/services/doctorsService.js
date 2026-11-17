@@ -85,9 +85,42 @@ async function getDoctorAvailableSlots(doctorId, startDate, endDate, signal) {
   }
 }
 
+async function createDoctor(payload) {
+  try {
+    const response = await instance.post(DOCTORS_API_ROUTES.create, payload);
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function updateDoctor(id, payload) {
+  try {
+    const response = await instance.put(DOCTORS_API_ROUTES.update(id), payload);
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function deleteDoctor(id) {
+  try {
+    const response = await instance.delete(DOCTORS_API_ROUTES.delete(id));
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
+  createDoctor,
+  deleteDoctor,
   getDoctorAvailableSlots,
   getDoctorOptions,
   getDoctors,
   getDoctorsPage,
+  updateDoctor,
 };

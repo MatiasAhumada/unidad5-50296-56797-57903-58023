@@ -1,16 +1,29 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
+import Button from '../../shared/components/Button';
+import DataTable from '../../shared/components/DataTable';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
+import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
-import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
-import { getDoctorsPage } from '../services/doctorsService';
+import { ROUTES } from '../../shared/constants/appConstants';
+import {
+  confirmAction,
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
+import { getSpecialties } from '../../specialties/services/specialtiesService';
+import { deleteDoctor, getDoctorsPage } from '../services/doctorsService';
+import { getDoctorInitials } from '../utils/doctorInitials';
 
 function DoctorsPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [specialtyId, setSpecialtyId] = useState('');
+  const [specialties, setSpecialties] = useState([]);
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -22,11 +35,28 @@ function DoctorsPage() {
   useEffect(() => {
     const controller = new AbortController();
 
+    getSpecialties(controller.signal).then(({ data }) => {
+      if (!controller.signal.aborted && Array.isArray(data)) {
+        setSpecialties(data);
+      }
+    });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
     setIsLoading(true);
     setError('');
 
     getDoctorsPage(
-      { pageSize: 10, pageIndex, name: searchTerm.trim() || undefined },
+      {
+        pageSize: 10,
+        pageIndex,
+        name: searchTerm.trim() || undefined,
+        specialtyId: specialtyId || undefined,
+      },
       controller.signal
     )
       .then((result) => {
@@ -42,7 +72,7 @@ function DoctorsPage() {
       })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
-          setError(getApiErrorMessage(requestError));
+          setError(requestError.message || 'Error al obtener doctores');
         }
       })
       .finally(() => {
@@ -52,12 +82,129 @@ function DoctorsPage() {
       });
 
     return () => controller.abort();
-  }, [pageIndex, requestKey, searchTerm]);
+  }, [pageIndex, requestKey, searchTerm, specialtyId]);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
     setPageIndex(1);
   };
+
+  const handleSpecialtyFilterChange = (event) => {
+    setSpecialtyId(event.target.value);
+    setPageIndex(1);
+  };
+
+  const handleDelete = async (doctor) => {
+    const confirmed = await confirmAction(
+      `¿Está seguro de que desea dar de baja al profesional "${doctor.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    const { error: deleteError } = await deleteDoctor(doctor.id);
+
+    if (deleteError) {
+      showError(deleteError.message);
+
+      return;
+    }
+
+    showSuccess(`Profesional "${doctor.name}" dado de baja correctamente.`);
+    setRequestKey((key) => key + 1);
+  };
+
+  const columns = [
+    {
+      id: 'doctor',
+      header: 'Profesional',
+      render: (doctor) => (
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-med-primary-100 text-xs font-bold text-med-primary-800">
+            {getDoctorInitials(doctor.name)}
+          </span>
+          <span className="font-semibold text-med-primary-900">
+            {doctor.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'licenseNumber',
+      header: 'Matrícula',
+      render: (doctor) => (
+        <span className="font-mono text-xs text-med-text-sub">
+          {doctor.licenseNumber}
+        </span>
+      ),
+    },
+    {
+      id: 'specialty',
+      header: 'Especialidad',
+      render: (doctor) => (
+        <span className="inline-flex items-center rounded-full bg-med-primary-50 px-2.5 py-1 text-xs font-medium text-med-primary-800 border border-med-primary-100">
+          {doctor.specialty?.name ?? 'Sin especialidad'}
+        </span>
+      ),
+    },
+  ];
+
+  const rowActions = [
+    {
+      id: 'edit',
+      label: 'Editar',
+      icon: ICONS.edit,
+      onClick: (row) =>
+        navigate(`${ROUTES.adminDoctorCreate}?doctorId=${row.id}`, {
+          state: { doctor: row },
+        }),
+    },
+    {
+      id: 'delete',
+      label: 'Dar de baja',
+      icon: ICONS.delete,
+      className: 'text-red-600 hover:bg-red-50 hover:text-red-700',
+      onClick: handleDelete,
+    },
+  ];
+
+  const specialtyOptions = [
+    { value: '', label: 'Todas las especialidades' },
+    ...specialties.map((specialty) => ({
+      value: specialty.id,
+      label: specialty.name,
+    })),
+  ];
+
+  const selectedSpecialtyLabel =
+    specialties.find((s) => s.id === specialtyId)?.name || 'Todas';
+
+  const summaryCards = [
+    {
+      id: 'total-doctors',
+      icon: ICONS.doctor,
+      label: 'DOCTORES ACTIVOS',
+      value: isLoading ? '—' : page.total,
+      detail: specialtyId
+        ? `Filtrado por ${selectedSpecialtyLabel}`
+        : 'Profesionales disponibles',
+    },
+    {
+      id: 'specialties-count',
+      icon: ICONS.grid,
+      label: 'ESPECIALIDADES',
+      value: specialties.length || '—',
+      detail: 'Áreas médicas activas',
+    },
+    {
+      id: 'active-filter',
+      icon: ICONS.filter,
+      label: 'FILTRO ACTUAL',
+      value: selectedSpecialtyLabel,
+      detail: searchTerm.trim()
+        ? `Búsqueda: "${searchTerm.trim()}"`
+        : 'Sin filtro de texto',
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,107 +214,112 @@ function DoctorsPage() {
             Directorio de Doctores
           </h1>
           <p className="mt-1 text-sm text-med-text-sub">
-            Profesionales registrados en el sistema.
+            Gestión de profesionales médicos, matrículas y especialidades.
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <FormField
-            id="doctor-search"
-            label="Buscar doctores"
-            labelClassName="sr-only"
-          >
-            {(fieldProps) => (
-              <div className="relative">
-                <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  <Icon icon={ICONS.search} size={16} />
-                </span>
-                <Input
-                  {...fieldProps}
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  placeholder="Buscar por nombre..."
-                  className="pl-9 pr-3 py-2 text-xs"
-                />
-              </div>
-            )}
-          </FormField>
-        </div>
+
+        <Button
+          type="button"
+          onClick={() => navigate(ROUTES.adminDoctorCreate)}
+          className="flex items-center gap-2 self-start sm:self-auto shadow-sm"
+        >
+          <Icon icon={ICONS.add} size={18} />
+          <span>Nuevo Doctor</span>
+        </Button>
       </div>
 
-      {error && (
-        <div className="flex flex-col items-start gap-3">
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setRequestKey((key) => key + 1)}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {summaryCards.map((card) => (
+          <Card
+            key={card.id}
+            className="flex flex-col justify-between gap-3 p-5"
           >
-            Reintentar
-          </button>
-        </div>
-      )}
-
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-med-border p-5">
-          <h2 className="text-base font-bold text-med-primary-900">
-            Registros de Doctores
-          </h2>
-        </div>
-        {isLoading ? (
-          <p className="p-5 text-sm text-med-text-sub" role="status">
-            Cargando doctores…
-          </p>
-        ) : !error && page.data.length === 0 ? (
-          <p className="p-5 text-sm text-med-text-sub">
-            No se encontraron doctores.
-          </p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">
-                  <tr>
-                    <th className="px-6 py-3.5">Nombre del doctor</th>
-                    <th className="px-6 py-3.5">Matrícula</th>
-                    <th className="px-6 py-3.5">Especialidad</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-med-border-subtle">
-                  {page.data.map((doctor) => (
-                    <tr key={doctor.id} className="hover:bg-gray-50/70">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
-                            <Icon icon={ICONS.doctor} size={20} />
-                          </span>
-                          <span className="font-semibold text-med-primary-900">
-                            {doctor.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-med-text-sub">
-                        {doctor.licenseNumber}
-                      </td>
-                      <td className="px-6 py-4 text-med-text-sub">
-                        {doctor.specialty?.name ?? 'Sin especialidad'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-50 text-med-primary-700">
+                <Icon icon={card.icon} size={20} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-med-text-sub">
+                {card.label}
+              </span>
             </div>
-            <TablePagination
-              currentPage={page.pageIndex}
-              pageSize={page.pageSize}
-              totalItems={page.total}
-              totalPages={Math.ceil(page.total / page.pageSize)}
-              onPageChange={setPageIndex}
-            />
-          </>
-        )}
-      </Card>
+
+            <div>
+              <p className="text-2xl font-extrabold text-med-primary-900 truncate">
+                {card.value}
+              </p>
+              <p className="mt-1 text-xs text-med-text-sub truncate">
+                {card.detail}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <DataTable
+        title="Registros de Doctores"
+        headerContent={
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="w-full sm:w-56">
+              <FormField
+                id="doctor-specialty-filter"
+                label="Filtrar por especialidad"
+                labelClassName="sr-only"
+              >
+                {(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    value={specialtyId}
+                    onChange={handleSpecialtyFilterChange}
+                    options={specialtyOptions}
+                    className="py-1.5 text-xs"
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <FormField
+                id="doctor-search"
+                label="Buscar doctores"
+                labelClassName="sr-only"
+              >
+                {(fieldProps) => (
+                  <div className="relative">
+                    <span
+                      className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                      aria-hidden="true"
+                    >
+                      <Icon icon={ICONS.search} size={16} />
+                    </span>
+                    <Input
+                      {...fieldProps}
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      placeholder="Buscar por nombre..."
+                      className="pl-9 pr-3 py-1.5 text-xs"
+                    />
+                  </div>
+                )}
+              </FormField>
+            </div>
+          </div>
+        }
+        columns={columns}
+        rows={page.data}
+        rowKey="id"
+        rowActions={rowActions}
+        isLoading={isLoading}
+        loadingMessage="Cargando doctores…"
+        emptyMessage="No se encontraron doctores."
+        error={error}
+        onRetry={() => setRequestKey((key) => key + 1)}
+        pagination={{
+          pageIndex: page.pageIndex || pageIndex,
+          pageSize: page.pageSize || 10,
+          total: page.total || 0,
+          onPageChange: setPageIndex,
+        }}
+      />
     </div>
   );
 }
