@@ -1,4 +1,5 @@
 import { normalizeApiError } from '../../shared/api/apiError';
+import { normalizePageIndex } from '../../shared/api/pagination';
 import { instance } from '../../shared/api/axiosInstance';
 import { APPOINTMENTS_API_ROUTES } from '../constants/apiRoutes';
 
@@ -18,7 +19,7 @@ function adaptAppointment(appointment) {
 function adaptAppointmentsPage(page, requestedPageIndex) {
   return {
     pageSize: page.pageSize,
-    pageIndex: page.pageIndex ?? requestedPageIndex,
+    pageIndex: normalizePageIndex(page.pageIndex, requestedPageIndex),
     data: Array.isArray(page.data) ? page.data.map(adaptAppointment) : [],
     total: page.total,
   };

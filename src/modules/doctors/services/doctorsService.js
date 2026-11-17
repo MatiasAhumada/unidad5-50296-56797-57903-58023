@@ -1,4 +1,5 @@
 import { normalizeApiError } from '../../shared/api/apiError';
+import { normalizePageIndex } from '../../shared/api/pagination';
 import { instance } from '../../shared/api/axiosInstance';
 import { DOCTORS_API_ROUTES } from '../constants/apiRoutes';
 
@@ -12,7 +13,13 @@ async function getDoctorsPage(
       signal,
     });
 
-    return { data: response.data, error: null };
+    return {
+      data: {
+        ...response.data,
+        pageIndex: normalizePageIndex(response.data.pageIndex, pageIndex),
+      },
+      error: null,
+    };
   } catch (error) {
     return { data: null, error: normalizeApiError(error) };
   }
