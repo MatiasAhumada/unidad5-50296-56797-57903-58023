@@ -28,13 +28,13 @@ import {
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 const WEEK_DAYS = [
-  { key: 'LUNES', day: 'Lunes', label: 'Lunes' },
-  { key: 'MARTES', day: 'Martes', label: 'Martes' },
-  { key: 'MIERCOLES', day: 'Miércoles', label: 'Miércoles' },
-  { key: 'JUEVES', day: 'Jueves', label: 'Jueves' },
-  { key: 'VIERNES', day: 'Viernes', label: 'Viernes' },
-  { key: 'SABADO', day: 'Sábado', label: 'Sábado' },
-  { key: 'DOMINGO', day: 'Domingo', label: 'Domingo' },
+  { key: 'LUNES', label: 'Lunes' },
+  { key: 'MARTES', label: 'Martes' },
+  { key: 'MIERCOLES', label: 'Miércoles' },
+  { key: 'JUEVES', label: 'Jueves' },
+  { key: 'VIERNES', label: 'Viernes' },
+  { key: 'SABADO', label: 'Sábado' },
+  { key: 'DOMINGO', label: 'Domingo' },
 ];
 
 function normalizeDayKey(value) {
@@ -450,59 +450,34 @@ function DoctorSchedulePage() {
                             </div>
                           </td>
 
-                          <td className="px-6 py-4">
-                            {isActive ? (
-                              <div className="relative inline-flex items-center">
-                                <input
-                                  type="time"
-                                  value={dayItem.startTime}
-                                  onChange={(e) =>
-                                    handleTimeChange(
-                                      idx,
-                                      'startTime',
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isSubmitting}
-                                  className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
-                                />
-                                <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
-                                  <Icon icon={ICONS.clock} size={14} />
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
-                                --:-- --
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="px-6 py-4">
-                            {isActive ? (
-                              <div className="relative inline-flex items-center">
-                                <input
-                                  type="time"
-                                  value={dayItem.endTime}
-                                  onChange={(e) =>
-                                    handleTimeChange(
-                                      idx,
-                                      'endTime',
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isSubmitting}
-                                  className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
-                                />
-                                <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
-                                  <Icon icon={ICONS.clock} size={14} />
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
-                                --:-- --
-                              </div>
-                            )}
-                          </td>
+                          {['startTime', 'endTime'].map((field) => (
+                            <td key={field} className="px-6 py-4">
+                              {isActive ? (
+                                <div className="relative inline-flex items-center">
+                                  <input
+                                    type="time"
+                                    value={dayItem[field]}
+                                    onChange={(e) =>
+                                      handleTimeChange(
+                                        idx,
+                                        field,
+                                        e.target.value
+                                      )
+                                    }
+                                    disabled={isSubmitting}
+                                    className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                                  />
+                                  <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
+                                    <Icon icon={ICONS.clock} size={14} />
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
+                                  --:-- --
+                                </div>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       );
                     })}
