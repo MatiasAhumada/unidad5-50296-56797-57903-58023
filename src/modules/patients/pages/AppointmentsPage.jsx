@@ -1,23 +1,19 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePatientAppointments from '../../appointments/hook/usePatientAppointments';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 import { ROUTES } from '../../shared/constants/appConstants';
+import { APPOINTMENT_STATUS_LABELS } from '../../appointments/constants/appointmentStatuses';
 import {
   confirmAction,
   showError,
   showSuccess,
 } from '../../shared/notifications/notifications';
 
-const APPOINTMENT_STATUS_LABELS = {
-  BOOKED: 'Reservado',
-  CANCELLED: 'Cancelado',
-  ATTENDED: 'Atendido',
-  NO_SHOW: 'Ausente',
-};
-
 function AppointmentsPage() {
   const navigate = useNavigate();
+  const [includeHistory, setIncludeHistory] = useState(false);
   const {
     appointments,
     cancelAppointment,
@@ -25,7 +21,28 @@ function AppointmentsPage() {
     isLoading,
     loadError,
     reloadAppointments,
-  } = usePatientAppointments();
+  } = usePatientAppointments(includeHistory);
+
+  const formatDate = (date) => {
+    if (!date) return 'Fecha no disponible';
+
+    const [year, month, day] = date.split('-').map(Number);
+
+    return new Intl.DateTimeFormat('es-AR', { dateStyle: 'long' }).format(
+      new Date(year, month - 1, day)
+    );
+  };
+
+  const isFutureAppointment = (appointment) => {
+    if (!appointment.date || !appointment.startTime) return false;
+
+    const [year, month, day] = appointment.date.split('-').map(Number);
+    const [hours, minutes, seconds = 0] = appointment.startTime
+      .split(':')
+      .map(Number);
+
+    return new Date(year, month - 1, day, hours, minutes, seconds) > new Date();
+  };
 
   const handleCancel = async (appointment) => {
     const confirmed = await confirmAction(
@@ -38,7 +55,7 @@ function AppointmentsPage() {
 
     if (!confirmed) return;
 
-    const appointmentId = appointment.appointmentsId;
+    const appointmentId = appointment.id;
     const { error } = await cancelAppointment(appointmentId);
 
     if (error) {
@@ -62,13 +79,45 @@ function AppointmentsPage() {
             Mis turnos médicos
           </h1>
           <p className="mt-1 text-sm text-med-text-sub">
-            Consultá tus turnos activos y cancelá los que todavía estén
-            reservados.
+            {includeHistory
+              ? 'Consultá tus turnos pasados, cancelados y próximos.'
+              : 'Consultá tus próximos turnos activos y cancelá los que todavía estén reservados.'}
           </p>
         </div>
         <Button onClick={() => navigate(ROUTES.home)}>
           Solicitar nuevo turno
         </Button>
+      </div>
+
+      <div
+        className="inline-flex w-fit rounded-xl border border-med-border bg-white p-1 shadow-sm"
+        role="group"
+        aria-label="Filtrar mis turnos"
+      >
+        <button
+          type="button"
+          aria-pressed={!includeHistory}
+          onClick={() => setIncludeHistory(false)}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
+            !includeHistory
+              ? 'bg-med-primary-900 text-white shadow-sm'
+              : 'text-med-text-sub hover:bg-med-primary-50 hover:text-med-primary-900'
+          }`}
+        >
+          Próximos
+        </button>
+        <button
+          type="button"
+          aria-pressed={includeHistory}
+          onClick={() => setIncludeHistory(true)}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
+            includeHistory
+              ? 'bg-med-primary-900 text-white shadow-sm'
+              : 'text-med-text-sub hover:bg-med-primary-50 hover:text-med-primary-900'
+          }`}
+        >
+          Historial completo
+        </button>
       </div>
 
       {loadError && (
@@ -87,10 +136,14 @@ function AppointmentsPage() {
       {!isLoading && !loadError && appointments.length === 0 && (
         <Card className="p-6 text-center sm:p-10">
           <h2 className="text-lg font-semibold text-med-primary-900">
-            No tenés turnos activos
+            {includeHistory
+              ? 'Todavía no hay turnos en tu historial'
+              : 'No tenés turnos próximos'}
           </h2>
           <p className="mt-2 text-sm text-med-text-sub">
-            Cuando reserves un turno, lo vas a encontrar acá.
+            {includeHistory
+              ? 'Cuando reserves un turno, lo vas a encontrar acá.'
+              : 'Cuando reserves un turno, lo vas a encontrar acá. También podés consultar el historial completo.'}
           </p>
           <Button className="mt-5" onClick={() => navigate(ROUTES.home)}>
             Buscar disponibilidad
@@ -100,13 +153,14 @@ function AppointmentsPage() {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {appointments.map((appointment) => {
-          const status = appointment.appointmentsStatus;
-          const canCancel = status === 'BOOKED';
-          const isCancelling = cancellingId === appointment.appointmentsId;
+          const status = appointment.status;
+          const canCancel =
+            status === 'BOOKED' && isFutureAppointment(appointment);
+          const isCancelling = cancellingId === appointment.id;
 
           return (
             <Card
-              key={appointment.appointmentsId}
+              key={appointment.id}
               className="flex flex-col justify-between gap-4 p-5 sm:p-6"
             >
               <div>
@@ -126,9 +180,14 @@ function AppointmentsPage() {
                 <h2 className="text-lg font-bold text-med-primary-900">
                   {appointment.doctor.name}
                 </h2>
+                <p className="mt-2 text-sm font-medium text-med-text-main">
+                  {formatDate(appointment.date)}
+                  {appointment.startTime &&
+                    ` · ${appointment.startTime.slice(0, 5)}`}
+                  {appointment.endTime && `–${appointment.endTime.slice(0, 5)}`}
+                </p>
                 <p className="mt-2 text-xs text-med-text-muted">
-                  Código de turno:{' '}
-                  {appointment.appointmentsId.slice(0, 8).toUpperCase()}
+                  Código de turno: {appointment.id.slice(0, 8).toUpperCase()}
                 </p>
               </div>
 

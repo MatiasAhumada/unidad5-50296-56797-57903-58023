@@ -1,24 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import Card from '../../shared/components/Card';
-import Button from '../../shared/components/Button';
-import FormField from '../../shared/components/FormField';
-import Input from '../../shared/components/Input';
-import Select from '../../shared/components/Select';
-import Icon from '../../shared/components/Icon';
-import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
-import { ICONS } from '../../shared/constants/icons';
+import { useEffect, useState } from 'react';
 import { getDoctors } from '../../doctors/services/doctorsService';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
-import { searchAppointments } from '../services/appointmentsService';
+import { getApiErrorMessage } from '../../shared/api/apiError';
 import useNotificationError from '../../shared/notifications/useNotificationError';
-
-const APPOINTMENT_STATUS_LABELS = {
-  BOOKED: 'Reservado',
-  CANCELLED: 'Cancelado',
-  ATTENDED: 'Atendido',
-  NO_SHOW: 'Ausente',
-};
+import AppointmentSearchFilters from '../components/AppointmentSearchFilters';
+import AppointmentSearchResults from '../components/AppointmentSearchResults';
+import {
+  getAppointmentsByDate,
+  searchAppointments,
+} from '../services/appointmentsService';
 
 const EMPTY_FILTERS = {
   dni: '',
@@ -27,13 +17,16 @@ const EMPTY_FILTERS = {
   date: '',
 };
 
+const PAGE_SIZE = 10;
+
 function AppointmentsSearchPage() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [pageIndex, setPageIndex] = useState(1);
   const [appointmentsPage, setAppointmentsPage] = useState({
     data: [],
-    pageSize: 10,
+    pageSize: PAGE_SIZE,
+    pageIndex: 1,
     total: 0,
   });
   const [specialties, setSpecialties] = useState([]);
@@ -88,22 +81,40 @@ function AppointmentsSearchPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const dni = appliedFilters.dni.replace(/\D/g, '');
+    const searchFilters = {
+      pageSize: PAGE_SIZE,
+      pageIndex,
+      dni: dni || undefined,
+      specialtyId: appliedFilters.specialtyId || undefined,
+      doctorId: appliedFilters.doctorId || undefined,
+      date: appliedFilters.date || undefined,
+    };
+    const isDailySearch =
+      Boolean(appliedFilters.date) &&
+      !dni &&
+      !appliedFilters.specialtyId &&
+      !appliedFilters.doctorId;
 
     setIsLoadingAppointments(true);
     setAppointmentsError('');
-    const dni = appliedFilters.dni.replace(/\D/g, '');
+    setAppointmentsPage((current) => ({
+      ...current,
+      data: [],
+      pageIndex,
+      total: 0,
+    }));
 
-    searchAppointments(
-      {
-        pageSize: 10,
-        pageIndex,
-        dni: dni || undefined,
-        specialtyId: appliedFilters.specialtyId || undefined,
-        doctorId: appliedFilters.doctorId || undefined,
-        date: appliedFilters.date || undefined,
-      },
-      controller.signal
-    )
+    const dailyFilters = {
+      date: appliedFilters.date,
+      pageSize: PAGE_SIZE,
+      pageIndex,
+    };
+    const request = isDailySearch
+      ? getAppointmentsByDate(dailyFilters, controller.signal)
+      : searchAppointments(searchFilters, controller.signal);
+
+    request
       .then((result) => {
         if (controller.signal.aborted) return;
 
@@ -129,31 +140,6 @@ function AppointmentsSearchPage() {
     return () => controller.abort();
   }, [appliedFilters, appointmentsRequestKey, pageIndex]);
 
-  const visibleDoctors = useMemo(() => {
-    if (!filters.specialtyId) {
-      return doctors;
-    }
-
-    return doctors.filter(
-      (doctor) => doctor.specialty?.id === filters.specialtyId
-    );
-  }, [doctors, filters.specialtyId]);
-
-  const specialtyOptions = [
-    { value: '', label: 'Todas las especialidades' },
-    ...specialties.map((specialty) => ({
-      value: specialty.id,
-      label: specialty.name,
-    })),
-  ];
-  const doctorOptions = [
-    { value: '', label: 'Todos los doctores' },
-    ...visibleDoctors.map((doctor) => ({
-      value: doctor.id,
-      label: doctor.name,
-    })),
-  ];
-
   const applyFilters = (event) => {
     event.preventDefault();
     setAppliedFilters({ ...filters });
@@ -177,229 +163,25 @@ function AppointmentsSearchPage() {
         </p>
       </div>
 
-      <Card className="p-5 sm:p-6">
-        <div className="mb-4 border-b border-med-border-subtle pb-4">
-          <h2 className="text-base font-bold text-med-primary-900">
-            Criterios de búsqueda
-          </h2>
-        </div>
-        {catalogError && (
-          <div className="mb-4 flex flex-col items-start gap-3">
-            <button
-              type="button"
-              className="text-sm font-semibold text-med-primary-700 underline"
-              onClick={() => setCatalogRequestKey((key) => key + 1)}
-            >
-              Reintentar catálogos
-            </button>
-          </div>
-        )}
+      <AppointmentSearchFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApply={applyFilters}
+        onClear={clearFilters}
+        specialties={specialties}
+        doctors={doctors}
+        isLoadingCatalogs={isLoadingCatalogs}
+        catalogError={catalogError}
+        onRetryCatalogs={() => setCatalogRequestKey((key) => key + 1)}
+      />
 
-        <form
-          onSubmit={applyFilters}
-          className="grid grid-cols-1 items-end gap-3.5 sm:grid-cols-2 lg:grid-cols-5"
-        >
-          <FormField
-            id="appointment-patient-dni"
-            label="DNI del paciente"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <div className="relative">
-                <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
-                  aria-hidden="true"
-                >
-                  <Icon icon={ICONS.search} size={16} />
-                </span>
-                <Input
-                  {...fieldProps}
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Ingresá un DNI"
-                  value={filters.dni}
-                  onChange={(event) =>
-                    setFilters((current) => ({
-                      ...current,
-                      dni: event.target.value,
-                    }))
-                  }
-                  className="pl-9 pr-3 py-2 text-xs"
-                />
-              </div>
-            )}
-          </FormField>
-
-          <FormField
-            id="appointment-specialty-filter"
-            label="Especialidad"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Select
-                {...fieldProps}
-                value={filters.specialtyId}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    specialtyId: event.target.value,
-                    doctorId: '',
-                  }))
-                }
-                disabled={isLoadingCatalogs || Boolean(catalogError)}
-                options={specialtyOptions}
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
-
-          <FormField
-            id="appointment-doctor-filter"
-            label="Doctor"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Select
-                {...fieldProps}
-                value={filters.doctorId}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    doctorId: event.target.value,
-                  }))
-                }
-                disabled={isLoadingCatalogs || Boolean(catalogError)}
-                options={doctorOptions}
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
-
-          <FormField
-            id="appointment-date-filter"
-            label="Fecha"
-            labelClassName="text-xs font-semibold text-med-text-sub"
-          >
-            {(fieldProps) => (
-              <Input
-                {...fieldProps}
-                type="date"
-                value={filters.date}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    date: event.target.value,
-                  }))
-                }
-                className="px-3 py-2 text-xs"
-              />
-            )}
-          </FormField>
-
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              disabled={isLoadingCatalogs || Boolean(catalogError)}
-              className="flex flex-1 items-center justify-center gap-2"
-            >
-              <Icon icon={ICONS.filter} size={16} />
-              Aplicar filtros
-            </Button>
-            <Button type="button" variant="outline" onClick={clearFilters}>
-              Limpiar
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      {appointmentsError && (
-        <div className="flex flex-col items-start gap-3">
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setAppointmentsRequestKey((key) => key + 1)}
-          >
-            Reintentar búsqueda
-          </button>
-        </div>
-      )}
-
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-med-border p-5">
-          <h2 className="text-base font-bold text-med-primary-900">
-            Registros de Citas
-          </h2>
-        </div>
-        {isLoadingAppointments ? (
-          <p className="p-5 text-sm text-med-text-sub" role="status">
-            Buscando citas…
-          </p>
-        ) : !appointmentsError && appointmentsPage.data.length === 0 ? (
-          <p className="p-5 text-sm text-med-text-sub">
-            No se encontraron citas para estos filtros.
-          </p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">
-                  <tr>
-                    <th className="px-6 py-3.5">Código</th>
-                    <th className="px-6 py-3.5">Especialidad y doctor</th>
-                    <th className="px-6 py-3.5">Paciente</th>
-                    <th className="px-6 py-3.5 text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-med-border-subtle">
-                  {appointmentsPage.data.map((appointment) => (
-                    <tr
-                      key={appointment.appointmentsId}
-                      className="hover:bg-gray-50/70"
-                    >
-                      <td className="px-6 py-4 font-semibold text-med-primary-900">
-                        {appointment.appointmentsId.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-med-primary-900">
-                          {appointment.doctor.specialty.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-med-text-muted">
-                          {appointment.doctor.name}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-med-text-main">
-                          {appointment.patient.fullName ||
-                            'Nombre no disponible'}
-                        </p>
-                        <p className="mt-0.5 text-xs text-med-text-muted">
-                          DNI: {appointment.patient.dni}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-flex rounded-full bg-med-primary-100 px-3 py-1 text-xs font-semibold text-med-primary-700">
-                          {APPOINTMENT_STATUS_LABELS[
-                            appointment.appointmentsStatus
-                          ] ?? appointment.appointmentsStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <TablePagination
-              currentPage={appointmentsPage.pageIndex}
-              pageSize={appointmentsPage.pageSize}
-              totalItems={appointmentsPage.total}
-              totalPages={Math.ceil(
-                appointmentsPage.total / appointmentsPage.pageSize
-              )}
-              onPageChange={setPageIndex}
-            />
-          </>
-        )}
-      </Card>
+      <AppointmentSearchResults
+        appointmentsPage={appointmentsPage}
+        isLoading={isLoadingAppointments}
+        error={appointmentsError}
+        onRetry={() => setAppointmentsRequestKey((key) => key + 1)}
+        onPageChange={setPageIndex}
+      />
     </div>
   );
 }
