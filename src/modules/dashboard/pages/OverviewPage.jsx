@@ -6,10 +6,10 @@ import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
-import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 function getTodayDate() {
   const today = new Date();
@@ -31,6 +31,9 @@ function OverviewPage() {
   const [doctorsError, setDoctorsError] = useState('');
   const [doctorsLoading, setDoctorsLoading] = useState(true);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
+
+  useNotificationError(summaryError);
+  useNotificationError(doctorsError);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,7 +140,6 @@ function OverviewPage() {
 
       {summaryError && (
         <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{summaryError}</StatusMessage>
           <button
             type="button"
             className="text-sm font-semibold text-med-primary-700 underline"
@@ -203,7 +205,6 @@ function OverviewPage() {
 
         {doctorsError && (
           <div className="flex flex-col items-start gap-3 p-5">
-            <StatusMessage variant="error">{doctorsError}</StatusMessage>
             <button
               type="button"
               className="text-sm font-semibold text-med-primary-700 underline"

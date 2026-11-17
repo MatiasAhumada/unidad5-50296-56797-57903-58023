@@ -5,6 +5,7 @@ import Icon from '../../shared/components/Icon';
 import IconButton from '../../shared/components/IconButton';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
+import { showSuccess } from '../../shared/notifications/notifications';
 import { PATIENT_NAVIGATION } from '../constants/navigation';
 
 function PatientLayout() {
@@ -14,6 +15,7 @@ function PatientLayout() {
 
   const handleLogout = () => {
     signOut();
+    showSuccess('Sesión de paciente cerrada.');
     navigate(ROUTES.patientLogin);
   };
 

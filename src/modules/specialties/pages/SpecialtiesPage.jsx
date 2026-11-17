@@ -3,11 +3,11 @@ import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
-import StatusMessage from '../../shared/components/StatusMessage';
 import TablePagination from '../../shared/components/TablePagination';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 import { ICONS } from '../../shared/constants/icons';
 import { getSpecialtiesPage } from '../services/specialtiesService';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 function SpecialtiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +16,8 @@ function SpecialtiesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
+
+  useNotificationError(error);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -97,7 +99,6 @@ function SpecialtiesPage() {
 
       {error && (
         <div className="flex flex-col items-start gap-3">
-          <StatusMessage variant="error">{error}</StatusMessage>
           <button
             type="button"
             className="text-sm font-semibold text-med-primary-700 underline"

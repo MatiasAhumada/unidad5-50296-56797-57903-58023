@@ -6,6 +6,7 @@ import useAuth from '../../auth/hook/useAuth';
 import Icon from '../../shared/components/Icon';
 import { ICONS } from '../../shared/constants/icons';
 import IconButton from '../../shared/components/IconButton';
+import { showSuccess } from '../../shared/notifications/notifications';
 
 function DashboardLayout() {
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
@@ -14,6 +15,7 @@ function DashboardLayout() {
 
   const handleLogout = () => {
     signOut();
+    showSuccess('Sesión de administrador cerrada.');
     navigate(ROUTES.adminLogin);
   };
 

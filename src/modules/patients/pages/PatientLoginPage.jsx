@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthEmailField from '../../auth/components/AuthEmailField';
-import AuthFormError from '../../auth/components/AuthFormError';
 import useAuth from '../../auth/hook/useAuth';
 import { AUTH_VALIDATION } from '../../auth/constants/validation';
 import Button from '../../shared/components/Button';
@@ -11,11 +10,16 @@ import Icon from '../../shared/components/Icon';
 import Input from '../../shared/components/Input';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
+import {
+  showError,
+  showSuccess,
+  showWarning,
+} from '../../shared/notifications/notifications';
 
 function PatientLoginPage() {
-  const [errorMessage, setErrorMessage] = useState('');
   const isSubmittingRef = useRef(false);
-  const [searchParams] = useSearchParams();
+  const sessionNotificationShownRef = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
@@ -24,6 +28,28 @@ function PatientLoginPage() {
 
   const navigate = useNavigate();
   const { signInPatient, sessionExpired } = useAuth();
+  const expiredQuery = searchParams.get('session') === 'expired';
+
+  useEffect(() => {
+    if (
+      (sessionExpired || expiredQuery) &&
+      !sessionNotificationShownRef.current
+    ) {
+      sessionNotificationShownRef.current = true;
+      showWarning('Tu sesión venció. Iniciá sesión nuevamente.');
+    }
+
+    if (expiredQuery) {
+      setSearchParams(
+        (currentParams) => {
+          currentParams.delete('session');
+
+          return currentParams;
+        },
+        { replace: true }
+      );
+    }
+  }, [expiredQuery, sessionExpired, setSearchParams]);
 
   const onValid = async ({ email, dni }) => {
     if (isSubmittingRef.current) {
@@ -31,13 +57,13 @@ function PatientLoginPage() {
     }
 
     isSubmittingRef.current = true;
-    setErrorMessage('');
 
     const { error } = await signInPatient(email, dni);
 
     if (error) {
-      setErrorMessage(error.message);
+      showError(error.message);
     } else {
+      showSuccess('Sesión de paciente iniciada.');
       navigate(ROUTES.home, { replace: true });
     }
 
@@ -111,15 +137,6 @@ function PatientLoginPage() {
           <Button type="submit" disabled={isSubmitting} className="mt-1 w-full">
             {isSubmitting ? 'Ingresando…' : 'Ingresar Paciente'}
           </Button>
-
-          <AuthFormError
-            message={
-              errorMessage ||
-              (sessionExpired || searchParams.get('session') === 'expired'
-                ? 'Tu sesión venció. Iniciá sesión nuevamente.'
-                : '')
-            }
-          />
         </form>
       </section>
 
