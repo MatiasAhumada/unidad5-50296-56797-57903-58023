@@ -53,4 +53,46 @@ async function getSpecialties(signal) {
   }
 }
 
-export { getSpecialties, getSpecialtiesPage };
+async function createSpecialty(payload) {
+  try {
+    const response = await instance.post(
+      SPECIALTIES_API_ROUTES.create,
+      payload
+    );
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function updateSpecialty(id, payload) {
+  try {
+    const response = await instance.put(
+      SPECIALTIES_API_ROUTES.update(id),
+      payload
+    );
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function deleteSpecialty(id) {
+  try {
+    const response = await instance.delete(SPECIALTIES_API_ROUTES.delete(id));
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+export {
+  createSpecialty,
+  deleteSpecialty,
+  getSpecialties,
+  getSpecialtiesPage,
+  updateSpecialty,
+};

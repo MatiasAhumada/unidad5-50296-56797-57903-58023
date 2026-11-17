@@ -20,6 +20,7 @@ const ROUTES = {
   adminPatientSearch: '/admin/patient-search',
   adminAppointments: '/admin/appointments',
   adminSpecialties: '/admin/specialties',
+  adminSpecialtyCreate: '/admin/specialties/new',
   adminDoctors: '/admin/doctors',
 };
 

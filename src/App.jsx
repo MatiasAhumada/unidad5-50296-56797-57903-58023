@@ -23,6 +23,7 @@ import OverviewPage from './modules/dashboard/pages/OverviewPage';
 // Domain Modules (Screaming Architecture)
 import DoctorsPage from './modules/doctors/pages/DoctorsPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
+import SpecialtyFormPage from './modules/specialties/pages/SpecialtyFormPage';
 import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
 import { ROUTES, USER_ROLES } from './modules/shared/constants/appConstants';
 
@@ -99,6 +100,10 @@ const routes = [
       {
         path: ROUTES.adminSpecialties,
         element: <SpecialtiesPage />,
+      },
+      {
+        path: ROUTES.adminSpecialtyCreate,
+        element: <SpecialtyFormPage />,
       },
       {
         path: ROUTES.adminDoctors,
