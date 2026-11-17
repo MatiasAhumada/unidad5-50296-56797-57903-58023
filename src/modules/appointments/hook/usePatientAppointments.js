@@ -67,7 +67,7 @@ function usePatientAppointments() {
     } else {
       setAppointments((currentAppointments) =>
         currentAppointments.filter(
-          (appointment) => appointment.appointmentsId !== appointmentId
+          (appointment) => appointment.id !== appointmentId
         )
       );
       setRefreshKey((currentKey) => currentKey + 1);

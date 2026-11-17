@@ -3,18 +3,12 @@ import usePatientAppointments from '../../appointments/hook/usePatientAppointmen
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 import { ROUTES } from '../../shared/constants/appConstants';
+import { APPOINTMENT_STATUS_LABELS } from '../../appointments/constants/appointmentStatuses';
 import {
   confirmAction,
   showError,
   showSuccess,
 } from '../../shared/notifications/notifications';
-
-const APPOINTMENT_STATUS_LABELS = {
-  BOOKED: 'Reservado',
-  CANCELLED: 'Cancelado',
-  ATTENDED: 'Atendido',
-  NO_SHOW: 'Ausente',
-};
 
 function AppointmentsPage() {
   const navigate = useNavigate();
@@ -38,7 +32,7 @@ function AppointmentsPage() {
 
     if (!confirmed) return;
 
-    const appointmentId = appointment.appointmentsId;
+    const appointmentId = appointment.id;
     const { error } = await cancelAppointment(appointmentId);
 
     if (error) {
@@ -100,13 +94,13 @@ function AppointmentsPage() {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {appointments.map((appointment) => {
-          const status = appointment.appointmentsStatus;
+          const status = appointment.status;
           const canCancel = status === 'BOOKED';
-          const isCancelling = cancellingId === appointment.appointmentsId;
+          const isCancelling = cancellingId === appointment.id;
 
           return (
             <Card
-              key={appointment.appointmentsId}
+              key={appointment.id}
               className="flex flex-col justify-between gap-4 p-5 sm:p-6"
             >
               <div>
@@ -127,8 +121,7 @@ function AppointmentsPage() {
                   {appointment.doctor.name}
                 </h2>
                 <p className="mt-2 text-xs text-med-text-muted">
-                  Código de turno:{' '}
-                  {appointment.appointmentsId.slice(0, 8).toUpperCase()}
+                  Código de turno: {appointment.id.slice(0, 8).toUpperCase()}
                 </p>
               </div>
 

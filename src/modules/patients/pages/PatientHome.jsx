@@ -8,6 +8,7 @@ import Select from '../../shared/components/Select';
 import StatusMessage from '../../shared/components/StatusMessage';
 import { ICONS } from '../../shared/constants/icons';
 import { bookAppointment } from '../../appointments/services/appointmentsService';
+import { getAppointmentErrorMessage } from '../../appointments/helpers/appointmentError';
 import {
   showError,
   showSuccess,
@@ -24,22 +25,6 @@ import {
   getSlotDateKey,
   isSlotInFuture,
 } from '../../availabilities/helpers/availabilitySlot';
-
-function getBookingErrorMessage(error) {
-  if (error?.status === 409 || error?.errorCode === 'APPOINTMENT_CONFLICT') {
-    return 'Ese horario acaba de ocuparse. Elegí otro horario disponible.';
-  }
-
-  if (error?.errorCode === 'PAST_SLOT') {
-    return 'Ese horario ya pasó. Actualizamos la disponibilidad para que elijas otro.';
-  }
-
-  if (error?.status === 404) {
-    return 'El médico o el horario ya no está disponible. Actualizamos las opciones.';
-  }
-
-  return error.message;
-}
 
 function PatientHome() {
   const { patientDni } = useAuth();
@@ -248,7 +233,7 @@ function PatientHome() {
     });
 
     if (error) {
-      showError(getBookingErrorMessage(error));
+      showError(getAppointmentErrorMessage(error));
 
       if (
         error.errorCode === 'APPOINTMENT_CONFLICT' ||
@@ -260,7 +245,7 @@ function PatientHome() {
       }
     } else {
       showSuccess(
-        `Turno reservado para ${selectedDoctor?.name} · ${selectedSpecialty?.name} · ${formatSlotDate(selectedSlot.date)} a las ${selectedSlot.startTime}. Código: ${appointment.appointmentsId.slice(0, 8).toUpperCase()}.`
+        `Turno reservado para ${selectedDoctor?.name} · ${selectedSpecialty?.name} · ${formatSlotDate(selectedSlot.date)} a las ${selectedSlot.startTime}. Código: ${appointment.id.slice(0, 8).toUpperCase()}.`
       );
       setSelectedSlot(null);
       setReason('');
