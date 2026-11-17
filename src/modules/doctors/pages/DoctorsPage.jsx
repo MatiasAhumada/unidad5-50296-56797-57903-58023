@@ -26,6 +26,7 @@ function DoctorsPage() {
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
   const [activeDoctorsCount, setActiveDoctorsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
 
@@ -112,18 +113,24 @@ function DoctorsPage() {
     setPageIndex(1);
   };
 
-  const handleToggleStatus = (doctor) => {
+  const handleToggleStatus = async (doctor) => {
     const currentlyActive = doctor.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
 
-    return toggleEntityStatus({
-      currentlyActive,
-      confirmMessage: `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`,
-      activatedMessage: `Profesional "${doctor.name}" reactivado exitosamente.`,
-      deactivatedMessage: `Profesional "${doctor.name}" desactivado correctamente.`,
-      onToggle: (nextActive) => setDoctorStatus(doctor.id, nextActive),
-      onSuccess: () => setRequestKey((key) => key + 1),
-    });
+    setUpdatingId(doctor.id);
+
+    try {
+      await toggleEntityStatus({
+        currentlyActive,
+        confirmMessage: `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`,
+        activatedMessage: `Profesional "${doctor.name}" reactivado exitosamente.`,
+        deactivatedMessage: `Profesional "${doctor.name}" desactivado correctamente.`,
+        onToggle: (nextActive) => setDoctorStatus(doctor.id, nextActive),
+        onSuccess: () => setRequestKey((key) => key + 1),
+      });
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const columns = [
@@ -171,8 +178,9 @@ function DoctorsPage() {
   const rowActions = [
     {
       id: 'schedule',
-      label: 'Horarios',
+      label: (row) => `Horarios de ${row.name}`,
       icon: ICONS.clock,
+      isDisabled: () => isLoading,
       onClick: (row) =>
         navigate(`${ROUTES.adminDoctorSchedule}?doctorId=${row.id}`, {
           state: { doctor: row },
@@ -180,8 +188,9 @@ function DoctorsPage() {
     },
     {
       id: 'edit',
-      label: 'Editar',
+      label: (row) => `Editar ${row.name}`,
       icon: ICONS.edit,
+      isDisabled: () => isLoading,
       onClick: (row) =>
         navigate(`${ROUTES.adminDoctorCreate}?doctorId=${row.id}`, {
           state: { doctor: row },
@@ -189,7 +198,11 @@ function DoctorsPage() {
     },
     {
       id: 'toggleStatus',
-      label: (row) => (row.isActive !== false ? 'Desactivar' : 'Activar'),
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
+      isDisabled: (row) => isLoading || updatingId === row.id,
       render: (row, { disabled, label }) => (
         <ToggleSwitch
           checked={row.isActive !== false}
@@ -358,7 +371,7 @@ function DoctorsPage() {
         error={error}
         onRetry={() => setRequestKey((key) => key + 1)}
         pagination={{
-          pageIndex: page.pageIndex || pageIndex,
+          pageIndex,
           pageSize: page.pageSize || 10,
           total: page.total || 0,
           onPageChange: setPageIndex,
