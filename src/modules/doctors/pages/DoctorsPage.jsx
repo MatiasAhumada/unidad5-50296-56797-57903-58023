@@ -7,14 +7,11 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
+import StatusBadge from '../../shared/components/StatusBadge';
 import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
-import {
-  confirmAction,
-  showError,
-  showSuccess,
-} from '../../shared/notifications/notifications';
+import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
 import { getDoctorsPage, setDoctorStatus } from '../services/doctorsService';
@@ -95,32 +92,18 @@ function DoctorsPage() {
     setPageIndex(1);
   };
 
-  const handleToggleStatus = async (doctor) => {
+  const handleToggleStatus = (doctor) => {
     const currentlyActive = doctor.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
-    const confirmed = await confirmAction(
-      `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`
-    );
 
-    if (!confirmed) return;
-
-    const { error: statusError } = await setDoctorStatus(
-      doctor.id,
-      !currentlyActive
-    );
-
-    if (statusError) {
-      showError(statusError.message);
-
-      return;
-    }
-
-    showSuccess(
-      currentlyActive
-        ? `Profesional "${doctor.name}" desactivado correctamente.`
-        : `Profesional "${doctor.name}" reactivado exitosamente.`
-    );
-    setRequestKey((key) => key + 1);
+    return toggleEntityStatus({
+      currentlyActive,
+      confirmMessage: `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`,
+      activatedMessage: `Profesional "${doctor.name}" reactivado exitosamente.`,
+      deactivatedMessage: `Profesional "${doctor.name}" desactivado correctamente.`,
+      onToggle: (nextActive) => setDoctorStatus(doctor.id, nextActive),
+      onSuccess: () => setRequestKey((key) => key + 1),
+    });
   };
 
   const columns = [
@@ -161,16 +144,7 @@ function DoctorsPage() {
       header: 'Estado',
       headerClassName: 'text-center',
       cellClassName: 'text-center',
-      render: (doctor) =>
-        doctor.isActive !== false ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Activo
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-            Inactivo
-          </span>
-        ),
+      render: (doctor) => <StatusBadge isActive={doctor.isActive !== false} />,
     },
   ];
 

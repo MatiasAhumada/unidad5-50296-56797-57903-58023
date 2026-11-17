@@ -6,14 +6,11 @@ import DataTable from '../../shared/components/DataTable';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
+import StatusBadge from '../../shared/components/StatusBadge';
 import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
-import {
-  confirmAction,
-  showError,
-  showSuccess,
-} from '../../shared/notifications/notifications';
+import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
   getSpecialtiesPage,
@@ -111,33 +108,21 @@ function SpecialtiesPage() {
     setPageIndex(1);
   };
 
-  const handleToggleStatus = async (specialty) => {
+  const handleToggleStatus = (specialty) => {
     const currentlyActive = specialty.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
-    const confirmed = await confirmAction(
-      `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`
-    );
 
-    if (!confirmed) return;
-
-    const { error: statusError } = await setSpecialtyStatus(
-      specialty.id,
-      !currentlyActive
-    );
-
-    if (statusError) {
-      showError(statusError.message);
-
-      return;
-    }
-
-    showSuccess(
-      currentlyActive
-        ? `Especialidad "${specialty.name}" desactivada correctamente.`
-        : `Especialidad "${specialty.name}" reactivada exitosamente.`
-    );
-    setRequestKey((key) => key + 1);
-    setMetricsRequestKey((key) => key + 1);
+    return toggleEntityStatus({
+      currentlyActive,
+      confirmMessage: `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`,
+      activatedMessage: `Especialidad "${specialty.name}" reactivada exitosamente.`,
+      deactivatedMessage: `Especialidad "${specialty.name}" desactivada correctamente.`,
+      onToggle: (nextActive) => setSpecialtyStatus(specialty.id, nextActive),
+      onSuccess: () => {
+        setRequestKey((key) => key + 1);
+        setMetricsRequestKey((key) => key + 1);
+      },
+    });
   };
 
   const columns = [
@@ -169,16 +154,9 @@ function SpecialtiesPage() {
       header: 'Estado',
       headerClassName: 'text-center',
       cellClassName: 'text-center',
-      render: (specialty) =>
-        specialty.isActive !== false ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Activo
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-            Inactivo
-          </span>
-        ),
+      render: (specialty) => (
+        <StatusBadge isActive={specialty.isActive !== false} />
+      ),
     },
   ];
 
