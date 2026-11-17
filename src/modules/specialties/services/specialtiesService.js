@@ -9,7 +9,7 @@ async function getSpecialtiesPage(
 ) {
   try {
     const response = await instance.get(SPECIALTIES_API_ROUTES.list, {
-      params: { pageSize, pageIndex, name },
+      params: { pageSize, pageIndex, name, includeInactive: true },
       signal,
     });
 
@@ -89,10 +89,23 @@ async function deleteSpecialty(id) {
   }
 }
 
+async function setSpecialtyStatus(id, isActive) {
+  try {
+    const response = await instance.put(SPECIALTIES_API_ROUTES.status(id), {
+      isActive,
+    });
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
   createSpecialty,
   deleteSpecialty,
   getSpecialties,
   getSpecialtiesPage,
+  setSpecialtyStatus,
   updateSpecialty,
 };

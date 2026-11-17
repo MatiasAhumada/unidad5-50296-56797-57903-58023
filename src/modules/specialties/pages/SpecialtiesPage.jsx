@@ -11,15 +11,15 @@ import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
   confirmAction,
+  showError,
   showSuccess,
 } from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
-import { getSpecialtiesPage } from '../services/specialtiesService';
-import { getSpecialtyIcon } from '../constants/specialtyIcons';
 import {
-  isSpecialtyActive,
-  setSpecialtyActive,
-} from '../constants/specialtyStatus';
+  getSpecialtiesPage,
+  setSpecialtyStatus,
+} from '../services/specialtiesService';
+import { getSpecialtyIcon } from '../constants/specialtyIcons';
 
 function SpecialtiesPage() {
   const navigate = useNavigate();
@@ -73,7 +73,7 @@ function SpecialtiesPage() {
   };
 
   const handleToggleStatus = async (specialty) => {
-    const currentlyActive = isSpecialtyActive(specialty);
+    const currentlyActive = specialty.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
     const confirmed = await confirmAction(
       `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`
@@ -81,11 +81,21 @@ function SpecialtiesPage() {
 
     if (!confirmed) return;
 
-    setSpecialtyActive(specialty, !currentlyActive);
+    const { error: statusError } = await setSpecialtyStatus(
+      specialty.id,
+      !currentlyActive
+    );
+
+    if (statusError) {
+      showError(statusError.message);
+
+      return;
+    }
+
     showSuccess(
       currentlyActive
         ? `Especialidad "${specialty.name}" desactivada correctamente.`
-        : `Especialidad "${specialty.name}" activada exitosamente.`
+        : `Especialidad "${specialty.name}" reactivada exitosamente.`
     );
     setRequestKey((key) => key + 1);
   };
@@ -134,10 +144,8 @@ function SpecialtiesPage() {
       header: 'Estado',
       headerClassName: 'text-center',
       cellClassName: 'text-center',
-      render: (specialty) => {
-        const active = isSpecialtyActive(specialty);
-
-        return active ? (
+      render: (specialty) =>
+        specialty.isActive !== false ? (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
             Activo
           </span>
@@ -145,8 +153,7 @@ function SpecialtiesPage() {
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
             Inactivo
           </span>
-        );
-      },
+        ),
     },
   ];
 
@@ -162,10 +169,10 @@ function SpecialtiesPage() {
     },
     {
       id: 'toggleStatus',
-      label: (row) => (isSpecialtyActive(row) ? 'Desactivar' : 'Activar'),
+      label: (row) => (row.isActive !== false ? 'Desactivar' : 'Activar'),
       render: (row, { disabled, label }) => (
         <ToggleSwitch
-          checked={isSpecialtyActive(row)}
+          checked={row.isActive !== false}
           onChange={() => handleToggleStatus(row)}
           disabled={disabled}
           label={label}
@@ -239,7 +246,7 @@ function SpecialtiesPage() {
               {isLoading
                 ? '…'
                 : page.data.length > 0
-                  ? `${page.data.filter(isSpecialtyActive).length} / ${page.data.length} Activas`
+                  ? `${page.data.filter((s) => s.isActive !== false).length} / ${page.data.length} Activas`
                   : 'Catálogo al día'}
             </p>
           </div>
