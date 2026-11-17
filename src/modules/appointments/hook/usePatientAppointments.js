@@ -6,7 +6,7 @@ import {
 } from '../services/appointmentsService';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 
-function usePatientAppointments() {
+function usePatientAppointments(includeHistory = false) {
   const { isAuthenticated } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +30,7 @@ function usePatientAppointments() {
     setIsLoading(true);
     setLoadError('');
 
-    getPatientAppointments(controller.signal)
+    getPatientAppointments(controller.signal, includeHistory)
       .then(({ data, error }) => {
         if (controller.signal.aborted) return;
 
@@ -49,7 +49,7 @@ function usePatientAppointments() {
       });
 
     return () => controller.abort();
-  }, [isAuthenticated, refreshKey]);
+  }, [includeHistory, isAuthenticated, refreshKey]);
 
   const cancelAppointment = async (appointmentId) => {
     setCancellingId(appointmentId);

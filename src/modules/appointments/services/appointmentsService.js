@@ -64,7 +64,7 @@ async function getAppointmentsByDate(filters, signal) {
   }
 }
 
-async function getPatientAppointments(signal) {
+async function getPatientAppointments(signal, includeHistory = false) {
   try {
     const pageSize = 50;
     const appointments = [];
@@ -75,7 +75,7 @@ async function getPatientAppointments(signal) {
     while (appointments.length < total) {
       const response = await instance.get(
         APPOINTMENTS_API_ROUTES.listForPatient,
-        { params: { pageSize, pageIndex }, signal }
+        { params: { pageSize, pageIndex, includeHistory }, signal }
       );
       const page = response.data;
       const newAppointments = page.data.filter((appointment) => {
