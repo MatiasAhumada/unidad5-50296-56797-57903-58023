@@ -137,37 +137,23 @@ function SpecialtiesPage() {
         : `Especialidad "${specialty.name}" reactivada exitosamente.`
     );
     setRequestKey((key) => key + 1);
+    setMetricsRequestKey((key) => key + 1);
   };
 
   const columns = [
     {
       id: 'specialty',
       header: 'Especialidad',
-      render: (specialty) => {
-        const iconData = getSpecialtyIcon(specialty);
-
-        return (
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
-              {iconData.customUrl ? (
-                <img
-                  src={iconData.customUrl}
-                  alt={specialty.name}
-                  className="h-5 w-5 object-contain"
-                />
-              ) : (
-                <Icon
-                  icon={iconData.iconComponent || ICONS.medicalFile}
-                  size={20}
-                />
-              )}
-            </span>
-            <span className="font-semibold text-med-primary-900">
-              {specialty.name}
-            </span>
-          </div>
-        );
-      },
+      render: (specialty) => (
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
+            <Icon icon={getSpecialtyIcon(specialty)} size={20} />
+          </span>
+          <span className="font-semibold text-med-primary-900">
+            {specialty.name}
+          </span>
+        </div>
+      ),
     },
     {
       id: 'description',

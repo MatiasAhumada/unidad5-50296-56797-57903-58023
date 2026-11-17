@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -21,11 +21,7 @@ import {
   getSpecialties,
   updateSpecialty,
 } from '../services/specialtiesService';
-import {
-  SPECIALTY_ICON_PRESETS,
-  getSpecialtyIcon,
-  saveSpecialtyIcon,
-} from '../constants/specialtyIcons';
+import { getSpecialtyIcon } from '../constants/specialtyIcons';
 
 function SpecialtyFormPage() {
   const navigate = useNavigate();
@@ -35,21 +31,12 @@ function SpecialtyFormPage() {
   const isEdit = Boolean(specialtyId);
 
   const initialSpecialty = location.state?.specialty;
-  const initialIconData = getSpecialtyIcon(initialSpecialty);
 
   const [formData, setFormData] = useState({
     name: initialSpecialty?.name || '',
     description: initialSpecialty?.description || '',
   });
 
-  const [selectedIconKey, setSelectedIconKey] = useState(
-    initialIconData.key || 'hospital'
-  );
-  const [customIconUrl, setCustomIconUrl] = useState(
-    initialIconData.customUrl || ''
-  );
-
-  const fileInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
@@ -81,10 +68,6 @@ function SpecialtyFormPage() {
             name: found.name || '',
             description: found.description || '',
           });
-          const loadedIcon = getSpecialtyIcon(found);
-
-          setSelectedIconKey(loadedIcon.key);
-          setCustomIconUrl(loadedIcon.customUrl || '');
         } else {
           setApiError('No se encontró la especialidad especificada.');
         }
@@ -102,26 +85,6 @@ function SpecialtyFormPage() {
 
     return () => controller.abort();
   }, [isEdit, location.state, specialtyId]);
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      showError('El archivo de icono no debe superar los 2 MB.');
-
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setCustomIconUrl(reader.result);
-      setSelectedIconKey('custom');
-    };
-    reader.readAsDataURL(file);
-  };
 
   const validate = () => {
     const errors = {};
@@ -176,15 +139,6 @@ function SpecialtyFormPage() {
       return;
     }
 
-    const savedId = result.data?.id || specialtyId;
-
-    saveSpecialtyIcon({
-      id: savedId,
-      name: payload.name,
-      iconKey: selectedIconKey,
-      customUrl: customIconUrl,
-    });
-
     showSuccess(
       isEdit
         ? `Especialidad "${payload.name}" actualizada con éxito.`
@@ -194,9 +148,7 @@ function SpecialtyFormPage() {
     navigate(ROUTES.adminSpecialties);
   };
 
-  const selectedPreset = SPECIALTY_ICON_PRESETS.find(
-    (p) => p.key === selectedIconKey
-  );
+  const previewIcon = getSpecialtyIcon({ name: formData.name });
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
@@ -224,7 +176,7 @@ function SpecialtyFormPage() {
         </h1>
         <p className="text-sm text-med-text-sub">
           {isEdit
-            ? 'Modifique los datos y el icono de la especialidad médica.'
+            ? 'Modifique los datos de la especialidad médica.'
             : 'Complete los datos para dar de alta una nueva especialidad en el centro de salud.'}
         </p>
       </div>
@@ -316,111 +268,19 @@ function SpecialtyFormPage() {
               )}
             </div>
 
-            {/* Selector de Icono Médico */}
-            <div className="flex flex-col gap-3 pt-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-xs font-semibold text-med-text-sub">
-                    Icono Representativo
-                  </label>
-                  <p className="text-xs text-med-text-muted">
-                    Seleccione un icono clínico del catálogo o suba un archivo
-                    SVG/PNG personalizado.
-                  </p>
-                </div>
-                {/* Previsualización del icono activo */}
-                <div className="flex items-center gap-2 rounded-xl bg-med-primary-50 px-3 py-1.5 border border-med-primary-100">
-                  <span className="text-xs text-med-primary-900 font-medium">
-                    Vista previa:
-                  </span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-med-primary-700 text-white">
-                    {selectedIconKey === 'custom' && customIconUrl ? (
-                      <img
-                        src={customIconUrl}
-                        alt="Icono personalizado"
-                        className="h-5 w-5 object-contain"
-                      />
-                    ) : (
-                      <Icon
-                        icon={selectedPreset?.icon || ICONS.medicalFile}
-                        size={18}
-                      />
-                    )}
-                  </span>
-                </div>
+            {/* Vista previa del icono asignado automáticamente */}
+            <div className="flex items-center justify-between gap-4 rounded-xl bg-med-primary-50/60 px-4 py-3 border border-med-primary-100">
+              <div>
+                <p className="text-xs font-semibold text-med-primary-900">
+                  Icono representativo
+                </p>
+                <p className="text-xs text-med-text-sub">
+                  Se asigna automáticamente según el nombre de la especialidad.
+                </p>
               </div>
-
-              {/* Grilla de iconos predeterminados */}
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 p-3 rounded-2xl bg-med-bg/60 border border-med-border-subtle">
-                {SPECIALTY_ICON_PRESETS.map((preset) => {
-                  const isSelected =
-                    selectedIconKey === preset.key && !customIconUrl;
-
-                  return (
-                    <button
-                      key={preset.key}
-                      type="button"
-                      onClick={() => {
-                        setSelectedIconKey(preset.key);
-                        setCustomIconUrl('');
-                      }}
-                      title={preset.label}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl transition cursor-pointer border ${
-                        isSelected
-                          ? 'bg-med-primary-900 text-white border-med-primary-900 shadow-sm'
-                          : 'bg-white text-med-text-sub border-med-border hover:bg-med-primary-50 hover:text-med-primary-900'
-                      }`}
-                    >
-                      <Icon icon={preset.icon} size={20} />
-                      <span className="text-[10px] font-medium truncate max-w-full">
-                        {preset.label.split(' ')[0]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Carga de archivo personalizado */}
-              <div className="flex flex-wrap items-center gap-3 mt-1">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/png,image/jpeg,image/svg+xml"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs py-2 px-3.5 flex items-center gap-1.5"
-                >
-                  <Icon icon={ICONS.edit} size={14} />
-                  <span>Subir icono propio (SVG / PNG)</span>
-                </Button>
-
-                {selectedIconKey === 'custom' && customIconUrl && (
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    <img
-                      src={customIconUrl}
-                      alt="Subido"
-                      className="h-4 w-4 object-contain"
-                    />
-                    <span>Icono personalizado activo</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomIconUrl('');
-                        setSelectedIconKey('hospital');
-                      }}
-                      className="text-red-500 hover:text-red-700 ml-1 cursor-pointer font-bold"
-                      title="Quitar icono personalizado"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                )}
-              </div>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-med-primary-700 text-white shadow-sm">
+                <Icon icon={previewIcon} size={20} />
+              </span>
             </div>
 
             {/* Botones de acción */}
