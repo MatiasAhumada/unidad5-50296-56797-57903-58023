@@ -101,11 +101,24 @@ async function setSpecialtyStatus(id, isActive) {
   }
 }
 
+async function getSpecialtyMetrics(signal) {
+  try {
+    const response = await instance.get(SPECIALTIES_API_ROUTES.metrics, {
+      signal,
+    });
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
   createSpecialty,
   deleteSpecialty,
   getSpecialties,
   getSpecialtiesPage,
+  getSpecialtyMetrics,
   setSpecialtyStatus,
   updateSpecialty,
 };

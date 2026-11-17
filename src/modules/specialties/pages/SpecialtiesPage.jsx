@@ -17,6 +17,7 @@ import {
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
   getSpecialtiesPage,
+  getSpecialtyMetrics,
   setSpecialtyStatus,
 } from '../services/specialtiesService';
 import { getSpecialtyIcon } from '../constants/specialtyIcons';
@@ -30,7 +31,13 @@ function SpecialtiesPage() {
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
 
+  const [metrics, setMetrics] = useState(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [metricsError, setMetricsError] = useState('');
+  const [metricsRequestKey, setMetricsRequestKey] = useState(0);
+
   useNotificationError(error);
+  useNotificationError(metricsError);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,6 +73,38 @@ function SpecialtiesPage() {
 
     return () => controller.abort();
   }, [pageIndex, requestKey, searchTerm]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setMetricsLoading(true);
+    setMetricsError('');
+
+    getSpecialtyMetrics(controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+
+        if (result.error) {
+          setMetricsError(result.error.message);
+
+          return;
+        }
+
+        setMetrics(result.data);
+      })
+      .catch((requestError) => {
+        if (!controller.signal.aborted) {
+          setMetricsError(requestError.message || 'Error al obtener métricas');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setMetricsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [metricsRequestKey]);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
@@ -181,6 +220,60 @@ function SpecialtiesPage() {
     },
   ];
 
+  const totalSpecialtiesValue = metricsLoading
+    ? '—'
+    : (metrics?.totalSpecialties ?? page.total ?? '—');
+
+  const totalSpecialtiesDetail = metricsLoading
+    ? 'Cargando resumen...'
+    : metrics?.quarterlyGrowthCount > 0
+      ? `+${metrics.quarterlyGrowthCount} este trimestre`
+      : 'Sin altas en el trimestre';
+
+  const mostDemandedValue = metricsLoading
+    ? '—'
+    : metrics?.mostDemandedSpecialtyName || 'Sin datos';
+
+  const mostDemandedDetail = metricsLoading
+    ? 'Calculando demanda...'
+    : metrics?.mostDemandedAppointmentsCount > 0
+      ? `${metrics.mostDemandedPercentage}% del total de turnos`
+      : 'Sin turnos registrados';
+
+  const newThisMonthValue = metricsLoading
+    ? '—'
+    : (metrics?.newThisMonthCount ?? '—');
+
+  const newThisMonthDetail = metricsLoading
+    ? 'Cargando altas...'
+    : metrics?.newThisMonthNames?.length > 0
+      ? metrics.newThisMonthNames.join(', ')
+      : 'Sin altas este mes';
+
+  const metricCards = [
+    {
+      id: 'total-specialties',
+      icon: ICONS.grid,
+      label: 'TOTAL ESPECIALIDADES',
+      value: totalSpecialtiesValue,
+      detail: totalSpecialtiesDetail,
+    },
+    {
+      id: 'most-demanded',
+      icon: ICONS.heart,
+      label: 'MÁS DEMANDADA',
+      value: mostDemandedValue,
+      detail: mostDemandedDetail,
+    },
+    {
+      id: 'new-this-month',
+      icon: ICONS.appointments,
+      label: 'NUEVAS ESTE MES',
+      value: newThisMonthValue,
+      detail: newThisMonthDetail,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       {/* Encabezado con título y botón de acción */}
@@ -205,52 +298,41 @@ function SpecialtiesPage() {
       </div>
 
       {/* Tarjetas métricas de resumen */}
+      {metricsError && (
+        <div className="flex flex-col items-start gap-2">
+          <button
+            type="button"
+            className="text-xs font-semibold text-med-primary-700 underline"
+            onClick={() => setMetricsRequestKey((key) => key + 1)}
+          >
+            Reintentar carga de métricas
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="flex items-center gap-4 p-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-med-primary-100 text-med-primary-700">
-            <Icon icon={ICONS.medicalFile} size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-med-text-sub uppercase tracking-wider">
-              Total Especialidades
-            </p>
-            <p className="text-2xl font-bold text-med-primary-900">
-              {isLoading ? '…' : page.total}
-            </p>
-          </div>
-        </Card>
+        {metricCards.map((card) => (
+          <Card
+            key={card.id}
+            className="flex flex-col justify-between gap-3 p-5"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-50 text-med-primary-700">
+                <Icon icon={card.icon} size={20} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-med-text-sub">
+                {card.label}
+              </span>
+            </div>
 
-        <Card className="flex items-center gap-4 p-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-            <Icon icon={ICONS.heart} size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-med-text-sub uppercase tracking-wider">
-              Más Demandada
-            </p>
-            <p className="text-lg font-bold text-med-primary-900">
-              Cardiología
-            </p>
-          </div>
-        </Card>
-
-        <Card className="flex items-center gap-4 p-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-            <Icon icon={ICONS.shieldCheck} size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-med-text-sub uppercase tracking-wider">
-              Catálogo Clínico
-            </p>
-            <p className="text-lg font-bold text-med-primary-900">
-              {isLoading
-                ? '…'
-                : page.data.length > 0
-                  ? `${page.data.filter((s) => s.isActive !== false).length} / ${page.data.length} Activas`
-                  : 'Catálogo al día'}
-            </p>
-          </div>
-        </Card>
+            <div>
+              <p className="text-2xl font-extrabold text-med-primary-900">
+                {card.value}
+              </p>
+              <p className="mt-1 text-xs text-med-text-sub">{card.detail}</p>
+            </div>
+          </Card>
+        ))}
       </div>
 
       {/* Tabla de Registros usando DataTable */}

@@ -4,6 +4,7 @@ const SPECIALTIES_API_ROUTES = {
   update: (id) => `/api/specialties/${id}`,
   delete: (id) => `/api/specialties/${id}`,
   status: (id) => `/api/specialties/${id}/status`,
+  metrics: '/api/specialties/metrics',
 };
 
 export { SPECIALTIES_API_ROUTES };
