@@ -7,10 +7,10 @@ import {
 } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
 import Icon from '../../shared/components/Icon';
-import IconButton from '../../shared/components/IconButton';
-import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
@@ -26,22 +26,23 @@ import { getDoctors } from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 const WEEK_DAYS = [
-  { value: 'Lunes', label: 'Lunes' },
-  { value: 'Martes', label: 'Martes' },
-  { value: 'Miércoles', label: 'Miércoles' },
-  { value: 'Jueves', label: 'Jueves' },
-  { value: 'Viernes', label: 'Viernes' },
-  { value: 'Sábado', label: 'Sábado' },
-  { value: 'Domingo', label: 'Domingo' },
+  { key: 'Lunes', label: 'Lunes' },
+  { key: 'Martes', label: 'Martes' },
+  { key: 'Miércoles', label: 'Miércoles' },
+  { key: 'Jueves', label: 'Jueves' },
+  { key: 'Viernes', label: 'Viernes' },
+  { key: 'Sábado', label: 'Sábado' },
+  { key: 'Domingo', label: 'Domingo' },
 ];
 
-function createEmptyBlock() {
-  return {
-    id: crypto.randomUUID(),
-    day: 'Lunes',
-    startTime: '09:00',
-    endTime: '13:00',
-  };
+function buildDefaultSchedule() {
+  return WEEK_DAYS.map(({ key, label }) => ({
+    day: key,
+    label,
+    active: key !== 'Sábado' && key !== 'Domingo',
+    startTime: '08:00',
+    endTime: '16:00',
+  }));
 }
 
 function toTimeSpanString(timeValue) {
@@ -51,27 +52,24 @@ function toTimeSpanString(timeValue) {
 function DoctorSchedulePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const doctorId = searchParams.get('doctorId');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const doctorIdParam = searchParams.get('doctorId');
 
-  const [doctor, setDoctor] = useState(location.state?.doctor || null);
-  const [isLoadingDoctor, setIsLoadingDoctor] = useState(
-    !location.state?.doctor
+  const [doctors, setDoctors] = useState(
+    location.state?.doctor ? [location.state.doctor] : []
   );
-  const [blocks, setBlocks] = useState([createEmptyBlock()]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(doctorIdParam || '');
+
+  const [schedule, setSchedule] = useState(buildDefaultSchedule);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
-    if (!doctorId || location.state?.doctor) {
-      setIsLoadingDoctor(false);
-
-      return;
-    }
-
     const controller = new AbortController();
 
-    setIsLoadingDoctor(true);
+    setIsLoadingDoctors(true);
+    setApiError('');
 
     getDoctors(controller.signal)
       .then(({ data, error }) => {
@@ -83,73 +81,80 @@ function DoctorSchedulePage() {
           return;
         }
 
-        const found = data?.find((d) => String(d.id) === String(doctorId));
+        const list = Array.isArray(data) ? data : [];
 
-        if (found) {
-          setDoctor(found);
-        } else {
-          setApiError('No se encontró el profesional especificado.');
+        setDoctors(list);
+
+        if (list.length > 0) {
+          const matched =
+            doctorIdParam && list.some((d) => d.id === doctorIdParam);
+          const initialId = matched ? doctorIdParam : list[0].id;
+
+          setSelectedDoctorId(initialId);
+
+          if (initialId !== doctorIdParam) {
+            setSearchParams({ doctorId: initialId }, { replace: true });
+          }
         }
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setIsLoadingDoctor(false);
+          setIsLoadingDoctors(false);
         }
       });
 
     return () => controller.abort();
-  }, [doctorId, location.state]);
+  }, [doctorIdParam, setSearchParams]);
 
-  const handleBlockChange = (blockId, field, value) => {
-    setBlocks((prev) =>
-      prev.map((block) =>
-        block.id === blockId ? { ...block, [field]: value } : block
+  const handleDoctorChange = (event) => {
+    const newId = event.target.value;
+
+    setSelectedDoctorId(newId);
+    setSearchParams({ doctorId: newId });
+  };
+
+  const handleToggleDay = (index) => {
+    setSchedule((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, active: !item.active } : item
       )
     );
   };
 
-  const handleAddBlock = () => {
-    setBlocks((prev) => [...prev, createEmptyBlock()]);
-  };
-
-  const handleRemoveBlock = (blockId) => {
-    setBlocks((prev) =>
-      prev.length > 1 ? prev.filter((block) => block.id !== blockId) : prev
+  const handleTimeChange = (index, field, value) => {
+    setSchedule((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, [field]: value } : item
+      )
     );
   };
 
-  const validateBlocks = () => {
-    if (blocks.length === 0) {
-      setApiError('Debe agregar al menos una franja horaria.');
-
-      return false;
-    }
-
-    for (const block of blocks) {
-      if (!block.day || !block.startTime || !block.endTime) {
-        setApiError(
-          'Complete día, hora de inicio y hora de fin en todas las franjas.'
-        );
-
-        return false;
-      }
-
-      if (block.startTime >= block.endTime) {
-        setApiError(
-          `En "${block.day}", la hora de inicio debe ser anterior a la hora de fin.`
-        );
-
-        return false;
-      }
-    }
-
+  const handleSave = async (overwrite = false) => {
     setApiError('');
 
-    return true;
-  };
+    if (!selectedDoctorId) {
+      setApiError('Debe seleccionar un profesional médico.');
 
-  const handleSubmit = async (overwrite) => {
-    if (!doctorId || !validateBlocks()) return;
+      return;
+    }
+
+    const activeDays = schedule.filter((d) => d.active);
+
+    if (activeDays.length === 0) {
+      setApiError('Debe activar al menos un día de atención semanal.');
+
+      return;
+    }
+
+    for (const dayItem of activeDays) {
+      if (dayItem.startTime >= dayItem.endTime) {
+        setApiError(
+          `En el día ${dayItem.label}, el horario de entrada (${dayItem.startTime}) debe ser anterior al de salida (${dayItem.endTime}).`
+        );
+
+        return;
+      }
+    }
 
     if (overwrite) {
       const confirmed = await confirmAction(
@@ -160,14 +165,13 @@ function DoctorSchedulePage() {
     }
 
     setIsSubmitting(true);
-    setApiError('');
 
     const payload = {
-      doctorId,
-      days: blocks.map((block) => ({
-        day: block.day,
-        startTime: toTimeSpanString(block.startTime),
-        endTime: toTimeSpanString(block.endTime),
+      doctorId: selectedDoctorId,
+      days: activeDays.map((dayItem) => ({
+        day: dayItem.day,
+        startTime: toTimeSpanString(dayItem.startTime),
+        endTime: toTimeSpanString(dayItem.endTime),
       })),
     };
 
@@ -185,18 +189,34 @@ function DoctorSchedulePage() {
     }
 
     const generatedCount = Array.isArray(result.data) ? result.data.length : 0;
+    const doctorName = selectedDoctor?.name || 'el profesional';
 
     showSuccess(
       overwrite
-        ? `Disponibilidad actualizada (${generatedCount} turnos generados para el mes).`
-        : `Disponibilidad generada (${generatedCount} turnos creados para el mes).`
+        ? `Disponibilidad actualizada para ${doctorName} (${generatedCount} turnos generados).`
+        : `Disponibilidad configurada para ${doctorName} (${generatedCount} turnos creados).`
     );
 
     navigate(ROUTES.adminDoctors);
   };
 
+  const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
+
+  const doctorOptions = [
+    {
+      value: '',
+      label: isLoadingDoctors
+        ? 'Cargando doctores…'
+        : 'Seleccione un profesional',
+    },
+    ...doctors.map((doc) => ({
+      value: doc.id,
+      label: `${doc.name}${doc.specialty?.name ? ` - ${doc.specialty.name}` : ''}`,
+    })),
+  ];
+
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <nav
           className="flex items-center gap-2 text-xs text-med-text-muted"
@@ -211,178 +231,247 @@ function DoctorSchedulePage() {
           </Link>
           <span>/</span>
           <span className="font-medium text-med-primary-900">
-            Horarios de Atención
+            Disponibilidad Horaria
           </span>
         </nav>
 
         <h1 className="text-2xl font-bold tracking-tight text-med-text-main sm:text-3xl">
-          Configurar Horarios del Profesional
+          Gestionar Disponibilidad Horaria
         </h1>
         <p className="text-sm text-med-text-sub">
-          Defina los días y franjas horarias para generar los turnos disponibles
-          del mes actual.
+          Defina los días y rangos horarios de atención para el profesional
+          seleccionado.
         </p>
       </div>
 
-      <Card className="p-6">
-        {isLoadingDoctor ? (
-          <p className="p-6 text-sm text-med-text-sub" role="status">
-            Cargando información del profesional…
-          </p>
-        ) : !doctorId ? (
-          <p className="text-sm text-red-600">
-            No se especificó el profesional a configurar.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {doctor && (
-              <div className="flex items-center gap-4 rounded-xl bg-med-primary-50/60 px-4 py-3 border border-med-primary-100">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-med-primary-700 text-xs font-bold text-white shadow-sm">
-                  {getDoctorInitials(doctor.name)}
+      {apiError && (
+        <div
+          className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200"
+          role="alert"
+        >
+          {apiError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Columna Izquierda: Selección de profesional y ficha */}
+        <div className="flex flex-col gap-6 lg:col-span-4">
+          <Card className="flex flex-col gap-4 p-5">
+            <FormField
+              id="select-doctor-availability"
+              label="Seleccionar Profesional"
+              labelClassName="text-xs font-bold uppercase tracking-wider text-med-text-sub"
+            >
+              {(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  value={selectedDoctorId}
+                  onChange={handleDoctorChange}
+                  options={doctorOptions}
+                  disabled={isLoadingDoctors || isSubmitting}
+                  className="text-xs"
+                />
+              )}
+            </FormField>
+
+            {selectedDoctor ? (
+              <div className="mt-1 flex items-center gap-3.5 rounded-xl border border-[#bae0fd] bg-[#e0f2fe]/70 p-4 shadow-xs">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-med-primary-700 text-xs font-bold text-white shadow-xs">
+                  {getDoctorInitials(selectedDoctor.name)}
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-med-primary-900 truncate">
-                    {doctor.name}
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-bold text-med-primary-900">
+                    {selectedDoctor.name}
+                  </h3>
+                  <p className="text-xs font-mono text-med-text-sub">
+                    Matrícula: {selectedDoctor.licenseNumber || 'Sin matrícula'}
                   </p>
-                  <p className="text-xs text-med-text-sub truncate">
-                    Matrícula: {doctor.licenseNumber} ·{' '}
-                    {doctor.specialty?.name ?? 'Sin especialidad'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {apiError && (
-              <div
-                className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200"
-                role="alert"
-              >
-                {apiError}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-bold text-med-primary-900">
-                    Franjas Horarias Semanales
-                  </h2>
-                  <p className="text-xs text-med-text-sub">
-                    Cada franja genera bloques de turnos automáticos dentro del
-                    mes en curso.
+                  <p className="text-xs font-medium text-med-primary-700">
+                    {selectedDoctor.specialty?.name || 'Sin especialidad'}
                   </p>
                 </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddBlock}
-                  className="text-xs py-2 px-3 flex items-center gap-1.5"
-                >
-                  <Icon icon={ICONS.add} size={14} />
-                  <span>Agregar franja</span>
-                </Button>
               </div>
+            ) : (
+              !isLoadingDoctors && (
+                <p className="text-xs text-med-text-muted italic">
+                  Seleccione un médico del listado para configurar su horario.
+                </p>
+              )
+            )}
+          </Card>
 
-              <div className="flex flex-col gap-3">
-                {blocks.map((block) => (
-                  <div
-                    key={block.id}
-                    className="grid grid-cols-1 gap-3 rounded-xl border border-med-border bg-med-bg/40 p-3 sm:grid-cols-12 sm:items-end"
-                  >
-                    <div className="sm:col-span-5">
-                      <label className="mb-1 block text-xs font-semibold text-med-text-sub">
-                        Día de la semana
-                      </label>
-                      <Select
-                        value={block.day}
-                        onChange={(e) =>
-                          handleBlockChange(block.id, 'day', e.target.value)
-                        }
-                        options={WEEK_DAYS}
-                        className="py-2 text-xs"
-                      />
-                    </div>
+          <div className="flex items-start gap-3 rounded-xl border border-med-border bg-white p-4 shadow-xs">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-med-primary-50 text-med-primary-700 font-bold text-xs">
+              i
+            </div>
+            <p className="text-xs leading-relaxed text-med-text-sub">
+              Los cambios generan los turnos disponibles para el mes en curso.
+              Al usar &ldquo;Sobrescribir Mes&rdquo;, los turnos ya reservados
+              por pacientes no se verán afectados.
+            </p>
+          </div>
+        </div>
 
-                    <div className="sm:col-span-3">
-                      <label className="mb-1 block text-xs font-semibold text-med-text-sub">
-                        Hora inicio
-                      </label>
-                      <Input
-                        type="time"
-                        value={block.startTime}
-                        onChange={(e) =>
-                          handleBlockChange(
-                            block.id,
-                            'startTime',
-                            e.target.value
-                          )
-                        }
-                        className="py-2 text-xs"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-3">
-                      <label className="mb-1 block text-xs font-semibold text-med-text-sub">
-                        Hora fin
-                      </label>
-                      <Input
-                        type="time"
-                        value={block.endTime}
-                        onChange={(e) =>
-                          handleBlockChange(block.id, 'endTime', e.target.value)
-                        }
-                        className="py-2 text-xs"
-                      />
-                    </div>
-
-                    <div className="flex justify-end sm:col-span-1">
-                      <IconButton
-                        type="button"
-                        icon={ICONS.delete}
-                        label="Quitar franja"
-                        variant="ghost"
-                        disabled={blocks.length === 1}
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => handleRemoveBlock(block.id)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* Columna Derecha: Grilla semanal */}
+        <div className="lg:col-span-8">
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-med-border p-5">
+              <h2 className="text-base font-bold text-med-primary-900">
+                Configuración de Horarios Semanales
+              </h2>
+              <p className="mt-0.5 text-xs text-med-text-sub">
+                Active los días laborales y defina el rango horario de entrada y
+                salida.
+              </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-med-border-subtle">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-med-border bg-med-primary-50/40 text-xs font-bold uppercase text-med-text-sub">
+                  <tr>
+                    <th className="px-6 py-3.5">Día</th>
+                    <th className="px-6 py-3.5">Estado</th>
+                    <th className="px-6 py-3.5">Entrada</th>
+                    <th className="px-6 py-3.5">Salida</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-med-border-subtle">
+                  {schedule.map((dayItem, idx) => {
+                    const isActive = dayItem.active;
+
+                    return (
+                      <tr
+                        key={dayItem.day}
+                        className={
+                          isActive
+                            ? 'bg-white transition-colors'
+                            : 'bg-gray-50/80 transition-colors'
+                        }
+                      >
+                        <td className="px-6 py-4">
+                          <span
+                            className={`font-semibold ${
+                              isActive
+                                ? 'text-med-primary-900'
+                                : 'text-med-text-muted'
+                            }`}
+                          >
+                            {dayItem.label}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2.5">
+                            <ToggleSwitch
+                              checked={isActive}
+                              onChange={() => handleToggleDay(idx)}
+                              disabled={isSubmitting}
+                              label={`Alternar disponibilidad del día ${dayItem.label}`}
+                            />
+                            <span
+                              className={`text-xs font-semibold ${
+                                isActive
+                                  ? 'text-med-primary-900'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {isActive ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          {isActive ? (
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="time"
+                                value={dayItem.startTime}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    idx,
+                                    'startTime',
+                                    e.target.value
+                                  )
+                                }
+                                disabled={isSubmitting}
+                                className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                              />
+                              <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
+                                <Icon icon={ICONS.clock} size={14} />
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
+                              --:-- --
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4">
+                          {isActive ? (
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="time"
+                                value={dayItem.endTime}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    idx,
+                                    'endTime',
+                                    e.target.value
+                                  )
+                                }
+                                disabled={isSubmitting}
+                                className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                              />
+                              <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
+                                <Icon icon={ICONS.clock} size={14} />
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
+                              --:-- --
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-med-border bg-med-bg/20 p-5">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate(ROUTES.adminDoctors)}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 text-sm"
               >
                 Cancelar
               </Button>
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => handleSubmit(true)}
-                disabled={isSubmitting}
-                className="px-5 py-2.5 text-sm"
+                onClick={() => handleSave(true)}
+                disabled={isSubmitting || !selectedDoctor}
               >
                 Sobrescribir Mes
               </Button>
               <Button
                 type="button"
-                onClick={() => handleSubmit(false)}
-                disabled={isSubmitting}
-                className="px-6 py-2.5 text-sm font-semibold shadow-sm"
+                onClick={() => handleSave(false)}
+                disabled={isSubmitting || !selectedDoctor}
+                className="flex items-center gap-2"
               >
-                {isSubmitting ? 'Generando…' : 'Generar Disponibilidad'}
+                <Icon icon={ICONS.appointments} size={16} />
+                <span>
+                  {isSubmitting ? 'Guardando…' : 'Guardar Disponibilidad'}
+                </span>
               </Button>
             </div>
-          </div>
-        )}
-      </Card>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
