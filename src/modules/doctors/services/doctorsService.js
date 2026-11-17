@@ -9,7 +9,13 @@ async function getDoctorsPage(
 ) {
   try {
     const response = await instance.get(DOCTORS_API_ROUTES.list, {
-      params: { pageSize, pageIndex, name, specialtyId },
+      params: {
+        pageSize,
+        pageIndex,
+        name,
+        specialtyId,
+        includeInactive: true,
+      },
       signal,
     });
 
@@ -115,6 +121,18 @@ async function deleteDoctor(id) {
   }
 }
 
+async function setDoctorStatus(id, isActive) {
+  try {
+    const response = await instance.put(DOCTORS_API_ROUTES.status(id), {
+      isActive,
+    });
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
   createDoctor,
   deleteDoctor,
@@ -122,5 +140,6 @@ export {
   getDoctorOptions,
   getDoctors,
   getDoctorsPage,
+  setDoctorStatus,
   updateDoctor,
 };

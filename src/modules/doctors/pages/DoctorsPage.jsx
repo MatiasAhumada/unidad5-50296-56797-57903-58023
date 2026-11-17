@@ -7,6 +7,7 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
@@ -16,7 +17,7 @@ import {
 } from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
-import { deleteDoctor, getDoctorsPage } from '../services/doctorsService';
+import { getDoctorsPage, setDoctorStatus } from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 function DoctorsPage() {
@@ -94,22 +95,31 @@ function DoctorsPage() {
     setPageIndex(1);
   };
 
-  const handleDelete = async (doctor) => {
+  const handleToggleStatus = async (doctor) => {
+    const currentlyActive = doctor.isActive !== false;
+    const actionVerb = currentlyActive ? 'desactivar' : 'activar';
     const confirmed = await confirmAction(
-      `¿Está seguro de que desea dar de baja al profesional "${doctor.name}"?`
+      `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`
     );
 
     if (!confirmed) return;
 
-    const { error: deleteError } = await deleteDoctor(doctor.id);
+    const { error: statusError } = await setDoctorStatus(
+      doctor.id,
+      !currentlyActive
+    );
 
-    if (deleteError) {
-      showError(deleteError.message);
+    if (statusError) {
+      showError(statusError.message);
 
       return;
     }
 
-    showSuccess(`Profesional "${doctor.name}" dado de baja correctamente.`);
+    showSuccess(
+      currentlyActive
+        ? `Profesional "${doctor.name}" desactivado correctamente.`
+        : `Profesional "${doctor.name}" reactivado exitosamente.`
+    );
     setRequestKey((key) => key + 1);
   };
 
@@ -146,6 +156,22 @@ function DoctorsPage() {
         </span>
       ),
     },
+    {
+      id: 'status',
+      header: 'Estado',
+      headerClassName: 'text-center',
+      cellClassName: 'text-center',
+      render: (doctor) =>
+        doctor.isActive !== false ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Activo
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+            Inactivo
+          </span>
+        ),
+    },
   ];
 
   const rowActions = [
@@ -159,11 +185,16 @@ function DoctorsPage() {
         }),
     },
     {
-      id: 'delete',
-      label: 'Dar de baja',
-      icon: ICONS.delete,
-      className: 'text-red-600 hover:bg-red-50 hover:text-red-700',
-      onClick: handleDelete,
+      id: 'toggleStatus',
+      label: (row) => (row.isActive !== false ? 'Desactivar' : 'Activar'),
+      render: (row, { disabled, label }) => (
+        <ToggleSwitch
+          checked={row.isActive !== false}
+          onChange={() => handleToggleStatus(row)}
+          disabled={disabled}
+          label={label}
+        />
+      ),
     },
   ];
 
