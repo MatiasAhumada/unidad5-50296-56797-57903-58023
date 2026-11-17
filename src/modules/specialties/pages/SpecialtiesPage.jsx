@@ -25,6 +25,7 @@ function SpecialtiesPage() {
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
 
@@ -108,21 +109,27 @@ function SpecialtiesPage() {
     setPageIndex(1);
   };
 
-  const handleToggleStatus = (specialty) => {
+  const handleToggleStatus = async (specialty) => {
     const currentlyActive = specialty.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
 
-    return toggleEntityStatus({
-      currentlyActive,
-      confirmMessage: `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`,
-      activatedMessage: `Especialidad "${specialty.name}" reactivada exitosamente.`,
-      deactivatedMessage: `Especialidad "${specialty.name}" desactivada correctamente.`,
-      onToggle: (nextActive) => setSpecialtyStatus(specialty.id, nextActive),
-      onSuccess: () => {
-        setRequestKey((key) => key + 1);
-        setMetricsRequestKey((key) => key + 1);
-      },
-    });
+    setUpdatingId(specialty.id);
+
+    try {
+      await toggleEntityStatus({
+        currentlyActive,
+        confirmMessage: `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`,
+        activatedMessage: `Especialidad "${specialty.name}" reactivada exitosamente.`,
+        deactivatedMessage: `Especialidad "${specialty.name}" desactivada correctamente.`,
+        onToggle: (nextActive) => setSpecialtyStatus(specialty.id, nextActive),
+        onSuccess: () => {
+          setRequestKey((key) => key + 1);
+          setMetricsRequestKey((key) => key + 1);
+        },
+      });
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const columns = [
@@ -163,8 +170,9 @@ function SpecialtiesPage() {
   const rowActions = [
     {
       id: 'edit',
-      label: 'Editar',
+      label: (row) => `Editar ${row.name}`,
       icon: ICONS.edit,
+      isDisabled: () => isLoading,
       onClick: (row) =>
         navigate(`${ROUTES.adminSpecialtyCreate}?specialtyId=${row.id}`, {
           state: { specialty: row },
@@ -172,7 +180,11 @@ function SpecialtiesPage() {
     },
     {
       id: 'toggleStatus',
-      label: (row) => (row.isActive !== false ? 'Desactivar' : 'Activar'),
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
+      isDisabled: (row) => isLoading || updatingId === row.id,
       render: (row, { disabled, label }) => (
         <ToggleSwitch
           checked={row.isActive !== false}
@@ -339,7 +351,7 @@ function SpecialtiesPage() {
         error={error}
         onRetry={() => setRequestKey((key) => key + 1)}
         pagination={{
-          pageIndex: page.pageIndex || pageIndex,
+          pageIndex,
           pageSize: page.pageSize || 10,
           total: page.total || 0,
           onPageChange: setPageIndex,
