@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -46,6 +46,7 @@ function DoctorSchedulePage() {
   const [schedule, setSchedule] = useState(() =>
     buildScheduleFromAvailabilities()
   );
+  const isSubmittingRef = useRef(false);
   const [hasExistingAvailability, setHasExistingAvailability] = useState(false);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,6 +151,8 @@ function DoctorSchedulePage() {
   };
 
   const handleSave = async () => {
+    if (isSubmitting || isSubmittingRef.current) return;
+
     setApiError('');
 
     if (!selectedDoctorId) {
@@ -176,32 +179,38 @@ function DoctorSchedulePage() {
       }
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     const payload = buildAvailabilityPayload(selectedDoctorId, activeDays);
 
-    const result = hasExistingAvailability
-      ? await updateDoctorAvailability(payload)
-      : await createDoctorAvailability(payload);
+    try {
+      const result = hasExistingAvailability
+        ? await updateDoctorAvailability(payload)
+        : await createDoctorAvailability(payload);
 
-    setIsSubmitting(false);
+      if (result.error) {
+        setApiError(result.error.message);
+        showError(result.error.message);
 
-    if (result.error) {
-      setApiError(result.error.message);
-      showError(result.error.message);
+        return;
+      }
 
-      return;
+      setHasExistingAvailability(true);
+      const generatedCount = Array.isArray(result.data)
+        ? result.data.length
+        : 0;
+      const doctorName = selectedDoctor?.name || 'el profesional';
+
+      showSuccess(
+        `Disponibilidad guardada para ${doctorName} (${generatedCount} turnos generados para el mes).`
+      );
+
+      navigate(ROUTES.adminDoctors);
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    setHasExistingAvailability(true);
-    const generatedCount = Array.isArray(result.data) ? result.data.length : 0;
-    const doctorName = selectedDoctor?.name || 'el profesional';
-
-    showSuccess(
-      `Disponibilidad guardada para ${doctorName} (${generatedCount} turnos generados para el mes).`
-    );
-
-    navigate(ROUTES.adminDoctors);
   };
 
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);

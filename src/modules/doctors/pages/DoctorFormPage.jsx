@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -40,6 +40,7 @@ function DoctorFormPage() {
     specialtyId: initialDoctor?.specialty?.id || '',
   });
 
+  const isSubmittingRef = useRef(false);
   const [specialties, setSpecialties] = useState([]);
   const [specialtiesLoading, setSpecialtiesLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -156,8 +157,11 @@ function DoctorFormPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (isSubmitting || isSubmittingRef.current) return;
+
     if (!validate()) return;
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setApiError('');
 
@@ -167,26 +171,29 @@ function DoctorFormPage() {
       specialtyId: formData.specialtyId,
     };
 
-    const result = isEdit
-      ? await updateDoctor(doctorId, payload)
-      : await createDoctor(payload);
+    try {
+      const result = isEdit
+        ? await updateDoctor(doctorId, payload)
+        : await createDoctor(payload);
 
-    setIsSubmitting(false);
+      if (result.error) {
+        setApiError(result.error.message);
+        showError(result.error.message);
 
-    if (result.error) {
-      setApiError(result.error.message);
-      showError(result.error.message);
+        return;
+      }
 
-      return;
+      showSuccess(
+        isEdit
+          ? `Profesional "${payload.name}" actualizado con éxito.`
+          : `Profesional "${payload.name}" agregado con éxito.`
+      );
+
+      navigate(ROUTES.adminDoctors);
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    showSuccess(
-      isEdit
-        ? `Profesional "${payload.name}" actualizado con éxito.`
-        : `Profesional "${payload.name}" agregado con éxito.`
-    );
-
-    navigate(ROUTES.adminDoctors);
   };
 
   const specialtyOptions = [
@@ -271,73 +278,60 @@ function DoctorFormPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <FormField id="doctor-name" label="Nombre Completo" required>
-                  {(fieldProps) => (
-                    <Input
-                      {...fieldProps}
-                      value={formData.name}
-                      onChange={handleFieldChange('name')}
-                      placeholder="Ej. Dra. María González"
-                      error={Boolean(formErrors.name)}
-                      className="py-2.5 px-3 text-sm"
-                    />
-                  )}
-                </FormField>
-                {formErrors.name && (
-                  <p className="text-xs font-medium text-red-600">
-                    {formErrors.name}
-                  </p>
+              <FormField
+                id="doctor-name"
+                label="Nombre Completo"
+                error={formErrors.name}
+                className="sm:col-span-2"
+                required
+              >
+                {(fieldProps) => (
+                  <Input
+                    {...fieldProps}
+                    value={formData.name}
+                    onChange={handleFieldChange('name')}
+                    placeholder="Ej. Dra. María González"
+                    error={Boolean(formErrors.name)}
+                    className="py-2.5 px-3 text-sm"
+                  />
                 )}
-              </div>
+              </FormField>
 
-              <div className="flex flex-col gap-1.5">
-                <FormField
-                  id="doctor-license"
-                  label="Matrícula Profesional"
-                  required
-                >
-                  {(fieldProps) => (
-                    <Input
-                      {...fieldProps}
-                      value={formData.licenseNumber}
-                      onChange={handleFieldChange('licenseNumber')}
-                      placeholder="Ej. MP-45821"
-                      error={Boolean(formErrors.licenseNumber)}
-                      className="py-2.5 px-3 text-sm"
-                    />
-                  )}
-                </FormField>
-                {formErrors.licenseNumber && (
-                  <p className="text-xs font-medium text-red-600">
-                    {formErrors.licenseNumber}
-                  </p>
+              <FormField
+                id="doctor-license"
+                label="Matrícula Profesional"
+                error={formErrors.licenseNumber}
+                required
+              >
+                {(fieldProps) => (
+                  <Input
+                    {...fieldProps}
+                    value={formData.licenseNumber}
+                    onChange={handleFieldChange('licenseNumber')}
+                    placeholder="Ej. MP-45821"
+                    error={Boolean(formErrors.licenseNumber)}
+                    className="py-2.5 px-3 text-sm"
+                  />
                 )}
-              </div>
+              </FormField>
 
-              <div className="flex flex-col gap-1.5">
-                <FormField
-                  id="doctor-specialty"
-                  label="Especialidad Médica"
-                  required
-                >
-                  {(fieldProps) => (
-                    <Select
-                      {...fieldProps}
-                      value={formData.specialtyId}
-                      onChange={handleFieldChange('specialtyId')}
-                      options={specialtyOptions}
-                      disabled={specialtiesLoading}
-                      error={Boolean(formErrors.specialtyId)}
-                    />
-                  )}
-                </FormField>
-                {formErrors.specialtyId && (
-                  <p className="text-xs font-medium text-red-600">
-                    {formErrors.specialtyId}
-                  </p>
+              <FormField
+                id="doctor-specialty"
+                label="Especialidad Médica"
+                error={formErrors.specialtyId}
+                required
+              >
+                {(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    value={formData.specialtyId}
+                    onChange={handleFieldChange('specialtyId')}
+                    options={specialtyOptions}
+                    disabled={specialtiesLoading}
+                    error={Boolean(formErrors.specialtyId)}
+                  />
                 )}
-              </div>
+              </FormField>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-6 border-t border-med-border-subtle">
