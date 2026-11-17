@@ -61,7 +61,7 @@ function DataTable({
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && rows.length === 0 ? (
         <p className="p-5 text-sm text-med-text-sub" role="status">
           {loadingMessage}
         </p>
@@ -82,6 +82,11 @@ function DataTable({
         <p className="p-5 text-sm text-med-text-sub">{emptyMessage}</p>
       ) : (
         <>
+          {isLoading && (
+            <p className="sr-only" role="status">
+              Actualizando registros…
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-med-border bg-med-primary-50/70 text-[11px] uppercase tracking-wider text-med-text-sub">

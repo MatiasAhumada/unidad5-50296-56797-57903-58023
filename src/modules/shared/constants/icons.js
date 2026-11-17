@@ -1,4 +1,5 @@
 import {
+  Add01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Baby01Icon,
@@ -30,6 +31,7 @@ import {
 
 // Catálogo acotado de iconos usados por la app; los imports individuales permiten tree-shaking.
 export const ICONS = {
+  add: Add01Icon,
   appointments: CalendarCheckInIcon,
   baby: Baby01Icon,
   brain: BrainIcon,
