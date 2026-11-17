@@ -255,7 +255,6 @@ function DoctorsPage() {
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
           <Button
             type="button"
-            variant="secondary"
             onClick={() => navigate(ROUTES.adminDoctorSchedule)}
             className="flex items-center gap-2 shadow-sm"
           >
