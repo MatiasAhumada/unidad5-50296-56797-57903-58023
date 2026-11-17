@@ -4,7 +4,7 @@ import { instance } from '../../shared/api/axiosInstance';
 import { DOCTORS_API_ROUTES } from '../constants/apiRoutes';
 
 async function getDoctorsPage(
-  { pageSize = 10, pageIndex = 1, name, specialtyId },
+  { pageSize = 10, pageIndex = 1, name, specialtyId, includeInactive = true },
   signal
 ) {
   try {
@@ -14,7 +14,7 @@ async function getDoctorsPage(
         pageIndex,
         name,
         specialtyId,
-        includeInactive: true,
+        includeInactive,
       },
       signal,
     });

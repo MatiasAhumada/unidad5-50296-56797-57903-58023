@@ -24,6 +24,7 @@ function DoctorsPage() {
   const [specialties, setSpecialties] = useState([]);
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
+  const [activeDoctorsCount, setActiveDoctorsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
@@ -48,16 +49,31 @@ function DoctorsPage() {
     setIsLoading(true);
     setError('');
 
-    getDoctorsPage(
-      {
-        pageSize: 10,
-        pageIndex,
-        name: searchTerm.trim() || undefined,
-        specialtyId: specialtyId || undefined,
-      },
-      controller.signal
-    )
-      .then((result) => {
+    const trimmedName = searchTerm.trim() || undefined;
+    const activeSpecialtyId = specialtyId || undefined;
+
+    Promise.all([
+      getDoctorsPage(
+        {
+          pageSize: 10,
+          pageIndex,
+          name: trimmedName,
+          specialtyId: activeSpecialtyId,
+        },
+        controller.signal
+      ),
+      getDoctorsPage(
+        {
+          pageSize: 1,
+          pageIndex: 1,
+          name: trimmedName,
+          specialtyId: activeSpecialtyId,
+          includeInactive: false,
+        },
+        controller.signal
+      ),
+    ])
+      .then(([result, activeResult]) => {
         if (controller.signal.aborted) return;
 
         if (result.error) {
@@ -67,6 +83,10 @@ function DoctorsPage() {
         }
 
         setPage(result.data);
+        setActiveDoctorsCount(
+          activeResult.data?.total ??
+            result.data.data.filter((d) => d.isActive !== false).length
+        );
       })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
@@ -188,10 +208,10 @@ function DoctorsPage() {
       id: 'total-doctors',
       icon: ICONS.doctor,
       label: 'DOCTORES ACTIVOS',
-      value: isLoading ? '—' : page.total,
+      value: isLoading ? '—' : activeDoctorsCount,
       detail: specialtyId
-        ? `Filtrado por ${selectedSpecialtyLabel}`
-        : 'Profesionales disponibles',
+        ? `De ${page.total} en ${selectedSpecialtyLabel}`
+        : `${page.total} registrados en total`,
     },
     {
       id: 'specialties-count',
