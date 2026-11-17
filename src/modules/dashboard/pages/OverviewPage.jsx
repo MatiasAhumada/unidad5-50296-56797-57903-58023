@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Card from '../../shared/components/Card';
+import Button from '../../shared/components/Button';
 import DataTable from '../../shared/components/DataTable';
 import FormField from '../../shared/components/FormField';
 import Icon from '../../shared/components/Icon';
@@ -7,6 +8,7 @@ import Input from '../../shared/components/Input';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
 import { ICONS } from '../../shared/constants/icons';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 
 const PAGE_SIZE = 5;
 
@@ -14,7 +16,6 @@ function OverviewPage() {
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryRequestKey, setSummaryRequestKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [pageIndex, setPageIndex] = useState(1);
   const [doctorsPage, setDoctorsPage] = useState({
@@ -26,6 +27,8 @@ function OverviewPage() {
   const [doctorsError, setDoctorsError] = useState('');
   const [doctorsLoading, setDoctorsLoading] = useState(true);
   const [doctorsRequestKey, setDoctorsRequestKey] = useState(0);
+
+  useNotificationError(summaryError);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,7 +54,7 @@ function OverviewPage() {
       });
 
     return () => controller.abort();
-  }, [summaryRequestKey]);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -131,29 +134,20 @@ function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-med-text-main sm:text-3xl">
-          Vista General de Gestión
-        </h1>
-        <p className="mt-1 text-sm text-med-text-sub">
-          Resumen actualizado del sistema de turnos.
-        </p>
-      </div>
-
-      {summaryError && (
-        <div className="flex flex-col items-start gap-2" role="alert">
-          <p className="text-sm text-red-800">
-            No se pudo cargar el resumen: {summaryError}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-med-text-main sm:text-3xl">
+            Vista General de Gestión
+          </h1>
+          <p className="mt-1 text-sm text-med-text-sub">
+            Resumen actualizado del sistema de turnos.
           </p>
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline focus-visible:outline-2 focus-visible:outline-offset-2"
-            onClick={() => setSummaryRequestKey((key) => key + 1)}
-          >
-            Reintentar resumen
-          </button>
         </div>
-      )}
+        <div className="flex flex-wrap gap-3">
+          <Button>Agregar Nuevo Doctor</Button>
+          <Button variant="secondary">Agregar Nueva Especialidad</Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         {metrics.map((metric) => (
