@@ -140,6 +140,18 @@ function DataTable({
                                 typeof action.label === 'function'
                                   ? action.label(row)
                                   : action.label;
+
+                              if (action.render) {
+                                return (
+                                  <div
+                                    key={action.id}
+                                    className="inline-flex items-center"
+                                  >
+                                    {action.render(row, { disabled, label })}
+                                  </div>
+                                );
+                              }
+
                               const actionIcon =
                                 typeof action.icon === 'function'
                                   ? action.icon(row)

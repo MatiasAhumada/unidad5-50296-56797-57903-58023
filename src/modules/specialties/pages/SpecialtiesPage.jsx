@@ -6,6 +6,7 @@ import DataTable from '../../shared/components/DataTable';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
@@ -162,12 +163,14 @@ function SpecialtiesPage() {
     {
       id: 'toggleStatus',
       label: (row) => (isSpecialtyActive(row) ? 'Desactivar' : 'Activar'),
-      icon: ICONS.checkCircle,
-      className: (row) =>
-        isSpecialtyActive(row)
-          ? '!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border !border-emerald-300'
-          : '!text-gray-400 !bg-gray-100 hover:!bg-gray-200 !border !border-gray-300',
-      onClick: handleToggleStatus,
+      render: (row, { disabled, label }) => (
+        <ToggleSwitch
+          checked={isSpecialtyActive(row)}
+          onChange={() => handleToggleStatus(row)}
+          disabled={disabled}
+          label={label}
+        />
+      ),
     },
   ];
 

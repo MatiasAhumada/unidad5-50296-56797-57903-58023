@@ -26,6 +26,8 @@ import {
   RefreshIcon,
   SearchIcon,
   ShieldCheckIcon,
+  ToggleOffIcon,
+  ToggleOnIcon,
   UserSearch01Icon,
 } from '@hugeicons/core-free-icons';
 
@@ -58,5 +60,7 @@ export const ICONS = {
   refresh: RefreshIcon,
   search: SearchIcon,
   shieldCheck: ShieldCheckIcon,
+  toggleOff: ToggleOffIcon,
+  toggleOn: ToggleOnIcon,
   userSearch: UserSearch01Icon,
 };
