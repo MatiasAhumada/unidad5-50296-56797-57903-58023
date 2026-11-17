@@ -54,6 +54,7 @@ function SpecialtiesPage() {
 
         if (result.error) {
           setError(result.error.message);
+
           return;
         }
 
