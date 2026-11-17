@@ -144,8 +144,17 @@ function OverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button>Agregar Nuevo Doctor</Button>
-          <Button variant="secondary">Agregar Nueva Especialidad</Button>
+          <Button className="inline-flex items-center gap-2">
+            <Icon icon={ICONS.add} size={18} />
+            Agregar Nuevo Doctor
+          </Button>
+          <Button
+            variant="secondary"
+            className="inline-flex items-center gap-2"
+          >
+            <Icon icon={ICONS.hospital} size={18} />
+            Agregar Nueva Especialidad
+          </Button>
         </div>
       </div>
 
