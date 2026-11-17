@@ -133,9 +133,23 @@ async function setDoctorStatus(id, isActive) {
   }
 }
 
+async function getDoctorAvailabilities(doctorId, signal) {
+  try {
+    const response = await instance.get(
+      DOCTORS_API_ROUTES.availabilities(doctorId),
+      { signal }
+    );
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
   createDoctor,
   deleteDoctor,
+  getDoctorAvailabilities,
   getDoctorAvailableSlots,
   getDoctorOptions,
   getDoctors,

@@ -14,7 +14,6 @@ import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import {
-  confirmAction,
   showError,
   showSuccess,
 } from '../../shared/notifications/notifications';
@@ -22,24 +21,34 @@ import {
   createDoctorAvailability,
   updateDoctorAvailability,
 } from '../../availabilities/services/availabilitiesService';
-import { getDoctors } from '../services/doctorsService';
+import {
+  getDoctorAvailabilities,
+  getDoctors,
+} from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 const WEEK_DAYS = [
-  { key: 'Lunes', label: 'Lunes' },
-  { key: 'Martes', label: 'Martes' },
-  { key: 'Miércoles', label: 'Miércoles' },
-  { key: 'Jueves', label: 'Jueves' },
-  { key: 'Viernes', label: 'Viernes' },
-  { key: 'Sábado', label: 'Sábado' },
-  { key: 'Domingo', label: 'Domingo' },
+  { key: 'LUNES', day: 'Lunes', label: 'Lunes' },
+  { key: 'MARTES', day: 'Martes', label: 'Martes' },
+  { key: 'MIERCOLES', day: 'Miércoles', label: 'Miércoles' },
+  { key: 'JUEVES', day: 'Jueves', label: 'Jueves' },
+  { key: 'VIERNES', day: 'Viernes', label: 'Viernes' },
+  { key: 'SABADO', day: 'Sábado', label: 'Sábado' },
+  { key: 'DOMINGO', day: 'Domingo', label: 'Domingo' },
 ];
 
-function buildDefaultSchedule() {
-  return WEEK_DAYS.map(({ key, label }) => ({
-    day: key,
+function normalizeDayKey(value) {
+  return (value || '')
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function buildEmptySchedule() {
+  return WEEK_DAYS.map(({ day, label }) => ({
+    day,
     label,
-    active: key !== 'Sábado' && key !== 'Domingo',
+    active: false,
     startTime: '08:00',
     endTime: '16:00',
   }));
@@ -61,7 +70,9 @@ function DoctorSchedulePage() {
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctorIdParam || '');
 
-  const [schedule, setSchedule] = useState(buildDefaultSchedule);
+  const [schedule, setSchedule] = useState(buildEmptySchedule);
+  const [hasExistingAvailability, setHasExistingAvailability] = useState(false);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
 
@@ -106,6 +117,63 @@ function DoctorSchedulePage() {
     return () => controller.abort();
   }, [doctorIdParam, setSearchParams]);
 
+  useEffect(() => {
+    if (!selectedDoctorId) return;
+
+    const controller = new AbortController();
+
+    setIsLoadingSchedule(true);
+    setApiError('');
+
+    getDoctorAvailabilities(selectedDoctorId, controller.signal)
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+
+        if (error) {
+          setApiError(error.message);
+          setSchedule(buildEmptySchedule());
+          setHasExistingAvailability(false);
+
+          return;
+        }
+
+        const availabilities = Array.isArray(data) ? data : [];
+        const hasExisting = availabilities.length > 0;
+
+        setHasExistingAvailability(hasExisting);
+
+        const scheduleMap = new Map();
+
+        availabilities.forEach((item) => {
+          scheduleMap.set(normalizeDayKey(item.day), {
+            startTime: item.startTime?.slice(0, 5) || '08:00',
+            endTime: item.endTime?.slice(0, 5) || '16:00',
+          });
+        });
+
+        setSchedule(
+          WEEK_DAYS.map(({ key, day, label }) => {
+            const existing = scheduleMap.get(key);
+
+            return {
+              day,
+              label,
+              active: Boolean(existing),
+              startTime: existing?.startTime || '08:00',
+              endTime: existing?.endTime || '16:00',
+            };
+          })
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingSchedule(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedDoctorId]);
+
   const handleDoctorChange = (event) => {
     const newId = event.target.value;
 
@@ -129,7 +197,7 @@ function DoctorSchedulePage() {
     );
   };
 
-  const handleSave = async (overwrite = false) => {
+  const handleSave = async () => {
     setApiError('');
 
     if (!selectedDoctorId) {
@@ -156,14 +224,6 @@ function DoctorSchedulePage() {
       }
     }
 
-    if (overwrite) {
-      const confirmed = await confirmAction(
-        '¿Desea sobrescribir la disponibilidad futura de este mes? Los turnos ya reservados no se modificarán.'
-      );
-
-      if (!confirmed) return;
-    }
-
     setIsSubmitting(true);
 
     const payload = {
@@ -175,7 +235,7 @@ function DoctorSchedulePage() {
       })),
     };
 
-    const result = overwrite
+    const result = hasExistingAvailability
       ? await updateDoctorAvailability(payload)
       : await createDoctorAvailability(payload);
 
@@ -188,13 +248,12 @@ function DoctorSchedulePage() {
       return;
     }
 
+    setHasExistingAvailability(true);
     const generatedCount = Array.isArray(result.data) ? result.data.length : 0;
     const doctorName = selectedDoctor?.name || 'el profesional';
 
     showSuccess(
-      overwrite
-        ? `Disponibilidad actualizada para ${doctorName} (${generatedCount} turnos generados).`
-        : `Disponibilidad configurada para ${doctorName} (${generatedCount} turnos creados).`
+      `Disponibilidad guardada para ${doctorName} (${generatedCount} turnos generados para el mes).`
     );
 
     navigate(ROUTES.adminDoctors);
@@ -305,9 +364,9 @@ function DoctorSchedulePage() {
               i
             </div>
             <p className="text-xs leading-relaxed text-med-text-sub">
-              Los cambios generan los turnos disponibles para el mes en curso.
-              Al usar &ldquo;Sobrescribir Mes&rdquo;, los turnos ya reservados
-              por pacientes no se verán afectados.
+              Los cambios realizados se aplicarán a partir de la próxima semana
+              calendario. Las citas ya programadas no se verán afectadas
+              automáticamente.
             </p>
           </div>
         </div>
@@ -331,122 +390,128 @@ function DoctorSchedulePage() {
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-med-border bg-[#e0f2fe]/80 text-xs font-bold uppercase tracking-wider text-med-primary-900/80">
-                  <tr>
-                    <th className="px-6 py-3.5">Día</th>
-                    <th className="px-6 py-3.5">Estado</th>
-                    <th className="px-6 py-3.5">Entrada</th>
-                    <th className="px-6 py-3.5">Salida</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-med-border-subtle">
-                  {schedule.map((dayItem, idx) => {
-                    const isActive = dayItem.active;
+            {isLoadingSchedule ? (
+              <p className="p-6 text-sm text-med-text-sub" role="status">
+                Cargando disponibilidad del profesional…
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-med-border bg-[#e0f2fe]/80 text-xs font-bold uppercase tracking-wider text-med-primary-900/80">
+                    <tr>
+                      <th className="px-6 py-3.5">Día</th>
+                      <th className="px-6 py-3.5">Estado</th>
+                      <th className="px-6 py-3.5">Entrada</th>
+                      <th className="px-6 py-3.5">Salida</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-med-border-subtle">
+                    {schedule.map((dayItem, idx) => {
+                      const isActive = dayItem.active;
 
-                    return (
-                      <tr
-                        key={dayItem.day}
-                        className={
-                          isActive
-                            ? 'bg-white transition-colors'
-                            : 'bg-gray-50/80 transition-colors'
-                        }
-                      >
-                        <td className="px-6 py-4">
-                          <span
-                            className={`font-semibold ${
-                              isActive
-                                ? 'text-med-primary-900'
-                                : 'text-med-text-muted'
-                            }`}
-                          >
-                            {dayItem.label}
-                          </span>
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2.5">
-                            <ToggleSwitch
-                              checked={isActive}
-                              onChange={() => handleToggleDay(idx)}
-                              disabled={isSubmitting}
-                              label={`Alternar disponibilidad del día ${dayItem.label}`}
-                            />
+                      return (
+                        <tr
+                          key={dayItem.day}
+                          className={
+                            isActive
+                              ? 'bg-white transition-colors'
+                              : 'bg-gray-50/80 transition-colors'
+                          }
+                        >
+                          <td className="px-6 py-4">
                             <span
-                              className={`text-xs font-semibold ${
+                              className={`font-semibold ${
                                 isActive
                                   ? 'text-med-primary-900'
-                                  : 'text-gray-400'
+                                  : 'text-med-text-muted'
                               }`}
                             >
-                              {isActive ? 'Activo' : 'Inactivo'}
+                              {dayItem.label}
                             </span>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          {isActive ? (
-                            <div className="relative inline-flex items-center">
-                              <input
-                                type="time"
-                                value={dayItem.startTime}
-                                onChange={(e) =>
-                                  handleTimeChange(
-                                    idx,
-                                    'startTime',
-                                    e.target.value
-                                  )
-                                }
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <ToggleSwitch
+                                checked={isActive}
+                                onChange={() => handleToggleDay(idx)}
                                 disabled={isSubmitting}
-                                className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                                label={`Alternar disponibilidad del día ${dayItem.label}`}
                               />
-                              <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
-                                <Icon icon={ICONS.clock} size={14} />
+                              <span
+                                className={`text-xs font-semibold ${
+                                  isActive
+                                    ? 'text-med-primary-900'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                {isActive ? 'Activo' : 'Inactivo'}
                               </span>
                             </div>
-                          ) : (
-                            <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
-                              --:-- --
-                            </div>
-                          )}
-                        </td>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          {isActive ? (
-                            <div className="relative inline-flex items-center">
-                              <input
-                                type="time"
-                                value={dayItem.endTime}
-                                onChange={(e) =>
-                                  handleTimeChange(
-                                    idx,
-                                    'endTime',
-                                    e.target.value
-                                  )
-                                }
-                                disabled={isSubmitting}
-                                className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
-                              />
-                              <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
-                                <Icon icon={ICONS.clock} size={14} />
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
-                              --:-- --
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          <td className="px-6 py-4">
+                            {isActive ? (
+                              <div className="relative inline-flex items-center">
+                                <input
+                                  type="time"
+                                  value={dayItem.startTime}
+                                  onChange={(e) =>
+                                    handleTimeChange(
+                                      idx,
+                                      'startTime',
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={isSubmitting}
+                                  className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                                />
+                                <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
+                                  <Icon icon={ICONS.clock} size={14} />
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
+                                --:-- --
+                              </div>
+                            )}
+                          </td>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-med-border bg-med-bg/20 p-5">
+                          <td className="px-6 py-4">
+                            {isActive ? (
+                              <div className="relative inline-flex items-center">
+                                <input
+                                  type="time"
+                                  value={dayItem.endTime}
+                                  onChange={(e) =>
+                                    handleTimeChange(
+                                      idx,
+                                      'endTime',
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={isSubmitting}
+                                  className="w-36 rounded-lg border border-med-border bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-med-primary-900 shadow-xs focus:border-med-primary-500 focus:outline-none focus:ring-1 focus:ring-med-primary-500"
+                                />
+                                <span className="pointer-events-none absolute right-2.5 text-med-text-muted">
+                                  <Icon icon={ICONS.clock} size={14} />
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="w-36 rounded-lg border border-gray-200/60 bg-gray-100/90 py-1.5 px-3 text-center font-mono text-xs text-gray-400 select-none">
+                                --:-- --
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 border-t border-med-border bg-med-bg/20 p-5">
               <Button
                 type="button"
                 variant="outline"
@@ -457,16 +522,8 @@ function DoctorSchedulePage() {
               </Button>
               <Button
                 type="button"
-                variant="secondary"
-                onClick={() => handleSave(true)}
-                disabled={isSubmitting || !selectedDoctor}
-              >
-                Sobrescribir Mes
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleSave(false)}
-                disabled={isSubmitting || !selectedDoctor}
+                onClick={handleSave}
+                disabled={isSubmitting || !selectedDoctor || isLoadingSchedule}
                 className="flex items-center gap-2"
               >
                 <Icon icon={ICONS.appointments} size={16} />
