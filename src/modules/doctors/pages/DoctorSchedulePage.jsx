@@ -45,8 +45,8 @@ function normalizeDayKey(value) {
 }
 
 function buildEmptySchedule() {
-  return WEEK_DAYS.map(({ day, label }) => ({
-    day,
+  return WEEK_DAYS.map(({ key, label }) => ({
+    day: key,
     label,
     active: false,
     startTime: '08:00',
@@ -152,11 +152,11 @@ function DoctorSchedulePage() {
         });
 
         setSchedule(
-          WEEK_DAYS.map(({ key, day, label }) => {
+          WEEK_DAYS.map(({ key, label }) => {
             const existing = scheduleMap.get(key);
 
             return {
-              day,
+              day: key,
               label,
               active: Boolean(existing),
               startTime: existing?.startTime || '08:00',
