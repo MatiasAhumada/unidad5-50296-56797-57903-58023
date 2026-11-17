@@ -252,14 +252,25 @@ function DoctorsPage() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          onClick={() => navigate(ROUTES.adminDoctorCreate)}
-          className="flex items-center gap-2 self-start sm:self-auto shadow-sm"
-        >
-          <Icon icon={ICONS.add} size={18} />
-          <span>Nuevo Doctor</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate(ROUTES.adminDoctorSchedule)}
+            className="flex items-center gap-2 shadow-sm"
+          >
+            <Icon icon={ICONS.clock} size={18} />
+            <span>Agregar Disponibilidad Horaria</span>
+          </Button>
+          <Button
+            type="button"
+            onClick={() => navigate(ROUTES.adminDoctorCreate)}
+            className="flex items-center gap-2 shadow-sm"
+          >
+            <Icon icon={ICONS.add} size={18} />
+            <span>Nuevo Doctor</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
