@@ -53,4 +53,16 @@ async function getSpecialties(signal) {
   }
 }
 
-export { getSpecialties, getSpecialtiesPage };
+async function getSpecialtyMetrics(signal) {
+  try {
+    const response = await instance.get(SPECIALTIES_API_ROUTES.metrics, {
+      signal,
+    });
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+export { getSpecialties, getSpecialtiesPage, getSpecialtyMetrics };
