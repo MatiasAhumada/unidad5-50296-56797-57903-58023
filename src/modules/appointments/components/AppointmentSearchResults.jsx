@@ -3,6 +3,17 @@ import Card from '../../shared/components/Card';
 import TablePagination from '../../shared/components/TablePagination';
 import { APPOINTMENT_STATUS_LABELS } from '../constants/appointmentStatuses';
 
+function formatAppointmentDate(dateValue) {
+  if (!dateValue) return 'Fecha no disponible';
+
+  const [year, month, day] = dateValue.slice(0, 10).split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (Number.isNaN(date.getTime())) return 'Fecha no disponible';
+
+  return new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(date);
+}
+
 function AppointmentSearchResults({
   appointmentsPage,
   isLoading,
@@ -43,6 +54,7 @@ function AppointmentSearchResults({
                   <th className="px-6 py-3.5">Código</th>
                   <th className="px-6 py-3.5">Especialidad y doctor</th>
                   <th className="px-6 py-3.5">Paciente</th>
+                  <th className="px-6 py-3.5">Fecha y horario</th>
                   <th className="px-6 py-3.5 text-center">Estado</th>
                 </tr>
               </thead>
@@ -66,6 +78,18 @@ function AppointmentSearchResults({
                       </p>
                       <p className="mt-0.5 text-xs text-med-text-muted">
                         DNI: {appointment.patient.dni}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="font-semibold text-med-text-main">
+                        {formatAppointmentDate(appointment.date)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-med-text-muted">
+                        {appointment.startTime?.slice(0, 5) ??
+                          'Hora no disponible'}
+                        {appointment.endTime
+                          ? `–${appointment.endTime.slice(0, 5)}`
+                          : ''}
                       </p>
                     </td>
                     <td className="px-6 py-4 text-center">

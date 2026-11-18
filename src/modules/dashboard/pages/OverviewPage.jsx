@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import DataTable from '../../shared/components/DataTable';
@@ -8,11 +9,13 @@ import Input from '../../shared/components/Input';
 import { getDashboardSummary } from '../services/dashboardService';
 import { getDoctorsPage } from '../../doctors/services/doctorsService';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 
 const PAGE_SIZE = 5;
 
 function OverviewPage() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -127,6 +130,15 @@ function OverviewPage() {
     },
   ];
 
+  const rowActions = [
+    {
+      id: 'details',
+      label: (doctor) => `Ver detalle de ${doctor.name}`,
+      icon: ICONS.eye,
+      onClick: () => navigate(ROUTES.adminDoctors),
+    },
+  ];
+
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
     setPageIndex(1);
@@ -144,13 +156,17 @@ function OverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button className="inline-flex items-center gap-2">
+          <Button
+            className="inline-flex items-center gap-2"
+            onClick={() => navigate(ROUTES.adminDoctorCreate)}
+          >
             <Icon icon={ICONS.add} size={18} />
             Agregar Nuevo Doctor
           </Button>
           <Button
             variant="secondary"
             className="inline-flex items-center gap-2"
+            onClick={() => navigate(ROUTES.adminSpecialtyCreate)}
           >
             <Icon icon={ICONS.hospital} size={18} />
             Agregar Nueva Especialidad
@@ -216,6 +232,7 @@ function OverviewPage() {
           </div>
         }
         columns={columns}
+        rowActions={rowActions}
         rows={doctorsPage.data}
         isLoading={doctorsLoading}
         loadingMessage="Cargando profesionales…"
