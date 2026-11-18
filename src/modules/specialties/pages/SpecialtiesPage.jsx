@@ -1,22 +1,34 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
+import Button from '../../shared/components/Button';
+import DataTable from '../../shared/components/DataTable';
 import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
-import TablePagination from '../../shared/components/TablePagination';
-import { getApiErrorMessage } from '../../shared/api/apiError';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
+import {
+  confirmAction,
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
+import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
   getSpecialtiesPage,
   getSpecialtyMetrics,
+  setSpecialtyStatus,
 } from '../services/specialtiesService';
-import useNotificationError from '../../shared/notifications/useNotificationError';
+import { getSpecialtyIcon } from '../constants/specialtyIcons';
 
 function SpecialtiesPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [pageIndex, setPageIndex] = useState(1);
   const [page, setPage] = useState({ data: [], pageSize: 10, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
 
@@ -43,6 +55,7 @@ function SpecialtiesPage() {
 
         if (result.error) {
           setError(result.error.message);
+
           return;
         }
 
@@ -50,7 +63,7 @@ function SpecialtiesPage() {
       })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
-          setError(getApiErrorMessage(requestError));
+          setError(requestError.message || 'Error al obtener especialidades');
         }
       })
       .finally(() => {
@@ -74,6 +87,7 @@ function SpecialtiesPage() {
 
         if (result.error) {
           setMetricsError(result.error.message);
+
           return;
         }
 
@@ -81,7 +95,7 @@ function SpecialtiesPage() {
       })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
-          setMetricsError(getApiErrorMessage(requestError));
+          setMetricsError(requestError.message || 'Error al obtener métricas');
         }
       })
       .finally(() => {
@@ -98,9 +112,115 @@ function SpecialtiesPage() {
     setPageIndex(1);
   };
 
+  const handleToggleStatus = async (specialty) => {
+    const currentlyActive = specialty.isActive !== false;
+    const actionVerb = currentlyActive ? 'desactivar' : 'activar';
+    const confirmed = await confirmAction(
+      `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    setUpdatingId(specialty.id);
+
+    try {
+      const { error: statusError } = await setSpecialtyStatus(
+        specialty.id,
+        !currentlyActive
+      );
+
+      if (statusError) {
+        showError(statusError.message);
+
+        return;
+      }
+
+      showSuccess(
+        currentlyActive
+          ? `Especialidad "${specialty.name}" desactivada correctamente.`
+          : `Especialidad "${specialty.name}" reactivada exitosamente.`
+      );
+      setRequestKey((key) => key + 1);
+      setMetricsRequestKey((key) => key + 1);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const columns = [
+    {
+      id: 'specialty',
+      header: 'Especialidad',
+      render: (specialty) => (
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-med-primary-100 text-med-primary-700">
+            <Icon icon={getSpecialtyIcon(specialty)} size={20} />
+          </span>
+          <span className="font-semibold text-med-primary-900">
+            {specialty.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'description',
+      header: 'Descripción',
+      render: (specialty) => (
+        <span className="text-med-text-sub text-xs line-clamp-2">
+          {specialty.description || 'Sin descripción.'}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Estado',
+      headerClassName: 'text-center',
+      cellClassName: 'text-center',
+      render: (specialty) =>
+        specialty.isActive !== false ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Activo
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+            Inactivo
+          </span>
+        ),
+    },
+  ];
+
+  const rowActions = [
+    {
+      id: 'edit',
+      label: (row) => `Editar ${row.name}`,
+      icon: ICONS.edit,
+      isDisabled: () => isLoading,
+      onClick: (row) =>
+        navigate(`${ROUTES.adminSpecialtyCreate}?specialtyId=${row.id}`, {
+          state: { specialty: row },
+        }),
+    },
+    {
+      id: 'toggleStatus',
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
+      isDisabled: (row) => isLoading || updatingId === row.id,
+      render: (row, { disabled, label }) => (
+        <ToggleSwitch
+          checked={row.isActive !== false}
+          onChange={() => handleToggleStatus(row)}
+          disabled={disabled}
+          label={label}
+        />
+      ),
+    },
+  ];
+
   const totalSpecialtiesValue = metricsLoading
     ? '—'
-    : (metrics?.totalSpecialties ?? '—');
+    : (metrics?.totalSpecialties ?? page.total ?? '—');
 
   const totalSpecialtiesDetail = metricsLoading
     ? 'Cargando resumen...'
@@ -154,128 +274,46 @@ function SpecialtiesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Encabezado con título y botón de acción */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-med-text-main">
             Directorio de Especialidades
           </h1>
           <p className="mt-1 text-sm text-med-text-sub">
-            Especialidades registradas en el sistema.
+            Administración y catálogo de especialidades médicas disponibles.
           </p>
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <FormField
-            id="specialty-search"
-            label="Buscar especialidades"
-            labelClassName="sr-only"
-          >
-            {(fieldProps) => (
-              <div className="relative">
-                <span
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-sub"
-                  aria-hidden="true"
-                >
-                  <Icon icon={ICONS.search} size={16} />
-                </span>
-                <Input
-                  {...fieldProps}
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  placeholder="Buscar especialidad..."
-                  className="pl-9 pr-3 py-2 text-xs"
-                />
-              </div>
-            )}
-          </FormField>
-        </div>
+        <Button
+          type="button"
+          onClick={() => navigate(ROUTES.adminSpecialtyCreate)}
+          className="flex items-center gap-2 self-start sm:self-auto shadow-sm"
+        >
+          <Icon icon={ICONS.add} size={18} />
+          <span>Nueva Especialidad</span>
+        </Button>
       </div>
 
-      {error && (
-        <div className="flex flex-col items-start gap-3">
-          <button
-            type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
-            onClick={() => setRequestKey((key) => key + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
-
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-med-border p-5">
-          <h2 className="text-base font-bold text-med-primary-900">
-            Registros de Especialidades
-          </h2>
-        </div>
-
-        {isLoading ? (
-          <p className="p-5 text-sm text-med-text-sub" role="status">
-            Cargando especialidades...
-          </p>
-        ) : !error && page.data.length === 0 ? (
-          <p className="p-5 text-sm text-med-text-sub">
-            No se encontraron especialidades.
-          </p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-med-border bg-med-primary-50/40 text-xs font-bold uppercase text-med-text-sub">
-                  <tr>
-                    <th className="px-6 py-3.5">Especialidad</th>
-                    <th className="px-6 py-3.5">Descripción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-med-border-subtle">
-                  {page.data.map((specialty) => (
-                    <tr key={specialty.id} className="hover:bg-gray-50/70">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-50 text-med-primary-700">
-                            <Icon icon={ICONS.medicalFile} size={20} />
-                          </span>
-                          <span className="font-semibold text-med-primary-900">
-                            {specialty.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="max-w-xl px-6 py-4 text-med-text-sub">
-                        {specialty.description}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <TablePagination
-              currentPage={page.pageIndex}
-              pageSize={page.pageSize}
-              totalItems={page.total}
-              totalPages={Math.ceil(page.total / page.pageSize)}
-              onPageChange={setPageIndex}
-            />
-          </>
-        )}
-      </Card>
-
+      {/* Tarjetas métricas de resumen */}
       {metricsError && (
-        <div className="flex flex-col items-start gap-3">
+        <div className="flex flex-col items-start gap-2">
           <button
             type="button"
-            className="text-sm font-semibold text-med-primary-700 underline"
+            className="text-xs font-semibold text-med-primary-700 underline"
             onClick={() => setMetricsRequestKey((key) => key + 1)}
           >
-            Reintentar métricas
+            Reintentar carga de métricas
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {metricCards.map((card) => (
-          <Card key={card.id} className="flex flex-col justify-between gap-4">
+          <Card
+            key={card.id}
+            className="flex flex-col justify-between gap-3 p-5"
+          >
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-med-primary-50 text-med-primary-700">
                 <Icon icon={card.icon} size={20} />
@@ -294,6 +332,53 @@ function SpecialtiesPage() {
           </Card>
         ))}
       </div>
+
+      {/* Tabla de Registros usando DataTable */}
+      <DataTable
+        title="Registros de Especialidades"
+        headerContent={
+          <div className="relative w-full sm:w-72">
+            <FormField
+              id="specialty-search"
+              label="Buscar especialidades"
+              labelClassName="sr-only"
+            >
+              {(fieldProps) => (
+                <div className="relative">
+                  <span
+                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-med-text-muted"
+                    aria-hidden="true"
+                  >
+                    <Icon icon={ICONS.search} size={16} />
+                  </span>
+                  <Input
+                    {...fieldProps}
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    placeholder="Buscar especialidad..."
+                    className="pl-9 pr-3 py-2 text-xs"
+                  />
+                </div>
+              )}
+            </FormField>
+          </div>
+        }
+        columns={columns}
+        rows={page.data}
+        rowKey="id"
+        rowActions={rowActions}
+        isLoading={isLoading}
+        loadingMessage="Cargando especialidades…"
+        emptyMessage="No se encontraron especialidades registradas."
+        error={error}
+        onRetry={() => setRequestKey((key) => key + 1)}
+        pagination={{
+          pageIndex,
+          pageSize: page.pageSize || 10,
+          total: page.total || 0,
+          onPageChange: setPageIndex,
+        }}
+      />
     </div>
   );
 }

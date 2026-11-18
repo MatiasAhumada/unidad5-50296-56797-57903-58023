@@ -133,7 +133,7 @@ function DataTable({
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {actions.map((action) => {
-                              const disabled = Boolean(
+                              const disabled = isLoading || Boolean(
                                 action.isDisabled?.(row)
                               );
                               const label =
@@ -141,13 +141,38 @@ function DataTable({
                                   ? action.label(row)
                                   : action.label;
 
-                              return action.icon ? (
+                              if (action.render) {
+                                return (
+                                  <div
+                                    key={action.id}
+                                    className="inline-flex items-center"
+                                  >
+                                    {action.render(row, { disabled, label })}
+                                  </div>
+                                );
+                              }
+
+                              const actionIcon =
+                                typeof action.icon === 'function'
+                                  ? action.icon(row)
+                                  : action.icon;
+                              const actionVariant =
+                                typeof action.variant === 'function'
+                                  ? action.variant(row)
+                                  : action.variant;
+                              const actionClassName =
+                                typeof action.className === 'function'
+                                  ? action.className(row)
+                                  : (action.className ?? '');
+
+                              return actionIcon ? (
                                 <IconButton
                                   key={action.id}
                                   type="button"
-                                  icon={action.icon}
+                                  icon={actionIcon}
                                   label={label}
-                                  variant={action.variant ?? 'ghost'}
+                                  variant={actionVariant ?? 'ghost'}
+                                  className={actionClassName}
                                   disabled={disabled}
                                   onClick={() => action.onClick(row)}
                                 />
@@ -155,7 +180,8 @@ function DataTable({
                                 <Button
                                   key={action.id}
                                   type="button"
-                                  variant={action.variant ?? 'outline'}
+                                  variant={actionVariant ?? 'outline'}
+                                  className={actionClassName}
                                   disabled={disabled}
                                   aria-label={label}
                                   onClick={() => action.onClick(row)}
