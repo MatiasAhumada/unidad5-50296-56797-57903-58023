@@ -91,7 +91,7 @@ async function deleteSpecialty(id) {
 
 async function setSpecialtyStatus(id, isActive) {
   try {
-    const response = await instance.put(SPECIALTIES_API_ROUTES.status(id), {
+    const response = await instance.patch(SPECIALTIES_API_ROUTES.status(id), {
       isActive,
     });
 
