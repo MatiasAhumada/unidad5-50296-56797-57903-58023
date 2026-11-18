@@ -26,6 +26,27 @@ import {
   isSlotInFuture,
 } from '../../availabilities/helpers/availabilitySlot';
 
+function startOfWeek(date) {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const daysFromMonday = (monday.getDay() + 6) % 7;
+
+  monday.setDate(monday.getDate() - daysFromMonday);
+
+  return monday;
+}
+
+function addDays(date, days) {
+  const result = new Date(date);
+
+  result.setDate(result.getDate() + days);
+
+  return result;
+}
+
+function formatCalendarDay(date, options) {
+  return new Intl.DateTimeFormat('es-AR', options).format(date);
+}
+
 function PatientHome() {
   const { patientDni } = useAuth();
   const bookingRequestRef = useRef(false);
@@ -35,6 +56,10 @@ function PatientHome() {
   const [doctorId, setDoctorId] = useState('');
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [selectedDateKey, setSelectedDateKey] = useState(() =>
+    getSlotDateKey(new Date())
+  );
   const [reason, setReason] = useState('');
   const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(true);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
@@ -187,6 +212,18 @@ function PatientHome() {
 
     return groups;
   }, {});
+  const weekDays = Array.from({ length: 7 }, (_, index) =>
+    addDays(weekStart, index)
+  );
+  const selectedDateSlots = slotsByDate[selectedDateKey]?.slots ?? [];
+  const weekHasSlots = weekDays.some(
+    (day) => (slotsByDate[getSlotDateKey(day)]?.slots.length ?? 0) > 0
+  );
+  const earliestWeek = startOfWeek(new Date());
+  const latestSlotDate = futureSlots.at(-1)?.date ?? new Date();
+  const latestWeek = startOfWeek(latestSlotDate);
+  const canGoToPreviousWeek = weekStart > earliestWeek;
+  const canGoToNextWeek = addDays(weekStart, 7) <= latestWeek;
   const noDoctorsForSpecialty =
     specialtyId && !isLoadingDoctors && !doctorError && doctors.length === 0;
   const noFutureSlots =
@@ -200,6 +237,8 @@ function PatientHome() {
     setSlots([]);
     setDoctorError('');
     setAvailabilityError('');
+    setWeekStart(startOfWeek(new Date()));
+    setSelectedDateKey(getSlotDateKey(new Date()));
   };
 
   const handleDoctorChange = (event) => {
@@ -207,6 +246,20 @@ function PatientHome() {
     setSelectedSlot(null);
     setSlots([]);
     setAvailabilityError('');
+    setWeekStart(startOfWeek(new Date()));
+    setSelectedDateKey(getSlotDateKey(new Date()));
+  };
+
+  const handleWeekChange = (direction) => {
+    const nextWeek = addDays(weekStart, direction * 7);
+
+    setWeekStart(nextWeek);
+    const firstAvailableDay = Array.from({ length: 7 }, (_, index) =>
+      getSlotDateKey(addDays(nextWeek, index))
+    ).find((dateKey) => slotsByDate[dateKey]?.slots.length > 0);
+
+    setSelectedDateKey(firstAvailableDay ?? getSlotDateKey(nextWeek));
+    setSelectedSlot(null);
   };
 
   const handleBookAppointment = async (event) => {
@@ -352,16 +405,41 @@ function PatientHome() {
       </Card>
 
       {doctorId && (
+        <Card className="flex items-center gap-4 border-med-primary-100 p-5 sm:p-6">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-med-primary-100 text-med-primary-800">
+            <Icon icon={ICONS.doctor} size={28} />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-med-text-muted">
+              Profesional seleccionado
+            </p>
+            <h2 className="mt-1 text-lg font-bold text-med-primary-900">
+              {selectedDoctor?.name}
+            </h2>
+            <p className="text-sm text-med-text-sub">
+              {selectedSpecialty?.name}
+            </p>
+          </div>
+          {selectedSlot && (
+            <div className="ml-auto hidden rounded-xl bg-med-primary-50 px-4 py-3 text-right sm:block">
+              <p className="text-xs font-medium text-med-text-sub">
+                Horario seleccionado
+              </p>
+              <p className="mt-1 text-sm font-bold text-med-primary-900">
+                {formatSlotDate(selectedSlot.date)} · {selectedSlot.startTime}
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {doctorId && (
         <Card className="border-med-border p-5 sm:p-6">
           <div className="mb-5 flex flex-col gap-2 border-b border-med-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-med-primary-900">
                 Horarios disponibles
               </h2>
-              <p className="mt-1 text-sm text-med-text-sub">
-                {selectedDoctor?.name}
-                {selectedSpecialty ? ` · ${selectedSpecialty.name}` : ''}
-              </p>
             </div>
             <p className="text-xs text-med-text-muted">
               Los horarios se confirman al reservar.
@@ -390,18 +468,127 @@ function PatientHome() {
           )}
 
           {Object.entries(slotsByDate).length > 0 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(slotsByDate).map(([dateKey, group]) => (
-                <section
-                  key={dateKey}
-                  aria-label={formatSlotDate(group.date)}
-                  className="rounded-xl border border-med-border bg-med-bg p-4"
+            <>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => handleWeekChange(-1)}
+                  disabled={!canGoToPreviousWeek}
+                  aria-label="Ver semana anterior"
                 >
-                  <h3 className="mb-3 text-sm font-semibold text-med-primary-900">
-                    {formatSlotDate(group.date)}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.slots.map((slot) => {
+                  Anterior
+                </Button>
+                <p className="text-sm font-semibold text-med-primary-900">
+                  Semana del {formatSlotDate(weekStart)}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => handleWeekChange(1)}
+                  disabled={!canGoToNextWeek}
+                  aria-label="Ver semana siguiente"
+                >
+                  Siguiente
+                </Button>
+              </div>
+
+              {!weekHasSlots && (
+                <div className="mb-4">
+                  <StatusMessage>
+                    No hay horarios disponibles esta semana. Podés avanzar a la
+                    siguiente.
+                  </StatusMessage>
+                </div>
+              )}
+
+              <div className="mb-4 grid grid-cols-7 gap-1 sm:hidden">
+                {weekDays.map((day) => {
+                  const dateKey = getSlotDateKey(day);
+                  const isSelected = selectedDateKey === dateKey;
+                  const slotCount = slotsByDate[dateKey]?.slots.length ?? 0;
+
+                  return (
+                    <button
+                      key={dateKey}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setSelectedDateKey(dateKey);
+                        setSelectedSlot(null);
+                      }}
+                      className={`flex min-h-16 flex-col items-center justify-center rounded-lg border px-1 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
+                        isSelected
+                          ? 'border-med-primary-900 bg-med-primary-900 text-white'
+                          : 'border-med-border bg-white text-med-primary-900'
+                      }`}
+                    >
+                      <span className="capitalize">
+                        {formatCalendarDay(day, { weekday: 'short' })}
+                      </span>
+                      <span className="mt-1 font-bold">
+                        {formatCalendarDay(day, { day: 'numeric' })}
+                      </span>
+                      {slotCount > 0 && (
+                        <span className="mt-1 text-[10px]">
+                          {slotCount} turnos
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="hidden grid-cols-7 gap-2 sm:grid">
+                {weekDays.map((day) => {
+                  const dateKey = getSlotDateKey(day);
+                  const daySlots = slotsByDate[dateKey]?.slots ?? [];
+
+                  return (
+                    <section
+                      key={dateKey}
+                      aria-label={formatSlotDate(day)}
+                      className="min-h-48 rounded-xl border border-med-border bg-med-bg p-2 lg:p-3"
+                    >
+                      <h3 className="mb-3 text-center text-xs font-semibold capitalize text-med-primary-900">
+                        {formatCalendarDay(day, {
+                          weekday: 'short',
+                          day: 'numeric',
+                        })}
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {daySlots.map((slot) => {
+                          const isSelected = selectedSlot?.id === slot.id;
+
+                          return (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              aria-pressed={isSelected}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`min-h-10 rounded-lg border px-2 py-2 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
+                                isSelected
+                                  ? 'border-med-primary-900 bg-med-primary-900 text-white'
+                                  : 'border-med-border bg-white text-med-primary-900 hover:border-med-primary-600 hover:bg-med-primary-50'
+                              }`}
+                            >
+                              {slot.startTime}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+
+              <section className="sm:hidden" aria-live="polite">
+                <h3 className="mb-3 text-sm font-semibold text-med-primary-900">
+                  {formatSlotDate(getSlotDate(selectedDateKey))}
+                </h3>
+                {selectedDateSlots.length === 0 ? (
+                  <StatusMessage>No hay horarios para este día.</StatusMessage>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedDateSlots.map((slot) => {
                       const isSelected = selectedSlot?.id === slot.id;
 
                       return (
@@ -409,10 +596,8 @@ function PatientHome() {
                           key={slot.id}
                           type="button"
                           aria-pressed={isSelected}
-                          onClick={() => {
-                            setSelectedSlot(slot);
-                          }}
-                          className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-med-primary-700 ${
                             isSelected
                               ? 'border-med-primary-900 bg-med-primary-900 text-white'
                               : 'border-med-border bg-white text-med-primary-900 hover:border-med-primary-600 hover:bg-med-primary-50'
@@ -423,9 +608,9 @@ function PatientHome() {
                       );
                     })}
                   </div>
-                </section>
-              ))}
-            </div>
+                )}
+              </section>
+            </>
           )}
         </Card>
       )}
