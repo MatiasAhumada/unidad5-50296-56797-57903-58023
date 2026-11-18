@@ -123,7 +123,7 @@ async function deleteDoctor(id) {
 
 async function setDoctorStatus(id, isActive) {
   try {
-    const response = await instance.put(DOCTORS_API_ROUTES.status(id), {
+    const response = await instance.patch(DOCTORS_API_ROUTES.status(id), {
       isActive,
     });
 
