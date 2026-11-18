@@ -4,12 +4,18 @@ import { instance } from '../../shared/api/axiosInstance';
 import { DOCTORS_API_ROUTES } from '../constants/apiRoutes';
 
 async function getDoctorsPage(
-  { pageSize = 10, pageIndex = 1, name, specialtyId },
+  { pageSize = 10, pageIndex = 1, name, specialtyId, includeInactive = true },
   signal
 ) {
   try {
     const response = await instance.get(DOCTORS_API_ROUTES.list, {
-      params: { pageSize, pageIndex, name, specialtyId },
+      params: {
+        pageSize,
+        pageIndex,
+        name,
+        specialtyId,
+        includeInactive,
+      },
       signal,
     });
 
@@ -85,9 +91,69 @@ async function getDoctorAvailableSlots(doctorId, startDate, endDate, signal) {
   }
 }
 
+async function createDoctor(payload) {
+  try {
+    const response = await instance.post(DOCTORS_API_ROUTES.create, payload);
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function updateDoctor(id, payload) {
+  try {
+    const response = await instance.put(DOCTORS_API_ROUTES.update(id), payload);
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function deleteDoctor(id) {
+  try {
+    const response = await instance.delete(DOCTORS_API_ROUTES.delete(id));
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function setDoctorStatus(id, isActive) {
+  try {
+    const response = await instance.patch(DOCTORS_API_ROUTES.status(id), {
+      isActive,
+    });
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
+async function getDoctorAvailabilities(doctorId, signal) {
+  try {
+    const response = await instance.get(
+      DOCTORS_API_ROUTES.availabilities(doctorId),
+      { signal }
+    );
+
+    return { data: response.data, error: null };
+  } catch (error) {
+    return { data: null, error: normalizeApiError(error) };
+  }
+}
+
 export {
+  createDoctor,
+  deleteDoctor,
+  getDoctorAvailabilities,
   getDoctorAvailableSlots,
   getDoctorOptions,
   getDoctors,
   getDoctorsPage,
+  setDoctorStatus,
+  updateDoctor,
 };
