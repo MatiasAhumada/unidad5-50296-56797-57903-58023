@@ -1,11 +1,10 @@
 import 'sweetalert2/dist/sweetalert2.min.css';
 import Swal from 'sweetalert2';
 
-const notification = Swal.mixin({
-  toast: true,
-  position: 'top-end',
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)';
+
+const baseNotificationConfig = {
   showConfirmButton: false,
-  timer: 4500,
   timerProgressBar: true,
   customClass: {
     popup: 'rounded-2xl shadow-xl',
@@ -13,14 +12,42 @@ const notification = Swal.mixin({
     htmlContainer: 'text-sm text-med-text-sub',
     timerProgressBar: 'bg-med-primary-600',
   },
-  didOpen: (toast) => {
-    toast.addEventListener('mouseenter', Swal.stopTimer);
-    toast.addEventListener('mouseleave', Swal.resumeTimer);
+  didOpen: (popup) => {
+    popup.addEventListener('mouseenter', Swal.stopTimer);
+    popup.addEventListener('mouseleave', Swal.resumeTimer);
   },
+};
+
+const toastNotification = Swal.mixin({
+  ...baseNotificationConfig,
+  toast: true,
+  position: 'top-end',
+  timer: 4500,
 });
 
+const mobileNotification = Swal.mixin({
+  ...baseNotificationConfig,
+  toast: false,
+  position: 'center',
+  timer: 5000,
+});
+
+function isMobileViewport() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches
+  );
+}
+
+function fireNotification(config) {
+  return isMobileViewport()
+    ? mobileNotification.fire(config)
+    : toastNotification.fire(config);
+}
+
 function showSuccess(message, options = {}) {
-  return notification.fire({
+  return fireNotification({
     icon: 'success',
     title: 'Operación completada',
     ...options,
@@ -29,7 +56,7 @@ function showSuccess(message, options = {}) {
 }
 
 function showError(message, options = {}) {
-  return notification.fire({
+  return fireNotification({
     icon: 'error',
     title: 'No se pudo completar la operación',
     ...options,
@@ -38,7 +65,7 @@ function showError(message, options = {}) {
 }
 
 function showWarning(message, options = {}) {
-  return notification.fire({
+  return fireNotification({
     icon: 'warning',
     title: 'Atención',
     ...options,
@@ -47,7 +74,7 @@ function showWarning(message, options = {}) {
 }
 
 function showInfo(message, options = {}) {
-  return notification.fire({
+  return fireNotification({
     icon: 'info',
     title: 'Información',
     ...options,
