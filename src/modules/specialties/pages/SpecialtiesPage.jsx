@@ -7,18 +7,15 @@ import FormField from '../../shared/components/FormField';
 import Input from '../../shared/components/Input';
 import Icon from '../../shared/components/Icon';
 import StatusBadge from '../../shared/components/StatusBadge';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
-import {
-  confirmAction,
-  showError,
-  showSuccess,
-} from '../../shared/notifications/notifications';
+import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
   getSpecialtiesPage,
-  deleteSpecialty,
   getSpecialtyMetrics,
+  setSpecialtyStatus,
 } from '../services/specialtiesService';
 import { getSpecialtyIcon } from '../constants/specialtyIcons';
 
@@ -112,29 +109,24 @@ function SpecialtiesPage() {
     setPageIndex(1);
   };
 
-  const handleDeactivate = async (specialty) => {
-    const confirmed = await confirmAction(
-      `¿Está seguro de que desea desactivar la especialidad "${specialty.name}"?`
-    );
-
-    if (!confirmed) return;
+  const handleToggleStatus = async (specialty) => {
+    const currentlyActive = specialty.isActive !== false;
+    const actionVerb = currentlyActive ? 'desactivar' : 'activar';
 
     setUpdatingId(specialty.id);
 
     try {
-      const { error: deleteError } = await deleteSpecialty(specialty.id);
-
-      if (deleteError) {
-        showError(deleteError.message);
-
-        return;
-      }
-
-      showSuccess(
-        `Especialidad "${specialty.name}" desactivada correctamente.`
-      );
-      setRequestKey((key) => key + 1);
-      setMetricsRequestKey((key) => key + 1);
+      await toggleEntityStatus({
+        currentlyActive,
+        confirmMessage: `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`,
+        activatedMessage: `Especialidad "${specialty.name}" reactivada exitosamente.`,
+        deactivatedMessage: `Especialidad "${specialty.name}" desactivada correctamente.`,
+        onToggle: (nextActive) => setSpecialtyStatus(specialty.id, nextActive),
+        onSuccess: () => {
+          setRequestKey((key) => key + 1);
+          setMetricsRequestKey((key) => key + 1);
+        },
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -187,13 +179,20 @@ function SpecialtiesPage() {
         }),
     },
     {
-      id: 'deactivate',
-      label: (row) => `Desactivar ${row.name}`,
-      isVisible: (row) => row.isActive !== false,
+      id: 'toggleStatus',
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
       isDisabled: (row) => isLoading || updatingId === row.id,
-      icon: ICONS.delete,
-      variant: 'danger',
-      onClick: handleDeactivate,
+      render: (row, { disabled, label }) => (
+        <ToggleSwitch
+          checked={row.isActive !== false}
+          onChange={() => handleToggleStatus(row)}
+          disabled={disabled}
+          label={label}
+        />
+      ),
     },
   ];
 
