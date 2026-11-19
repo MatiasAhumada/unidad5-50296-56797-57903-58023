@@ -5,6 +5,7 @@ const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)';
 
 const baseNotificationConfig = {
   showConfirmButton: false,
+  timer: 4500,
   timerProgressBar: true,
   customClass: {
     popup: 'rounded-2xl shadow-xl',
@@ -18,7 +19,6 @@ const toastNotification = Swal.mixin({
   ...baseNotificationConfig,
   toast: true,
   position: 'top-end',
-  timer: 4500,
   didOpen: (popup) => {
     popup.addEventListener('mouseenter', Swal.stopTimer);
     popup.addEventListener('mouseleave', Swal.resumeTimer);
@@ -29,7 +29,6 @@ const mobileNotification = Swal.mixin({
   ...baseNotificationConfig,
   toast: false,
   position: 'center',
-  timer: 5000,
 });
 
 function isMobileViewport() {
