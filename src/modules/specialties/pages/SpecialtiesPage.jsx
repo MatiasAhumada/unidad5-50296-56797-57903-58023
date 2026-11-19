@@ -112,11 +112,6 @@ function SpecialtiesPage() {
   const handleToggleStatus = async (specialty) => {
     const currentlyActive = specialty.isActive !== false;
     const actionVerb = currentlyActive ? 'desactivar' : 'activar';
-    const confirmed = await confirmAction(
-      `¿Está seguro de que desea ${actionVerb} la especialidad "${specialty.name}"?`
-    );
-
-    if (!confirmed) return;
 
     setUpdatingId(specialty.id);
 

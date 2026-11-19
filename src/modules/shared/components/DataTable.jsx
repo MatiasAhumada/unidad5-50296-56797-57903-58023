@@ -133,9 +133,8 @@ function DataTable({
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {actions.map((action) => {
-                              const disabled = isLoading || Boolean(
-                                action.isDisabled?.(row)
-                              );
+                              const disabled =
+                                isLoading || Boolean(action.isDisabled?.(row));
                               const label =
                                 typeof action.label === 'function'
                                   ? action.label(row)

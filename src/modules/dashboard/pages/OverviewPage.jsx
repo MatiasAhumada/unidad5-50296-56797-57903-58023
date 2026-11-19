@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import Button from '../../shared/components/Button';
 import DataTable from '../../shared/components/DataTable';
@@ -6,13 +7,18 @@ import FormField from '../../shared/components/FormField';
 import Icon from '../../shared/components/Icon';
 import Input from '../../shared/components/Input';
 import { getDashboardSummary } from '../services/dashboardService';
-import { getDoctorsPage } from '../../doctors/services/doctorsService';
+import {
+  getDoctorAvailabilities,
+  getDoctorsPage,
+} from '../../doctors/services/doctorsService';
 import { ICONS } from '../../shared/constants/icons';
+import { ROUTES } from '../../shared/constants/appConstants';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 
 const PAGE_SIZE = 5;
 
 function OverviewPage() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -70,7 +76,7 @@ function OverviewPage() {
       },
       controller.signal
     )
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (controller.signal.aborted) return;
 
         if (error) {
@@ -79,7 +85,25 @@ function OverviewPage() {
           return;
         }
 
-        setDoctorsPage(data);
+        const doctorsWithAvailability = await Promise.all(
+          data.data.map(async (doctor) => {
+            const { data: availabilities, error: availabilityError } =
+              await getDoctorAvailabilities(doctor.id, controller.signal);
+
+            return {
+              ...doctor,
+              availabilityStatus: availabilityError
+                ? 'error'
+                : Array.isArray(availabilities) && availabilities.length > 0
+                  ? 'configured'
+                  : 'unconfigured',
+            };
+          })
+        );
+
+        if (controller.signal.aborted) return;
+
+        setDoctorsPage({ ...data, data: doctorsWithAvailability });
       })
       .finally(() => {
         if (!controller.signal.aborted) setDoctorsLoading(false);
@@ -122,8 +146,39 @@ function OverviewPage() {
     {
       id: 'availability',
       header: 'Estado de disponibilidad',
-      accessor: () => 'No informado por el servicio',
-      cellClassName: 'text-med-text-sub',
+      render: (doctor) => {
+        const availability = {
+          configured: {
+            label: 'Configurada',
+            className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          },
+          unconfigured: {
+            label: 'Sin horarios',
+            className: 'border-gray-200 bg-gray-100 text-gray-600',
+          },
+          error: {
+            label: 'No se pudo consultar',
+            className: 'border-amber-200 bg-amber-50 text-amber-700',
+          },
+        }[doctor.availabilityStatus];
+
+        return (
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${availability.className}`}
+          >
+            {availability.label}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const rowActions = [
+    {
+      id: 'details',
+      label: (doctor) => `Ver detalle de ${doctor.name}`,
+      icon: ICONS.eye,
+      onClick: () => navigate(ROUTES.adminDoctors),
     },
   ];
 
@@ -144,13 +199,17 @@ function OverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button className="inline-flex items-center gap-2">
+          <Button
+            className="inline-flex items-center gap-2"
+            onClick={() => navigate(ROUTES.adminDoctorCreate)}
+          >
             <Icon icon={ICONS.add} size={18} />
             Agregar Nuevo Doctor
           </Button>
           <Button
             variant="secondary"
             className="inline-flex items-center gap-2"
+            onClick={() => navigate(ROUTES.adminSpecialtyCreate)}
           >
             <Icon icon={ICONS.hospital} size={18} />
             Agregar Nueva Especialidad
@@ -216,6 +275,7 @@ function OverviewPage() {
           </div>
         }
         columns={columns}
+        rowActions={rowActions}
         rows={doctorsPage.data}
         isLoading={doctorsLoading}
         loadingMessage="Cargando profesionales…"
