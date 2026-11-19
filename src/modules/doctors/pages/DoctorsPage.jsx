@@ -8,16 +8,13 @@ import Input from '../../shared/components/Input';
 import Select from '../../shared/components/Select';
 import Icon from '../../shared/components/Icon';
 import StatusBadge from '../../shared/components/StatusBadge';
+import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
-import {
-  confirmAction,
-  showError,
-  showSuccess,
-} from '../../shared/notifications/notifications';
+import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
-import { deleteDoctor, getDoctorsPage } from '../services/doctorsService';
+import { getDoctorsPage, setDoctorStatus } from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 function DoctorsPage() {
@@ -116,26 +113,21 @@ function DoctorsPage() {
     setPageIndex(1);
   };
 
-  const handleDeactivate = async (doctor) => {
-    const confirmed = await confirmAction(
-      `¿Está seguro de que desea desactivar al profesional "${doctor.name}"?`
-    );
-
-    if (!confirmed) return;
+  const handleToggleStatus = async (doctor) => {
+    const currentlyActive = doctor.isActive !== false;
+    const actionVerb = currentlyActive ? 'desactivar' : 'activar';
 
     setUpdatingId(doctor.id);
 
     try {
-      const { error: deleteError } = await deleteDoctor(doctor.id);
-
-      if (deleteError) {
-        showError(deleteError.message);
-
-        return;
-      }
-
-      showSuccess(`Profesional "${doctor.name}" desactivado correctamente.`);
-      setRequestKey((key) => key + 1);
+      await toggleEntityStatus({
+        currentlyActive,
+        confirmMessage: `¿Está seguro de que desea ${actionVerb} al profesional "${doctor.name}"?`,
+        activatedMessage: `Profesional "${doctor.name}" reactivado exitosamente.`,
+        deactivatedMessage: `Profesional "${doctor.name}" desactivado correctamente.`,
+        onToggle: (nextActive) => setDoctorStatus(doctor.id, nextActive),
+        onSuccess: () => setRequestKey((key) => key + 1),
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -205,13 +197,20 @@ function DoctorsPage() {
         }),
     },
     {
-      id: 'deactivate',
-      label: (row) => `Desactivar ${row.name}`,
-      isVisible: (row) => row.isActive !== false,
+      id: 'toggleStatus',
+      label: (row) =>
+        row.isActive !== false
+          ? `Desactivar ${row.name}`
+          : `Activar ${row.name}`,
       isDisabled: (row) => isLoading || updatingId === row.id,
-      icon: ICONS.delete,
-      variant: 'danger',
-      onClick: handleDeactivate,
+      render: (row, { disabled, label }) => (
+        <ToggleSwitch
+          checked={row.isActive !== false}
+          onChange={() => handleToggleStatus(row)}
+          disabled={disabled}
+          label={label}
+        />
+      ),
     },
   ];
 
