@@ -46,41 +46,15 @@ function fireNotification(config) {
     : toastNotification.fire(config);
 }
 
-function showSuccess(message, options = {}) {
-  return fireNotification({
-    icon: 'success',
-    title: 'Operación completada',
-    ...options,
-    text: message,
-  });
+function createNotifier(icon, title) {
+  return (message, options = {}) =>
+    fireNotification({ icon, title, ...options, text: message });
 }
 
-function showError(message, options = {}) {
-  return fireNotification({
-    icon: 'error',
-    title: 'No se pudo completar la operación',
-    ...options,
-    text: message,
-  });
-}
-
-function showWarning(message, options = {}) {
-  return fireNotification({
-    icon: 'warning',
-    title: 'Atención',
-    ...options,
-    text: message,
-  });
-}
-
-function showInfo(message, options = {}) {
-  return fireNotification({
-    icon: 'info',
-    title: 'Información',
-    ...options,
-    text: message,
-  });
-}
+const showSuccess = createNotifier('success', 'Operación completada');
+const showError = createNotifier('error', 'No se pudo completar la operación');
+const showWarning = createNotifier('warning', 'Atención');
+const showInfo = createNotifier('info', 'Información');
 
 async function confirmAction(message, options = {}) {
   const result = await Swal.fire({
