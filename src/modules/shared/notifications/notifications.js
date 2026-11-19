@@ -12,10 +12,6 @@ const baseNotificationConfig = {
     htmlContainer: 'text-sm text-med-text-sub',
     timerProgressBar: 'bg-med-primary-600',
   },
-  didOpen: (popup) => {
-    popup.addEventListener('mouseenter', Swal.stopTimer);
-    popup.addEventListener('mouseleave', Swal.resumeTimer);
-  },
 };
 
 const toastNotification = Swal.mixin({
@@ -23,6 +19,10 @@ const toastNotification = Swal.mixin({
   toast: true,
   position: 'top-end',
   timer: 4500,
+  didOpen: (popup) => {
+    popup.addEventListener('mouseenter', Swal.stopTimer);
+    popup.addEventListener('mouseleave', Swal.resumeTimer);
+  },
 });
 
 const mobileNotification = Swal.mixin({
