@@ -1,9 +1,9 @@
 import 'sweetalert2/dist/sweetalert2.min.css';
 import Swal from 'sweetalert2';
 
-const notification = Swal.mixin({
-  toast: true,
-  position: 'top-end',
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)';
+
+const baseNotificationConfig = {
   showConfirmButton: false,
   timer: 4500,
   timerProgressBar: true,
@@ -13,47 +13,47 @@ const notification = Swal.mixin({
     htmlContainer: 'text-sm text-med-text-sub',
     timerProgressBar: 'bg-med-primary-600',
   },
-  didOpen: (toast) => {
-    toast.addEventListener('mouseenter', Swal.stopTimer);
-    toast.addEventListener('mouseleave', Swal.resumeTimer);
+};
+
+const toastNotification = Swal.mixin({
+  ...baseNotificationConfig,
+  toast: true,
+  position: 'top-end',
+  didOpen: (popup) => {
+    popup.addEventListener('mouseenter', Swal.stopTimer);
+    popup.addEventListener('mouseleave', Swal.resumeTimer);
   },
 });
 
-function showSuccess(message, options = {}) {
-  return notification.fire({
-    icon: 'success',
-    title: 'Operación completada',
-    ...options,
-    text: message,
-  });
+const mobileNotification = Swal.mixin({
+  ...baseNotificationConfig,
+  toast: false,
+  position: 'center',
+});
+
+function isMobileViewport() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches
+  );
 }
 
-function showError(message, options = {}) {
-  return notification.fire({
-    icon: 'error',
-    title: 'No se pudo completar la operación',
-    ...options,
-    text: message,
-  });
+function fireNotification(config) {
+  return isMobileViewport()
+    ? mobileNotification.fire(config)
+    : toastNotification.fire(config);
 }
 
-function showWarning(message, options = {}) {
-  return notification.fire({
-    icon: 'warning',
-    title: 'Atención',
-    ...options,
-    text: message,
-  });
+function createNotifier(icon, title) {
+  return (message, options = {}) =>
+    fireNotification({ icon, title, ...options, text: message });
 }
 
-function showInfo(message, options = {}) {
-  return notification.fire({
-    icon: 'info',
-    title: 'Información',
-    ...options,
-    text: message,
-  });
-}
+const showSuccess = createNotifier('success', 'Operación completada');
+const showError = createNotifier('error', 'No se pudo completar la operación');
+const showWarning = createNotifier('warning', 'Atención');
+const showInfo = createNotifier('info', 'Información');
 
 async function confirmAction(message, options = {}) {
   const result = await Swal.fire({
