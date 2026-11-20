@@ -12,9 +12,18 @@ import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
+import {
+  confirmAction,
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import { getSpecialties } from '../../specialties/services/specialtiesService';
-import { getDoctorsPage, setDoctorStatus } from '../services/doctorsService';
+import {
+  deleteDoctor,
+  getDoctorsPage,
+  setDoctorStatus,
+} from '../services/doctorsService';
 import { getDoctorInitials } from '../utils/doctorInitials';
 
 function DoctorsPage() {
@@ -133,6 +142,35 @@ function DoctorsPage() {
     }
   };
 
+  const handleDelete = async (doctor) => {
+    const confirmed = await confirmAction(
+      `¿Está seguro de que desea eliminar al profesional "${doctor.name}"? Esta baja lógica lo quitará del sistema.`,
+      {
+        title: 'Eliminar profesional',
+        confirmButtonText: 'Sí, eliminar',
+      }
+    );
+
+    if (!confirmed) return;
+
+    setUpdatingId(doctor.id);
+
+    try {
+      const { error: deleteError } = await deleteDoctor(doctor.id);
+
+      if (deleteError) {
+        showError(deleteError.message);
+
+        return;
+      }
+
+      showSuccess(`Profesional "${doctor.name}" eliminado del sistema.`);
+      setRequestKey((key) => key + 1);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const columns = [
     {
       id: 'doctor',
@@ -211,6 +249,14 @@ function DoctorsPage() {
           label={label}
         />
       ),
+    },
+    {
+      id: 'delete',
+      label: (row) => `Eliminar ${row.name}`,
+      icon: ICONS.delete,
+      className: 'text-red-600 hover:bg-red-50 hover:text-red-700',
+      isDisabled: (row) => isLoading || updatingId === row.id,
+      onClick: (row) => handleDelete(row),
     },
   ];
 
