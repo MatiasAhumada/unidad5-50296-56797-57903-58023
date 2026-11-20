@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import {
   Link,
   useLocation,
@@ -34,18 +35,24 @@ function DoctorFormPage() {
 
   const initialDoctor = location.state?.doctor;
 
-  const [formData, setFormData] = useState({
-    name: initialDoctor?.name || '',
-    licenseNumber: initialDoctor?.licenseNumber || '',
-    specialtyId: initialDoctor?.specialty?.id || '',
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      name: initialDoctor?.name || '',
+      licenseNumber: initialDoctor?.licenseNumber || '',
+      specialtyId: initialDoctor?.specialty?.id || '',
+    },
   });
 
   const isSubmittingRef = useRef(false);
   const [specialties, setSpecialties] = useState([]);
   const [specialtiesLoading, setSpecialtiesLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
@@ -95,7 +102,7 @@ function DoctorFormPage() {
         const found = data?.find((d) => String(d.id) === String(doctorId));
 
         if (found) {
-          setFormData({
+          reset({
             name: found.name || '',
             licenseNumber: found.licenseNumber || '',
             specialtyId: found.specialty?.id || '',
@@ -116,59 +123,18 @@ function DoctorFormPage() {
       });
 
     return () => controller.abort();
-  }, [doctorId, isEdit, location.state]);
+  }, [doctorId, isEdit, location.state, reset]);
 
-  const handleFieldChange = (field) => (event) => {
-    const value = event.target.value;
-
-    setFormData((prev) => ({ ...prev, [field]: value }));
-
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const validate = () => {
-    const errors = {};
-    const trimmedName = formData.name.trim();
-    const trimmedLicense = formData.licenseNumber.trim();
-
-    if (!trimmedName) {
-      errors.name = 'El nombre del profesional es obligatorio.';
-    } else if (trimmedName.length < 3 || trimmedName.length > 100) {
-      errors.name = 'El nombre debe tener entre 3 y 100 caracteres.';
-    }
-
-    if (!trimmedLicense) {
-      errors.licenseNumber = 'La matrícula profesional es obligatoria.';
-    } else if (trimmedLicense.length < 2 || trimmedLicense.length > 50) {
-      errors.licenseNumber = 'La matrícula debe tener entre 2 y 50 caracteres.';
-    }
-
-    if (!formData.specialtyId) {
-      errors.specialtyId = 'Debe seleccionar una especialidad médica.';
-    }
-
-    setFormErrors(errors);
-
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (isSubmitting || isSubmittingRef.current) return;
-
-    if (!validate()) return;
+  const onValid = async (values) => {
+    if (isSubmittingRef.current) return;
 
     isSubmittingRef.current = true;
-    setIsSubmitting(true);
     setApiError('');
 
     const payload = {
-      name: formData.name.trim(),
-      licenseNumber: formData.licenseNumber.trim(),
-      specialtyId: formData.specialtyId,
+      name: values.name.trim(),
+      licenseNumber: values.licenseNumber.trim(),
+      specialtyId: values.specialtyId,
     };
 
     try {
@@ -192,9 +158,12 @@ function DoctorFormPage() {
       navigate(ROUTES.adminDoctors);
     } finally {
       isSubmittingRef.current = false;
-      setIsSubmitting(false);
     }
   };
+
+  const watchedName = watch('name', '');
+  const watchedLicenseNumber = watch('licenseNumber', '');
+  const watchedSpecialtyId = watch('specialtyId', '');
 
   const specialtyOptions = [
     {
@@ -210,7 +179,7 @@ function DoctorFormPage() {
   ];
 
   const selectedSpecialtyName =
-    specialties.find((s) => s.id === formData.specialtyId)?.name ||
+    specialties.find((s) => s.id === watchedSpecialtyId)?.name ||
     'Sin especialidad asignada';
 
   return (
@@ -249,7 +218,11 @@ function DoctorFormPage() {
             Cargando datos del profesional…
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleSubmit(onValid)}
+            noValidate
+            className="flex flex-col gap-6"
+          >
             {apiError && (
               <div
                 className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200"
@@ -262,15 +235,15 @@ function DoctorFormPage() {
             {/* Vista previa del perfil */}
             <div className="flex items-center gap-4 rounded-xl bg-med-primary-50/60 px-4 py-3 border border-med-primary-100">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-med-primary-700 text-sm font-bold text-white shadow-sm">
-                {getDoctorInitials(formData.name)}
+                {getDoctorInitials(watchedName)}
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-med-primary-900 truncate">
-                  {formData.name.trim() || 'Nombre del profesional'}
+                  {watchedName.trim() || 'Nombre del profesional'}
                 </p>
                 <p className="text-xs text-med-text-sub truncate">
-                  {formData.licenseNumber.trim()
-                    ? `Matrícula: ${formData.licenseNumber.trim()}`
+                  {watchedLicenseNumber.trim()
+                    ? `Matrícula: ${watchedLicenseNumber.trim()}`
                     : 'Sin matrícula ingresada'}{' '}
                   · {selectedSpecialtyName}
                 </p>
@@ -281,17 +254,30 @@ function DoctorFormPage() {
               <FormField
                 id="doctor-name"
                 label="Nombre Completo"
-                error={formErrors.name}
+                error={errors.name?.message}
                 className="sm:col-span-2"
                 required
               >
                 {(fieldProps) => (
                   <Input
                     {...fieldProps}
-                    value={formData.name}
-                    onChange={handleFieldChange('name')}
+                    {...register('name', {
+                      validate: {
+                        required: (value) =>
+                          value.trim().length > 0 ||
+                          'El nombre del profesional es obligatorio.',
+                        length: (value) => {
+                          const length = value.trim().length;
+
+                          return (
+                            (length >= 3 && length <= 100) ||
+                            'El nombre debe tener entre 3 y 100 caracteres.'
+                          );
+                        },
+                      },
+                    })}
                     placeholder="Ej. Dra. María González"
-                    error={Boolean(formErrors.name)}
+                    error={Boolean(errors.name)}
                     className="py-2.5 px-3 text-sm"
                   />
                 )}
@@ -300,16 +286,29 @@ function DoctorFormPage() {
               <FormField
                 id="doctor-license"
                 label="Matrícula Profesional"
-                error={formErrors.licenseNumber}
+                error={errors.licenseNumber?.message}
                 required
               >
                 {(fieldProps) => (
                   <Input
                     {...fieldProps}
-                    value={formData.licenseNumber}
-                    onChange={handleFieldChange('licenseNumber')}
+                    {...register('licenseNumber', {
+                      validate: {
+                        required: (value) =>
+                          value.trim().length > 0 ||
+                          'La matrícula profesional es obligatoria.',
+                        length: (value) => {
+                          const length = value.trim().length;
+
+                          return (
+                            (length >= 2 && length <= 50) ||
+                            'La matrícula debe tener entre 2 y 50 caracteres.'
+                          );
+                        },
+                      },
+                    })}
                     placeholder="Ej. MP-45821"
-                    error={Boolean(formErrors.licenseNumber)}
+                    error={Boolean(errors.licenseNumber)}
                     className="py-2.5 px-3 text-sm"
                   />
                 )}
@@ -318,17 +317,18 @@ function DoctorFormPage() {
               <FormField
                 id="doctor-specialty"
                 label="Especialidad Médica"
-                error={formErrors.specialtyId}
+                error={errors.specialtyId?.message}
                 required
               >
                 {(fieldProps) => (
                   <Select
                     {...fieldProps}
-                    value={formData.specialtyId}
-                    onChange={handleFieldChange('specialtyId')}
+                    {...register('specialtyId', {
+                      required: 'Debe seleccionar una especialidad médica.',
+                    })}
                     options={specialtyOptions}
                     disabled={specialtiesLoading}
-                    error={Boolean(formErrors.specialtyId)}
+                    error={Boolean(errors.specialtyId)}
                   />
                 )}
               </FormField>

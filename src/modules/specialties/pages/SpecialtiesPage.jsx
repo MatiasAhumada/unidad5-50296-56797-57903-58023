@@ -11,8 +11,14 @@ import ToggleSwitch from '../../shared/components/ToggleSwitch';
 import { ICONS } from '../../shared/constants/icons';
 import { ROUTES } from '../../shared/constants/appConstants';
 import { toggleEntityStatus } from '../../shared/helpers/toggleEntityStatus';
+import {
+  confirmAction,
+  showError,
+  showSuccess,
+} from '../../shared/notifications/notifications';
 import useNotificationError from '../../shared/notifications/useNotificationError';
 import {
+  deleteSpecialty,
   getSpecialtiesPage,
   getSpecialtyMetrics,
   setSpecialtyStatus,
@@ -132,6 +138,36 @@ function SpecialtiesPage() {
     }
   };
 
+  const handleDelete = async (specialty) => {
+    const confirmed = await confirmAction(
+      `¿Está seguro de que desea eliminar la especialidad "${specialty.name}"? Esta baja lógica la quitará del sistema.`,
+      {
+        title: 'Eliminar especialidad',
+        confirmButtonText: 'Sí, eliminar',
+      }
+    );
+
+    if (!confirmed) return;
+
+    setUpdatingId(specialty.id);
+
+    try {
+      const { error: deleteError } = await deleteSpecialty(specialty.id);
+
+      if (deleteError) {
+        showError(deleteError.message);
+
+        return;
+      }
+
+      showSuccess(`Especialidad "${specialty.name}" eliminada del sistema.`);
+      setRequestKey((key) => key + 1);
+      setMetricsRequestKey((key) => key + 1);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const columns = [
     {
       id: 'specialty',
@@ -193,6 +229,14 @@ function SpecialtiesPage() {
           label={label}
         />
       ),
+    },
+    {
+      id: 'delete',
+      label: (row) => `Eliminar ${row.name}`,
+      icon: ICONS.delete,
+      className: 'text-red-600 hover:bg-red-50 hover:text-red-700',
+      isDisabled: (row) => isLoading || updatingId === row.id,
+      onClick: (row) => handleDelete(row),
     },
   ];
 
