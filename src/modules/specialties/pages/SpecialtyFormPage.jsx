@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import {
   Link,
   useLocation,
@@ -32,15 +33,21 @@ function SpecialtyFormPage() {
 
   const initialSpecialty = location.state?.specialty;
 
-  const [formData, setFormData] = useState({
-    name: initialSpecialty?.name || '',
-    description: initialSpecialty?.description || '',
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      name: initialSpecialty?.name || '',
+      description: initialSpecialty?.description || '',
+    },
   });
 
   const isSubmittingRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
   const [apiError, setApiError] = useState('');
 
   // Si se está editando y no vinieron los datos por state, cargarlos por ID
@@ -65,7 +72,7 @@ function SpecialtyFormPage() {
         const found = data?.find((s) => String(s.id) === String(specialtyId));
 
         if (found) {
-          setFormData({
+          reset({
             name: found.name || '',
             description: found.description || '',
           });
@@ -85,45 +92,17 @@ function SpecialtyFormPage() {
       });
 
     return () => controller.abort();
-  }, [isEdit, location.state, specialtyId]);
+  }, [isEdit, location.state, reset, specialtyId]);
 
-  const validate = () => {
-    const errors = {};
-    const trimmedName = formData.name.trim();
-    const trimmedDesc = formData.description.trim();
-
-    if (!trimmedName) {
-      errors.name = 'El nombre de la especialidad es obligatorio.';
-    } else if (trimmedName.length < 3 || trimmedName.length > 100) {
-      errors.name = 'El nombre debe tener entre 3 y 100 caracteres.';
-    }
-
-    if (!trimmedDesc) {
-      errors.description = 'La descripción es obligatoria.';
-    } else if (trimmedDesc.length < 10 || trimmedDesc.length > 100) {
-      errors.description =
-        'La descripción debe tener entre 10 y 100 caracteres.';
-    }
-
-    setFormErrors(errors);
-
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (isSubmitting || isSubmittingRef.current) return;
-
-    if (!validate()) return;
+  const onValid = async (values) => {
+    if (isSubmittingRef.current) return;
 
     isSubmittingRef.current = true;
-    setIsSubmitting(true);
     setApiError('');
 
     const payload = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
+      name: values.name.trim(),
+      description: values.description.trim(),
     };
 
     try {
@@ -147,11 +126,12 @@ function SpecialtyFormPage() {
       navigate(ROUTES.adminSpecialties);
     } finally {
       isSubmittingRef.current = false;
-      setIsSubmitting(false);
     }
   };
 
-  const previewIcon = getSpecialtyIcon({ name: formData.name });
+  const watchedName = watch('name', '');
+  const watchedDescription = watch('description', '');
+  const previewIcon = getSpecialtyIcon({ name: watchedName });
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
@@ -190,7 +170,11 @@ function SpecialtyFormPage() {
             Cargando datos de la especialidad…
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleSubmit(onValid)}
+            noValidate
+            className="flex flex-col gap-6"
+          >
             {apiError && (
               <div
                 className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200"
@@ -204,23 +188,27 @@ function SpecialtyFormPage() {
             <FormField
               id="specialty-name"
               label="Nombre de la Especialidad"
-              error={formErrors.name}
+              error={errors.name?.message}
               required
             >
               {(fieldProps) => (
                 <Input
                   {...fieldProps}
-                  value={formData.name}
-                  onChange={(e) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }));
+                  {...register('name', {
+                    validate: {
+                      required: (value) =>
+                        value.trim().length > 0 ||
+                        'El nombre de la especialidad es obligatorio.',
+                      length: (value) => {
+                        const length = value.trim().length;
 
-                    if (formErrors.name) {
-                      setFormErrors((prev) => ({ ...prev, name: '' }));
-                    }
-                  }}
+                        return (
+                          (length >= 3 && length <= 100) ||
+                          'El nombre debe tener entre 3 y 100 caracteres.'
+                        );
+                      },
+                    },
+                  })}
                   placeholder="Ej. Cardiología Pediátrica"
                   className="py-2.5 px-3 text-sm"
                 />
@@ -231,29 +219,33 @@ function SpecialtyFormPage() {
             <FormField
               id="specialty-description"
               label="Descripción"
-              hint={`${formData.description.length}/100 caracteres`}
-              error={formErrors.description}
+              hint={`${watchedDescription.length}/100 caracteres`}
+              error={errors.description?.message}
               required
             >
               {(fieldProps) => (
                 <textarea
                   {...fieldProps}
                   rows={3}
-                  value={formData.description}
                   maxLength={100}
-                  onChange={(e) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }));
+                  {...register('description', {
+                    validate: {
+                      required: (value) =>
+                        value.trim().length > 0 ||
+                        'La descripción es obligatoria.',
+                      length: (value) => {
+                        const length = value.trim().length;
 
-                    if (formErrors.description) {
-                      setFormErrors((prev) => ({ ...prev, description: '' }));
-                    }
-                  }}
+                        return (
+                          (length >= 10 && length <= 100) ||
+                          'La descripción debe tener entre 10 y 100 caracteres.'
+                        );
+                      },
+                    },
+                  })}
                   placeholder="Breve reseña de las afecciones tratadas y servicios brindados (entre 10 y 100 caracteres)..."
                   className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-med-text-main placeholder:text-med-text-muted focus:border-med-primary-600 focus:outline-none focus:ring-1 focus:ring-med-primary-600 ${
-                    formErrors.description
+                    errors.description
                       ? 'border-red-400 bg-red-50/20'
                       : 'border-med-border'
                   }`}
